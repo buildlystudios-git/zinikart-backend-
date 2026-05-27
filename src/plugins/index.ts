@@ -15,6 +15,7 @@ import { adminOnlyFieldAccess } from '@/access/adminOnlyFieldAccess'
 import { customerOnlyFieldAccess } from '@/access/customerOnlyFieldAccess'
 import { isAdmin } from '@/access/isAdmin'
 import { isDocumentOwner } from '@/access/isDocumentOwner'
+import { openapi, swaggerUI } from 'payload-oapi'
 
 const generateTitle: GenerateTitle<Product | Page> = ({ doc }) => {
   return doc?.title ? `${doc.title} | Payload Ecommerce Template` : 'Payload Ecommerce Template'
@@ -127,5 +128,18 @@ export const plugins: Plugin[] = [
     products: {
       productsCollectionOverride: ProductsCollection,
     },
+  }),
+  openapi({
+    specEndpoint: '/openapi.json',
+    openapiVersion: '3.0',
+    metadata: {
+      title: 'Ecommerce API',
+      version: '1.0.0',
+      description: 'API documentation',
+    },
+  }),
+  swaggerUI({
+    docsUrl: '/docs',
+    specEndpoint: '/openapi.json',
   }),
 ]

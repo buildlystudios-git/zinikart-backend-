@@ -1,0 +1,4 @@
+interface:
+  display_name: "Payload Ecommerce"
+  short_description: "Payload ecommerce plugin and template guidance"
+  default_prompt: "Use the Payload Ecommerce skill to work with @payloadcms/plugin-ecommerce configuration, collections, frontend hooks, carts, payments, Stripe, and template behavior."
