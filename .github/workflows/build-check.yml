@@ -10,21 +10,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_DB: payload
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -43,10 +28,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Setup Mock Env Variables
+      - name: Setup Env Variables
         run: |
-          echo "PAYLOAD_SECRET=8fe073acbaca06cf5474bb7a" >> .env
-          echo "DATABASE_URL=postgres://postgres:postgres@localhost:5432/payload" >> .env
+          echo "PAYLOAD_SECRET=${{ secrets.PAYLOAD_SECRET }}" >> .env
+          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> .env
           echo "NEXT_PUBLIC_SERVER_URL=http://localhost:3000" >> .env
 
       - name: Run TypeScript checks
