@@ -39,6 +39,7 @@ export const Users: CollectionConfig = {
         read: adminOnlyFieldAccess,
         update: adminOnlyFieldAccess,
       },
+      saveToJWT: true,
       defaultValue: ['customer'],
       hasMany: true,
       hooks: {

@@ -144,6 +144,58 @@ export const ProductsCollection: CollectionOverride = ({ defaultCollection }) =>
           fields: [
             ...defaultCollection.fields,
             {
+              name: 'brand',
+              type: 'relationship',
+              relationTo: 'brands',
+              required: false,
+              admin: {
+                position: 'sidebar',
+              },
+            },
+            {
+              name: 'warranty',
+              type: 'text',
+              label: 'Warranty Details',
+              required: false,
+            },
+            {
+              name: 'specifications',
+              type: 'group',
+              label: 'Specifications',
+              fields: [
+                {
+                  name: 'ram',
+                  type: 'text',
+                  label: 'RAM',
+                },
+                {
+                  name: 'storage',
+                  type: 'text',
+                  label: 'Storage',
+                },
+                {
+                  name: 'battery',
+                  type: 'text',
+                  label: 'Battery',
+                },
+                {
+                  name: 'screenSize',
+                  type: 'text',
+                  label: 'Screen Size',
+                },
+                {
+                  name: 'processor',
+                  type: 'text',
+                  label: 'Processor',
+                },
+                {
+                  name: 'camera',
+                  type: 'text',
+                  label: 'Camera',
+                },
+              ],
+            },
+            {
               name: 'relatedProducts',
               type: 'relationship',
               filterOptions: ({ id }) => {

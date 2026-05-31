@@ -78,6 +78,7 @@ export interface Config {
     media: Media;
     retailers: Retailer;
     'delivery-partners': DeliveryPartner;
+    brands: Brand;
     forms: Form;
     'form-submissions': FormSubmission;
     addresses: Address;
@@ -113,6 +114,7 @@ export interface Config {
     media: MediaSelect<false> | MediaSelect<true>;
     retailers: RetailersSelect<false> | RetailersSelect<true>;
     'delivery-partners': DeliveryPartnersSelect<false> | DeliveryPartnersSelect<true>;
+    brands: BrandsSelect<false> | BrandsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     addresses: AddressesSelect<false> | AddressesSelect<true>;
@@ -309,6 +311,16 @@ export interface Product {
   };
   priceInUSDEnabled?: boolean | null;
   priceInUSD?: number | null;
+  brand?: (number | null) | Brand;
+  warranty?: string | null;
+  specifications?: {
+    ram?: string | null;
+    storage?: string | null;
+    battery?: string | null;
+    screenSize?: string | null;
+    processor?: string | null;
+    camera?: string | null;
+  };
   relatedProducts?: (number | Product)[] | null;
   meta?: {
     title?: string | null;
@@ -609,6 +621,7 @@ export interface ArchiveBlock {
 export interface Category {
   id: number;
   title: string;
+  parentCategory?: (number | null) | Category;
   /**
    * When enabled, the slug will auto-generate from the title field on save and autosave.
    */
@@ -906,6 +919,24 @@ export interface Variant {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "brands".
+ */
+export interface Brand {
+  id: number;
+  name: string;
+  logo?: (number | null) | Media;
+  description?: string | null;
+  featured?: boolean | null;
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  slug: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "transactions".
  */
 export interface Transaction {
@@ -1140,6 +1171,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'delivery-partners';
         value: number | DeliveryPartner;
+      } | null)
+    | ({
+        relationTo: 'brands';
+        value: number | Brand;
       } | null)
     | ({
         relationTo: 'forms';
@@ -1431,6 +1466,7 @@ export interface FormBlockSelect<T extends boolean = true> {
  */
 export interface CategoriesSelect<T extends boolean = true> {
   title?: T;
+  parentCategory?: T;
   generateSlug?: T;
   slug?: T;
   updatedAt?: T;
@@ -1500,6 +1536,20 @@ export interface DeliveryPartnersSelect<T extends boolean = true> {
   approvalStatus?: T;
   onlineStatus?: T;
   user?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "brands_select".
+ */
+export interface BrandsSelect<T extends boolean = true> {
+  name?: T;
+  logo?: T;
+  description?: T;
+  featured?: T;
+  generateSlug?: T;
+  slug?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1740,6 +1790,18 @@ export interface ProductsSelect<T extends boolean = true> {
   variants?: T;
   priceInUSDEnabled?: T;
   priceInUSD?: T;
+  brand?: T;
+  warranty?: T;
+  specifications?:
+    | T
+    | {
+        ram?: T;
+        storage?: T;
+        battery?: T;
+        screenSize?: T;
+        processor?: T;
+        camera?: T;
+      };
   relatedProducts?: T;
   meta?:
     | T

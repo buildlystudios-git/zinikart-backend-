@@ -7,6 +7,7 @@ import { ReportManager, apiRequest } from './helpers'
 import { runAuthTests } from './auth'
 import { runRetailerTests } from './retailer'
 import { runDeliveryTests } from './delivery'
+import { runCatalogTests } from './catalog'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -23,11 +24,12 @@ async function main() {
 
   const testMobile = '+919999999999'
   const otherMobile = '+918888888888'
+  const adminMobile = '+917777777777'
 
   // 2. Perform Database Cleanup first to ensure clean state
   console.log('\nCleaning up old test data from database...')
   
-  const cleanMobiles = [testMobile, otherMobile]
+  const cleanMobiles = [testMobile, otherMobile, adminMobile]
   const existingUsers = await payload.find({
     collection: 'users',
     where: {
@@ -72,6 +74,30 @@ async function main() {
     overrideAccess: true,
   })
 
+  // Clean up any mock catalog items from previous runs.
+  // Products must be deleted first because they reference categories and brands.
+  await payload.delete({
+    collection: 'products',
+    where: {
+      title: { equals: 'ZiniPhone 14 Max' },
+    },
+    overrideAccess: true,
+  })
+  await payload.delete({
+    collection: 'categories',
+    where: {
+      title: { in: ['Mobiles', 'Smartphones'] },
+    },
+    overrideAccess: true,
+  })
+  await payload.delete({
+    collection: 'brands',
+    where: {
+      name: { equals: 'ZiniTech' },
+    },
+    overrideAccess: true,
+  })
+
   // 3. Create a second test user locally for security/access control checks
   console.log('\nCreating second test user for access control validation...')
   const otherUser = await payload.create({
@@ -92,6 +118,7 @@ async function main() {
       collection: 'users',
       email: otherUser.email,
       id: otherUser.id,
+      roles: ['customer'],
     },
     secret: payload.secret,
     tokenExpiration: 1209600,
@@ -101,11 +128,37 @@ async function main() {
     throw new Error('Failed to generate JWT token for second user')
   }
 
+  // Create an admin user locally for catalog tests
+  console.log('\nCreating admin test user for catalog tests...')
+  const adminUser = await payload.create({
+    collection: 'users',
+    data: {
+      email: 'admin.user@testing.zinikart.local',
+      mobileNumber: adminMobile,
+      mobileVerified: true,
+      password: 'adminPassword123',
+      roles: ['admin'],
+    } as any,
+    overrideAccess: true,
+  })
+
+  // Log in as admin via standard REST API to obtain a valid authenticated token
+  const adminLoginRes = await apiRequest('/api/users/login', 'POST', {
+    email: 'admin.user@testing.zinikart.local',
+    password: 'adminPassword123',
+  })
+  const adminUserToken = adminLoginRes.body?.token
+
+  if (!adminUserToken) {
+    throw new Error(`Failed to log in admin user: ${JSON.stringify(adminLoginRes.body)}`)
+  }
+
   // 4. Run Test Suites
   try {
     await runAuthTests(report, testMobile)
     await runRetailerTests(report, payload, testMobile, otherUserToken)
     await runDeliveryTests(report, payload, testMobile, otherUserToken)
+    await runCatalogTests(report, payload, adminUserToken, otherUserToken)
   } catch (err) {
     console.error('Test execution error occurred:', err)
   }
@@ -153,6 +206,30 @@ async function main() {
     collection: 'media',
     where: {
       alt: { equals: 'Mock License' },
+    },
+    overrideAccess: true,
+  })
+
+  // Clean up any mock catalog items created during this test run.
+  // Products must be deleted first because they reference categories and brands.
+  await payload.delete({
+    collection: 'products',
+    where: {
+      title: { equals: 'ZiniPhone 14 Max' },
+    },
+    overrideAccess: true,
+  })
+  await payload.delete({
+    collection: 'categories',
+    where: {
+      title: { in: ['Mobiles', 'Smartphones'] },
+    },
+    overrideAccess: true,
+  })
+  await payload.delete({
+    collection: 'brands',
+    where: {
+      name: { equals: 'ZiniTech' },
     },
     overrideAccess: true,
   })

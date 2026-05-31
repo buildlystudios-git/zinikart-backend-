@@ -20,6 +20,7 @@ import { Pages } from '@/collections/Pages'
 import { Users } from '@/collections/Users'
 import { Retailers } from '@/collections/Retailers'
 import { DeliveryPartners } from '@/collections/DeliveryPartners'
+import { Brands } from '@/collections/Brands'
 import { Footer } from '@/globals/Footer'
 import { Header } from '@/globals/Header'
 import { plugins } from './plugins'
@@ -39,7 +40,7 @@ export default buildConfig({
     },
     user: Users.slug,
   },
-  collections: [Users, Pages, Categories, Media, Retailers, DeliveryPartners],
+  collections: [Users, Pages, Categories, Media, Retailers, DeliveryPartners, Brands],
   db: postgresAdapter({
     pool: {
       connectionString: process.env.DATABASE_URL || '',
