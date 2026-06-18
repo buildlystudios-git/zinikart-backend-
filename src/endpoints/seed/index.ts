@@ -2,43 +2,31 @@ import type { CollectionSlug, GlobalSlug, Payload, PayloadRequest, File } from '
 
 import { contactFormData } from './contact-form'
 import { contactPageData } from './contact-page'
-import { productHatData } from './product-hat'
-import { productTshirtData, productTshirtVariant } from './product-tshirt'
+import { productHeadphonesData } from './product-headphones'
+import { productSmartphoneData, productSmartphoneVariant } from './product-smartphone'
+import { productCameraData } from './product-camera'
 import { homePageData } from './home'
-import { imageHatData } from './image-hat'
-import { imageTshirtBlackData } from './image-tshirt-black'
-import { imageTshirtWhiteData } from './image-tshirt-white'
+import { headphonesMediaData, smartphoneBlackMediaData, smartphoneWhiteMediaData } from './media-metadata'
 import { imageHero1Data } from './image-hero-1'
 import { Address, Transaction, VariantOption } from '@/payload-types'
 
 const collections: CollectionSlug[] = [
-  'categories',
-  'media',
-  'pages',
-  'products',
-  'forms',
-  'form-submissions',
-  'variants',
-  'variantOptions',
-  'variantTypes',
+  'orders',
   'carts',
   'transactions',
   'addresses',
-  'orders',
-]
-
-const categories = ['Accessories', 'T-Shirts', 'Hats']
-
-const sizeVariantOptions = [
-  { label: 'Small', value: 'small' },
-  { label: 'Medium', value: 'medium' },
-  { label: 'Large', value: 'large' },
-  { label: 'X Large', value: 'xlarge' },
-]
-
-const colorVariantOptions = [
-  { label: 'Black', value: 'black' },
-  { label: 'White', value: 'white' },
+  'delivery-partners',
+  'retailers',
+  'variants',
+  'products',
+  'variantOptions',
+  'variantTypes',
+  'pages',
+  'forms',
+  'form-submissions',
+  'categories',
+  'brands',
+  'media',
 ]
 
 const globals: GlobalSlug[] = ['header', 'footer']
@@ -117,7 +105,7 @@ export const seed = async ({
     depth: 0,
     where: {
       email: {
-        equals: 'customer@example.com',
+        in: ['customer@example.com', 'retailer@example.com', 'delivery@example.com'],
       },
     },
   })
@@ -142,13 +130,18 @@ export const seed = async ({
 
   const [
     customer,
+    retailerUser,
+    deliveryPartnerUser,
     imageHat,
     imageTshirtBlack,
     imageTshirtWhite,
     imageHero,
-    accessoriesCategory,
-    tshirtsCategory,
-    hatsCategory,
+    mobileCategory,
+    cameraCategory,
+    headphonesCategory,
+    appleBrand,
+    samsungBrand,
+    sonyBrand,
   ] = await Promise.all([
     payload.create({
       collection: 'users',
@@ -160,18 +153,36 @@ export const seed = async ({
       },
     }),
     payload.create({
+      collection: 'users',
+      data: {
+        name: 'Retailer User',
+        email: 'retailer@example.com',
+        password: 'password',
+        roles: ['customer'],
+      },
+    }),
+    payload.create({
+      collection: 'users',
+      data: {
+        name: 'Delivery Partner User',
+        email: 'delivery@example.com',
+        password: 'password',
+        roles: ['customer'],
+      },
+    }),
+    payload.create({
       collection: 'media',
-      data: imageHatData,
+      data: headphonesMediaData,
       file: imageHatBuffer,
     }),
     payload.create({
       collection: 'media',
-      data: imageTshirtBlackData,
+      data: smartphoneBlackMediaData,
       file: imageTshirtBlackBuffer,
     }),
     payload.create({
       collection: 'media',
-      data: imageTshirtWhiteData,
+      data: smartphoneWhiteMediaData,
       file: imageTshirtWhiteBuffer,
     }),
     payload.create({
@@ -179,129 +190,344 @@ export const seed = async ({
       data: imageHero1Data,
       file: heroBuffer,
     }),
-    ...categories.map((category) =>
-      payload.create({
-        collection: 'categories',
-        data: {
-          title: category,
-          slug: category,
-        },
-      }),
-    ),
+    payload.create({
+      collection: 'categories',
+      data: {
+        title: 'Mobile',
+        slug: 'mobile',
+        specificationTemplates: [
+          { name: 'RAM', type: 'number', required: true },
+          { name: 'Storage', type: 'select', options: [{ option: '128GB' }, { option: '256GB' }], required: true },
+          { name: 'Release Date', type: 'date', required: false },
+        ],
+      },
+    }),
+    payload.create({
+      collection: 'categories',
+      data: {
+        title: 'Camera',
+        slug: 'camera',
+        specificationTemplates: [
+          { name: 'Megapixels', type: 'number', required: true },
+          { name: 'Sensor Type', type: 'text', required: false },
+        ],
+      },
+    }),
+    payload.create({
+      collection: 'categories',
+      data: {
+        title: 'Headphones',
+        slug: 'headphones',
+        specificationTemplates: [
+          { name: 'Type', type: 'select', options: [{ option: 'In-Ear' }, { option: 'Over-Ear' }], required: true },
+          { name: 'Wireless', type: 'select', options: [{ option: 'Yes' }, { option: 'No' }], required: true },
+        ],
+      },
+    }),
+    payload.create({
+      collection: 'brands',
+      data: {
+        name: 'Apple',
+        description: 'Apple Inc. official brand.',
+        featured: true,
+      },
+    }),
+    payload.create({
+      collection: 'brands',
+      data: {
+        name: 'Samsung',
+        description: 'Samsung Electronics official brand.',
+        featured: true,
+      },
+    }),
+    payload.create({
+      collection: 'brands',
+      data: {
+        name: 'Sony',
+        description: 'Sony Corporation official brand.',
+        featured: true,
+      },
+    }),
   ])
 
   payload.logger.info(`— Seeding variant types and options...`)
 
-  const sizeVariantType = await payload.create({
+  const storageType = await payload.create({
     collection: 'variantTypes',
-    data: {
-      name: 'size',
-      label: 'Size',
-    },
+    data: { name: 'storage', label: 'Storage' },
+  })
+  const colorType = await payload.create({
+    collection: 'variantTypes',
+    data: { name: 'color', label: 'Color' },
+  })
+  const kitType = await payload.create({
+    collection: 'variantTypes',
+    data: { name: 'kit', label: 'Lens Kit' },
   })
 
-  const sizeVariantOptionsResults: VariantOption[] = []
-
-  for (const option of sizeVariantOptions) {
-    const result = await payload.create({
-      collection: 'variantOptions',
-      data: {
-        ...option,
-        variantType: sizeVariantType.id,
-      },
-    })
-    sizeVariantOptionsResults.push(result)
-  }
-
-  const [small, medium, large, xlarge] = sizeVariantOptionsResults
-
-  const colorVariantType = await payload.create({
-    collection: 'variantTypes',
-    data: {
-      name: 'color',
-      label: 'Color',
-    },
+  const opt128GB = await payload.create({
+    collection: 'variantOptions',
+    data: { label: '128GB', value: '128gb', variantType: storageType.id },
+  })
+  const opt256GB = await payload.create({
+    collection: 'variantOptions',
+    data: { label: '256GB', value: '256gb', variantType: storageType.id },
+  })
+  const opt512GB = await payload.create({
+    collection: 'variantOptions',
+    data: { label: '512GB', value: '512gb', variantType: storageType.id },
   })
 
-  const [black, white] = await Promise.all(
-    colorVariantOptions.map((option) => {
-      return payload.create({
-        collection: 'variantOptions',
-        data: {
-          ...option,
-          variantType: colorVariantType.id,
-        },
-      })
-    }),
-  )
+  const optBlack = await payload.create({
+    collection: 'variantOptions',
+    data: { label: 'Black', value: 'black', variantType: colorType.id },
+  })
+  const optWhite = await payload.create({
+    collection: 'variantOptions',
+    data: { label: 'White', value: 'white', variantType: colorType.id },
+  })
+  const optGold = await payload.create({
+    collection: 'variantOptions',
+    data: { label: 'Gold', value: 'gold', variantType: colorType.id },
+  })
+  const optSilver = await payload.create({
+    collection: 'variantOptions',
+    data: { label: 'Silver', value: 'silver', variantType: colorType.id },
+  })
+  const optBlue = await payload.create({
+    collection: 'variantOptions',
+    data: { label: 'Blue', value: 'blue', variantType: colorType.id },
+  })
+
+  const optBodyOnly = await payload.create({
+    collection: 'variantOptions',
+    data: { label: 'Body Only', value: 'body-only', variantType: kitType.id },
+  })
+  const optLensKit2870 = await payload.create({
+    collection: 'variantOptions',
+    data: { label: '28-70mm Lens Kit', value: '28-70mm', variantType: kitType.id },
+  })
+  const optLensKit50 = await payload.create({
+    collection: 'variantOptions',
+    data: { label: '50mm Prime Lens Kit', value: '50mm-prime', variantType: kitType.id },
+  })
 
   payload.logger.info(`— Seeding products...`)
 
-  const productHat = await payload.create({
+  const productHeadphones = await payload.create({
     collection: 'products',
     depth: 0,
-    data: productHatData({
-      galleryImage: imageHat,
-      metaImage: imageHat,
-      variantTypes: [colorVariantType],
-      categories: [hatsCategory],
-      relatedProducts: [],
-    }),
+    data: {
+      ...productHeadphonesData({
+        galleryImage: imageHat,
+        metaImage: imageHat,
+        variantTypes: [colorType],
+        categories: [headphonesCategory],
+        relatedProducts: [],
+      }),
+      brand: sonyBrand.id,
+    },
   })
 
-  const productTshirt = await payload.create({
+  const productSmartphone = await payload.create({
     collection: 'products',
     depth: 0,
-    data: productTshirtData({
-      galleryImages: [
-        { image: imageTshirtBlack, variantOption: black },
-        { image: imageTshirtWhite, variantOption: white },
-      ],
-      metaImage: imageTshirtBlack,
-      contentImage: imageHero,
-      variantTypes: [colorVariantType, sizeVariantType],
-      categories: [tshirtsCategory],
-      relatedProducts: [productHat],
-    }),
+    data: {
+      ...productSmartphoneData({
+        galleryImages: [
+          { image: imageTshirtBlack, variantOption: optBlack },
+          { image: imageTshirtWhite, variantOption: optWhite },
+        ],
+        metaImage: imageTshirtBlack,
+        variantTypes: [colorType, storageType],
+        categories: [mobileCategory],
+        relatedProducts: [productHeadphones],
+      }),
+      brand: appleBrand.id,
+    },
   })
 
-  let hoodieID: number | string = productTshirt.id
+  const productCamera = await payload.create({
+    collection: 'products',
+    depth: 0,
+    data: {
+      ...productCameraData({
+        galleryImage: imageHat,
+        categories: [cameraCategory],
+        variantTypes: [kitType],
+        relatedProducts: [],
+      }),
+      brand: sonyBrand.id,
+    },
+  })
+
+  let hoodieID: number | string = productSmartphone.id
 
   if (payload.db.defaultIDType === 'text') {
     hoodieID = `"${hoodieID}"`
   }
 
+  // Seeding 3 variants for each product
+  // 1. Smartphone Variants
   const [
-    smallTshirtHoodieVariant,
-    mediumTshirtHoodieVariant,
-    largeTshirtHoodieVariant,
-    xlargeTshirtHoodieVariant,
-  ] = await Promise.all(
-    [small, medium, large, xlarge].map((variantOption) =>
-      payload.create({
-        collection: 'variants',
-        depth: 0,
-        data: productTshirtVariant({
-          product: productTshirt,
-          variantOptions: [variantOption, white],
-        }),
+    smartphoneVar1,
+    smartphoneVar2,
+    smartphoneVar3,
+  ] = await Promise.all([
+    payload.create({
+      collection: 'variants',
+      depth: 0,
+      data: productSmartphoneVariant({
+        product: productSmartphone,
+        variantOptions: [optBlack, opt128GB],
+        inventory: 10,
+        priceInUSD: 99900,
       }),
-    ),
-  )
+    }),
+    payload.create({
+      collection: 'variants',
+      depth: 0,
+      data: productSmartphoneVariant({
+        product: productSmartphone,
+        variantOptions: [optWhite, opt256GB],
+        inventory: 15,
+        priceInUSD: 109900,
+      }),
+    }),
+    payload.create({
+      collection: 'variants',
+      depth: 0,
+      data: productSmartphoneVariant({
+        product: productSmartphone,
+        variantOptions: [optGold, opt512GB],
+        inventory: 5,
+        priceInUSD: 124900,
+      }),
+    }),
+  ])
 
-  await Promise.all(
-    [small, medium, large, xlarge].map((variantOption) =>
-      payload.create({
-        collection: 'variants',
-        depth: 0,
-        data: productTshirtVariant({
-          product: productTshirt,
-          variantOptions: [variantOption, black],
-          ...(variantOption.value === 'medium' ? { inventory: 0 } : {}),
-        }),
+  // 2. Headphones Variants
+  const [
+    headphonesVar1,
+    headphonesVar2,
+    headphonesVar3,
+  ] = await Promise.all([
+    payload.create({
+      collection: 'variants',
+      depth: 0,
+      data: productSmartphoneVariant({
+        product: productHeadphones,
+        variantOptions: [optBlack],
+        inventory: 20,
+        priceInUSD: 14900,
       }),
-    ),
-  )
+    }),
+    payload.create({
+      collection: 'variants',
+      depth: 0,
+      data: productSmartphoneVariant({
+        product: productHeadphones,
+        variantOptions: [optSilver],
+        inventory: 25,
+        priceInUSD: 14900,
+      }),
+    }),
+    payload.create({
+      collection: 'variants',
+      depth: 0,
+      data: productSmartphoneVariant({
+        product: productHeadphones,
+        variantOptions: [optBlue],
+        inventory: 15,
+        priceInUSD: 16900,
+      }),
+    }),
+  ])
+
+  // 3. Camera Variants
+  const [
+    cameraVar1,
+    cameraVar2,
+    cameraVar3,
+  ] = await Promise.all([
+    payload.create({
+      collection: 'variants',
+      depth: 0,
+      data: productSmartphoneVariant({
+        product: productCamera,
+        variantOptions: [optBodyOnly],
+        inventory: 8,
+        priceInUSD: 119900,
+      }),
+    }),
+    payload.create({
+      collection: 'variants',
+      depth: 0,
+      data: productSmartphoneVariant({
+        product: productCamera,
+        variantOptions: [optLensKit2870],
+        inventory: 12,
+        priceInUSD: 139900,
+      }),
+    }),
+    payload.create({
+      collection: 'variants',
+      depth: 0,
+      data: productSmartphoneVariant({
+        product: productCamera,
+        variantOptions: [optLensKit50],
+        inventory: 5,
+        priceInUSD: 149900,
+      }),
+    }),
+  ])
+
+  payload.logger.info(`— Seeding retailer and delivery partner profiles...`)
+
+  const retailerProfile = await payload.create({
+    collection: 'retailers',
+    data: {
+      shopName: 'ZiniTech Shop',
+      ownerName: 'Madhav G',
+      mobileNumber: '+919999999990',
+      emailId: 'retailer@example.com',
+      gstNumber: '07AAAAA1111A1Z1',
+      images: [imageHat.id],
+      shopAddress: {
+        street: '123 Retailer Lane',
+        city: 'New Delhi',
+        state: 'Delhi',
+        zipCode: '110001',
+      },
+      bankDetails: {
+        accountHolderName: 'Madhav G',
+        accountNumber: '1234567890',
+        ifscCode: 'UTIB0000001',
+        bankName: 'Axis Bank',
+      },
+      businessHours: {
+        startTime: '09:00',
+        endTime: '21:00',
+        openEveryday: true,
+      },
+      approvalStatus: 'approved',
+      user: retailerUser.id,
+    },
+  })
+
+  const deliveryProfile = await payload.create({
+    collection: 'delivery-partners',
+    data: {
+      fullName: 'Rider Ramesh',
+      mobileNumber: '+918888888880',
+      email: 'delivery@example.com',
+      drivingLicense: imageHat.id,
+      vehicleType: 'bike',
+      approvalStatus: 'approved',
+      onlineStatus: true,
+      user: deliveryPartnerUser.id,
+    },
+  })
 
   payload.logger.info(`— Seeding contact form...`)
 
@@ -317,6 +543,9 @@ export const seed = async ({
     payload.create({
       collection: 'pages',
       depth: 0,
+      context: {
+        disableRevalidate: true,
+      },
       data: homePageData({
         contentImage: imageHero,
         metaImage: imageHat,
@@ -325,6 +554,9 @@ export const seed = async ({
     payload.create({
       collection: 'pages',
       depth: 0,
+      context: {
+        disableRevalidate: true,
+      },
       data: contactPageData({
         contactForm: contactForm,
       }),
@@ -399,8 +631,8 @@ export const seed = async ({
       currency: 'USD',
       items: [
         {
-          product: productTshirt.id,
-          variant: mediumTshirtHoodieVariant.id,
+          product: productSmartphone.id,
+          variant: smartphoneVar2.id,
           quantity: 1,
         },
       ],
@@ -417,7 +649,8 @@ export const seed = async ({
       createdAt: oldTimestamp,
       items: [
         {
-          product: productHat.id,
+          product: productHeadphones.id,
+          variant: headphonesVar1.id,
           quantity: 1,
         },
       ],
@@ -431,16 +664,16 @@ export const seed = async ({
       customer: customer.id,
       currency: 'USD',
       purchasedAt: new Date().toISOString(),
-      subtotal: 7499,
+      subtotal: 209800,
       items: [
         {
-          product: productTshirt.id,
-          variant: smallTshirtHoodieVariant.id,
+          product: productSmartphone.id,
+          variant: smartphoneVar1.id,
           quantity: 1,
         },
         {
-          product: productTshirt.id,
-          variant: mediumTshirtHoodieVariant.id,
+          product: productSmartphone.id,
+          variant: smartphoneVar2.id,
           quantity: 1,
         },
       ],
@@ -458,19 +691,19 @@ export const seed = async ({
   const orderInCompleted = await payload.create({
     collection: 'orders',
     data: {
-      amount: 7499,
+      amount: 209800,
       currency: 'USD',
       customer: customer.id,
       shippingAddress: baseAddressUSData,
       items: [
         {
-          product: productTshirt.id,
-          variant: smallTshirtHoodieVariant.id,
+          product: productSmartphone.id,
+          variant: smartphoneVar1.id,
           quantity: 1,
         },
         {
-          product: productTshirt.id,
-          variant: mediumTshirtHoodieVariant.id,
+          product: productSmartphone.id,
+          variant: smartphoneVar2.id,
           quantity: 1,
         },
       ],
@@ -482,19 +715,19 @@ export const seed = async ({
   const orderInProcessing = await payload.create({
     collection: 'orders',
     data: {
-      amount: 7499,
+      amount: 209800,
       currency: 'USD',
       customer: customer.id,
       shippingAddress: baseAddressUSData,
       items: [
         {
-          product: productTshirt.id,
-          variant: smallTshirtHoodieVariant.id,
+          product: productSmartphone.id,
+          variant: smartphoneVar1.id,
           quantity: 1,
         },
         {
-          product: productTshirt.id,
-          variant: mediumTshirtHoodieVariant.id,
+          product: productSmartphone.id,
+          variant: smartphoneVar2.id,
           quantity: 1,
         },
       ],
@@ -508,6 +741,9 @@ export const seed = async ({
   await Promise.all([
     payload.updateGlobal({
       slug: 'header',
+      context: {
+        disableRevalidate: true,
+      },
       data: {
         navItems: [
           {
@@ -536,6 +772,9 @@ export const seed = async ({
     }),
     payload.updateGlobal({
       slug: 'footer',
+      context: {
+        disableRevalidate: true,
+      },
       data: {
         navItems: [
           {

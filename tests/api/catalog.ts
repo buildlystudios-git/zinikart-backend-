@@ -120,6 +120,11 @@ export async function runCatalogTests(
     {
       title: 'Smartphones',
       parentCategory: parentCategoryId,
+      specificationTemplates: [
+        { name: 'RAM', type: 'number', required: true },
+        { name: 'Color', type: 'select', required: false, options: [{ option: 'Black' }, { option: 'White' }] },
+        { name: 'Release Date', type: 'date', required: false }
+      ]
     },
     adminToken
   )
@@ -145,14 +150,11 @@ export async function runCatalogTests(
       categories: [subcategoryId],
       brand: brandId,
       warranty: '2 Year Manufacturer Warranty',
-      specifications: {
-        ram: '12 GB',
-        storage: '256 GB',
-        battery: '4800 mAh',
-        screenSize: '6.7 inches',
-        processor: 'ZiniChip A1',
-        camera: '48 MP Main + 12 MP Front',
-      },
+      specifications: [
+        { key: 'RAM', value: '12', type: 'number' },
+        { key: 'Color', value: 'Black', type: 'select' },
+        { key: 'Release Date', value: '2026-05-30', type: 'date' }
+      ]
     },
     adminToken
   )
@@ -167,6 +169,102 @@ export async function runCatalogTests(
   )
 
   if (!isProductCreated) return
+
+  // --- BOUNDARY VALIDATION SCENARIOS (IMPOSSIBLE/WORST CASE) ---
+
+  // A. Create product missing required specification "RAM"
+  const missingSpecRes = await apiRequest(
+    '/api/products',
+    'POST',
+    {
+      title: 'Invalid Product (Missing Spec)',
+      _status: 'published',
+      categories: [subcategoryId],
+      brand: brandId,
+      warranty: '1 Year',
+      specifications: [
+        { key: 'Color', value: 'Black', type: 'select' }
+      ]
+    },
+    adminToken
+  )
+  report.assert(
+    'Attempt to create Product missing a required specification returns 400 bad request',
+    missingSpecRes.status === 400,
+    'Impossible Scenario',
+    `Expected status 400, got ${missingSpecRes.status}. Response: ${JSON.stringify(missingSpecRes.body)}`
+  )
+
+  // B. Create product with invalid type for numeric specification "RAM"
+  const invalidNumberSpecRes = await apiRequest(
+    '/api/products',
+    'POST',
+    {
+      title: 'Invalid Product (Invalid Number)',
+      _status: 'published',
+      categories: [subcategoryId],
+      brand: brandId,
+      warranty: '1 Year',
+      specifications: [
+        { key: 'RAM', value: 'twelve', type: 'number' }
+      ]
+    },
+    adminToken
+  )
+  report.assert(
+    'Attempt to create Product with non-numeric value for numeric specification returns 400',
+    invalidNumberSpecRes.status === 400,
+    'Impossible Scenario',
+    `Expected status 400, got ${invalidNumberSpecRes.status}`
+  )
+
+  // C. Create product with invalid date for specification "Release Date"
+  const invalidDateSpecRes = await apiRequest(
+    '/api/products',
+    'POST',
+    {
+      title: 'Invalid Product (Invalid Date)',
+      _status: 'published',
+      categories: [subcategoryId],
+      brand: brandId,
+      warranty: '1 Year',
+      specifications: [
+        { key: 'RAM', value: '12', type: 'number' },
+        { key: 'Release Date', value: 'invalid-date', type: 'date' }
+      ]
+    },
+    adminToken
+  )
+  report.assert(
+    'Attempt to create Product with invalid date format returns 400',
+    invalidDateSpecRes.status === 400,
+    'Impossible Scenario',
+    `Expected status 400, got ${invalidDateSpecRes.status}`
+  )
+
+  // D. Create product with invalid option for select specification "Color"
+  const invalidSelectSpecRes = await apiRequest(
+    '/api/products',
+    'POST',
+    {
+      title: 'Invalid Product (Invalid Option)',
+      _status: 'published',
+      categories: [subcategoryId],
+      brand: brandId,
+      warranty: '1 Year',
+      specifications: [
+        { key: 'RAM', value: '12', type: 'number' },
+        { key: 'Color', value: 'Red', type: 'select' }
+      ]
+    },
+    adminToken
+  )
+  report.assert(
+    'Attempt to create Product with invalid option for select specification returns 400',
+    invalidSelectSpecRes.status === 400,
+    'Impossible Scenario',
+    `Expected status 400, got ${invalidSelectSpecRes.status}`
+  )
 
   // --- READ & QUERY SCENARIOS ---
 
@@ -202,10 +300,10 @@ export async function runCatalogTests(
     : productDoc?.brand
 
   const specs = productDoc?.specifications
-  const hasSpecs = specs && 
-    specs.ram === '12 GB' && 
-    specs.storage === '256 GB' && 
-    specs.processor === 'ZiniChip A1'
+  const hasSpecs = Array.isArray(specs) && 
+    specs.some((s: any) => s.key === 'RAM' && s.value === '12' && s.type === 'number') &&
+    specs.some((s: any) => s.key === 'Color' && s.value === 'Black' && s.type === 'select') &&
+    specs.some((s: any) => s.key === 'Release Date' && s.value === '2026-05-30' && s.type === 'date')
 
   report.assert(
     'Public query of Product returns 200, populated brand, warranty, and specifications',

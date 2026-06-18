@@ -19,6 +19,7 @@ import {
   lexicalEditor,
 } from '@payloadcms/richtext-lexical'
 import { DefaultDocumentIDType, Where } from 'payload'
+import { validateSpecifications } from './hooks/validateSpecifications'
 
 export const ProductsCollection: CollectionOverride = ({ defaultCollection }) => ({
   ...defaultCollection,
@@ -160,38 +161,33 @@ export const ProductsCollection: CollectionOverride = ({ defaultCollection }) =>
             },
             {
               name: 'specifications',
-              type: 'group',
+              type: 'array',
               label: 'Specifications',
+              validate: validateSpecifications,
               fields: [
                 {
-                  name: 'ram',
+                  name: 'key',
                   type: 'text',
-                  label: 'RAM',
+                  required: true,
+                  label: 'Name',
                 },
                 {
-                  name: 'storage',
+                  name: 'value',
                   type: 'text',
-                  label: 'Storage',
+                  required: true,
+                  label: 'Value',
                 },
                 {
-                  name: 'battery',
-                  type: 'text',
-                  label: 'Battery',
-                },
-                {
-                  name: 'screenSize',
-                  type: 'text',
-                  label: 'Screen Size',
-                },
-                {
-                  name: 'processor',
-                  type: 'text',
-                  label: 'Processor',
-                },
-                {
-                  name: 'camera',
-                  type: 'text',
-                  label: 'Camera',
+                  name: 'type',
+                  type: 'select',
+                  required: true,
+                  defaultValue: 'text',
+                  options: [
+                    { label: 'Plain Text', value: 'text' },
+                    { label: 'Numeric Value', value: 'number' },
+                    { label: 'Preset Options', value: 'select' },
+                    { label: 'Date', value: 'date' },
+                  ],
                 },
               ],
             },
@@ -261,4 +257,7 @@ export const ProductsCollection: CollectionOverride = ({ defaultCollection }) =>
     },
     slugField(),
   ],
+  hooks: {
+    ...defaultCollection?.hooks,
+  },
 })

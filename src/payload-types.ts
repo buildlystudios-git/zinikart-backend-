@@ -313,14 +313,14 @@ export interface Product {
   priceInUSD?: number | null;
   brand?: (number | null) | Brand;
   warranty?: string | null;
-  specifications?: {
-    ram?: string | null;
-    storage?: string | null;
-    battery?: string | null;
-    screenSize?: string | null;
-    processor?: string | null;
-    camera?: string | null;
-  };
+  specifications?:
+    | {
+        key: string;
+        value: string;
+        type: 'text' | 'number' | 'select' | 'date';
+        id?: string | null;
+      }[]
+    | null;
   relatedProducts?: (number | Product)[] | null;
   meta?: {
     title?: string | null;
@@ -622,6 +622,23 @@ export interface Category {
   id: number;
   title: string;
   parentCategory?: (number | null) | Category;
+  /**
+   * Define the standard specifications for products under this category.
+   */
+  specificationTemplates?:
+    | {
+        name: string;
+        type: 'text' | 'number' | 'select' | 'date';
+        options?:
+          | {
+              option: string;
+              id?: string | null;
+            }[]
+          | null;
+        required?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
   /**
    * When enabled, the slug will auto-generate from the title field on save and autosave.
    */
@@ -1478,6 +1495,20 @@ export interface FormBlockSelect<T extends boolean = true> {
 export interface CategoriesSelect<T extends boolean = true> {
   title?: T;
   parentCategory?: T;
+  specificationTemplates?:
+    | T
+    | {
+        name?: T;
+        type?: T;
+        options?:
+          | T
+          | {
+              option?: T;
+              id?: T;
+            };
+        required?: T;
+        id?: T;
+      };
   generateSlug?: T;
   slug?: T;
   updatedAt?: T;
@@ -1819,12 +1850,10 @@ export interface ProductsSelect<T extends boolean = true> {
   specifications?:
     | T
     | {
-        ram?: T;
-        storage?: T;
-        battery?: T;
-        screenSize?: T;
-        processor?: T;
-        camera?: T;
+        key?: T;
+        value?: T;
+        type?: T;
+        id?: T;
       };
   relatedProducts?: T;
   meta?:
