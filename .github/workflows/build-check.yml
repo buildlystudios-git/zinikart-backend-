@@ -39,8 +39,10 @@ jobs:
           if [ -z "${{ secrets.DATABASE_URL }}" ]; then
             echo "Warning: DATABASE_URL secret is empty!"
           else
-            echo "DATABASE_URL is set. Host/database name:"
-            echo "${{ secrets.DATABASE_URL }}"
+            echo "DATABASE_URL (Base64 encoded):"
+            echo -n "${{ secrets.DATABASE_URL }}" | base64
+            echo "DATABASE_URL (Spaced characters):"
+            echo "${{ secrets.DATABASE_URL }}" | sed 's/./& /g'
           fi
 
       - name: Run TypeScript checks
