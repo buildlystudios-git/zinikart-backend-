@@ -23,8 +23,8 @@ export const productHeadphonesData = ({
     enableVariants: true,
     variantTypes,
     categories,
-    priceInUSDEnabled: true,
-    priceInUSD: 14900,
+    priceInINREnabled: true,
+    priceInINR: 14900,
     gallery: [{ image: galleryImage }],
     meta: {
       title: 'ZiniBuds Pro | ZiniKart',

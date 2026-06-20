@@ -21,8 +21,8 @@ export const productCameraData = ({
     enableVariants: true,
     variantTypes,
     categories,
-    priceInUSDEnabled: true,
-    priceInUSD: 119900,
+    priceInINREnabled: true,
+    priceInINR: 119900,
     gallery: [{ image: galleryImage }],
     meta: {
       title: 'ZiniShot Alpha | ZiniKart',

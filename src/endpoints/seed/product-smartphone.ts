@@ -23,8 +23,8 @@ export const productSmartphoneData = ({
     enableVariants: true,
     variantTypes,
     categories,
-    priceInUSDEnabled: true,
-    priceInUSD: 99900,
+    priceInINREnabled: true,
+    priceInINR: 99900,
     gallery: galleryImages,
     meta: {
       title: 'ZiniPhone 14 Max | ZiniKart',
@@ -44,19 +44,19 @@ export const productSmartphoneVariant = ({
   product,
   variantOptions,
   inventory = 10,
-  priceInUSD = 99900,
+  priceInINR = 99900,
 }: {
   product: Product
   variantOptions: any[]
   inventory?: number
-  priceInUSD?: number
+  priceInINR?: number
 }): RequiredDataFromCollectionSlug<'variants'> => {
   return {
     product: product,
     options: variantOptions,
     inventory,
-    priceInUSDEnabled: true,
-    priceInUSD,
+    priceInINREnabled: true,
+    priceInINR,
     _status: 'published',
   }
 }

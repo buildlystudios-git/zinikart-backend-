@@ -384,7 +384,7 @@ export const seed = async ({
         product: productSmartphone,
         variantOptions: [optBlack, opt128GB],
         inventory: 10,
-        priceInUSD: 99900,
+        priceInINR: 99900,
       }),
     }),
     payload.create({
@@ -394,7 +394,7 @@ export const seed = async ({
         product: productSmartphone,
         variantOptions: [optWhite, opt256GB],
         inventory: 15,
-        priceInUSD: 109900,
+        priceInINR: 109900,
       }),
     }),
     payload.create({
@@ -404,7 +404,7 @@ export const seed = async ({
         product: productSmartphone,
         variantOptions: [optGold, opt512GB],
         inventory: 5,
-        priceInUSD: 124900,
+        priceInINR: 124900,
       }),
     }),
   ])
@@ -422,7 +422,7 @@ export const seed = async ({
         product: productHeadphones,
         variantOptions: [optBlack],
         inventory: 20,
-        priceInUSD: 14900,
+        priceInINR: 14900,
       }),
     }),
     payload.create({
@@ -432,7 +432,7 @@ export const seed = async ({
         product: productHeadphones,
         variantOptions: [optSilver],
         inventory: 25,
-        priceInUSD: 14900,
+        priceInINR: 14900,
       }),
     }),
     payload.create({
@@ -442,7 +442,7 @@ export const seed = async ({
         product: productHeadphones,
         variantOptions: [optBlue],
         inventory: 15,
-        priceInUSD: 16900,
+        priceInINR: 16900,
       }),
     }),
   ])
@@ -460,7 +460,7 @@ export const seed = async ({
         product: productCamera,
         variantOptions: [optBodyOnly],
         inventory: 8,
-        priceInUSD: 119900,
+        priceInINR: 119900,
       }),
     }),
     payload.create({
@@ -470,7 +470,7 @@ export const seed = async ({
         product: productCamera,
         variantOptions: [optLensKit2870],
         inventory: 12,
-        priceInUSD: 139900,
+        priceInINR: 139900,
       }),
     }),
     payload.create({
@@ -480,7 +480,7 @@ export const seed = async ({
         product: productCamera,
         variantOptions: [optLensKit50],
         inventory: 5,
-        priceInUSD: 149900,
+        priceInINR: 149900,
       }),
     }),
   ])
@@ -591,7 +591,7 @@ export const seed = async ({
   const pendingTransaction = await payload.create({
     collection: 'transactions',
     data: {
-      currency: 'USD',
+      currency: 'INR',
       customer: customer.id,
       paymentMethod: 'stripe',
       stripe: {
@@ -606,7 +606,7 @@ export const seed = async ({
   const succeededTransaction = await payload.create({
     collection: 'transactions',
     data: {
-      currency: 'USD',
+      currency: 'INR',
       customer: customer.id,
       paymentMethod: 'stripe',
       stripe: {
@@ -631,7 +631,7 @@ export const seed = async ({
     collection: 'carts',
     data: {
       customer: customer.id,
-      currency: 'USD',
+      currency: 'INR',
       items: [
         {
           product: productSmartphone.id,
@@ -648,7 +648,7 @@ export const seed = async ({
   const abandonedCart = await payload.create({
     collection: 'carts',
     data: {
-      currency: 'USD',
+      currency: 'INR',
       createdAt: oldTimestamp,
       items: [
         {
@@ -665,7 +665,7 @@ export const seed = async ({
     collection: 'carts',
     data: {
       customer: customer.id,
-      currency: 'USD',
+      currency: 'INR',
       purchasedAt: new Date().toISOString(),
       subtotal: 209800,
       items: [
@@ -695,7 +695,7 @@ export const seed = async ({
     collection: 'orders',
     data: {
       amount: 209800,
-      currency: 'USD',
+      currency: 'INR',
       customer: customer.id,
       shippingAddress: baseAddressUSData,
       items: [
@@ -719,7 +719,7 @@ export const seed = async ({
     collection: 'orders',
     data: {
       amount: 209800,
-      currency: 'USD',
+      currency: 'INR',
       customer: customer.id,
       shippingAddress: baseAddressUSData,
       items: [

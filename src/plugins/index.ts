@@ -118,6 +118,17 @@ export const plugins: Plugin[] = [
       isAdmin,
       isDocumentOwner,
     },
+    currencies: {
+      supportedCurrencies: [
+        {
+          code: 'INR',
+          decimals: 2,
+          label: 'Indian Rupee',
+          symbol: '₹',
+        },
+      ],
+      defaultCurrency: 'INR',
+    },
     customers: {
       slug: 'users',
     },
