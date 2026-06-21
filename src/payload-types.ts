@@ -80,6 +80,7 @@ export interface Config {
     'delivery-partners': DeliveryPartner;
     brands: Brand;
     ratings: Rating;
+    wishlists: Wishlist;
     forms: Form;
     'form-submissions': FormSubmission;
     addresses: Address;
@@ -117,6 +118,7 @@ export interface Config {
     'delivery-partners': DeliveryPartnersSelect<false> | DeliveryPartnersSelect<true>;
     brands: BrandsSelect<false> | BrandsSelect<true>;
     ratings: RatingsSelect<false> | RatingsSelect<true>;
+    wishlists: WishlistsSelect<false> | WishlistsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     addresses: AddressesSelect<false> | AddressesSelect<true>;
@@ -1192,6 +1194,17 @@ export interface Rating {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "wishlists".
+ */
+export interface Wishlist {
+  id: number;
+  product: number | Product;
+  customer: number | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "form-submissions".
  */
 export interface FormSubmission {
@@ -1262,6 +1275,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'ratings';
         value: number | Rating;
+      } | null)
+    | ({
+        relationTo: 'wishlists';
+        value: number | Wishlist;
       } | null)
     | ({
         relationTo: 'forms';
@@ -1678,6 +1695,16 @@ export interface RatingsSelect<T extends boolean = true> {
   reviewText?: T;
   product?: T;
   retailer?: T;
+  customer?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "wishlists_select".
+ */
+export interface WishlistsSelect<T extends boolean = true> {
+  product?: T;
   customer?: T;
   updatedAt?: T;
   createdAt?: T;

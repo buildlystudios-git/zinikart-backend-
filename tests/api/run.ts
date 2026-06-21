@@ -9,6 +9,7 @@ import { runRetailerTests } from './retailer'
 import { runDeliveryTests } from './delivery'
 import { runCatalogTests } from './catalog'
 import { runRatingsTests } from './ratings'
+import { runWishlistTests } from './wishlist'
 
 
 const __filename = fileURLToPath(import.meta.url)
@@ -46,6 +47,13 @@ async function main() {
     console.log(`Batch deleting profiles and users for IDs: ${userIds.join(', ')}`)
     await payload.delete({
       collection: 'ratings',
+      where: {
+        customer: { in: userIds },
+      },
+      overrideAccess: true,
+    })
+    await payload.delete({
+      collection: 'wishlists',
       where: {
         customer: { in: userIds },
       },
@@ -192,6 +200,7 @@ async function main() {
     await runDeliveryTests(report, payload, testMobile, otherUserToken)
     await runCatalogTests(report, payload, adminUserToken, otherUserToken, retailerUserToken)
     await runRatingsTests(report, payload, otherUserToken, retailerUserToken)
+    await runWishlistTests(report, payload, otherUserToken, retailerUserToken)
 
   } catch (err) {
     console.error('Test execution error occurred:', err)
@@ -213,6 +222,13 @@ async function main() {
     console.log(`Batch cleaning profiles and users for IDs: ${finalUserIds.join(', ')}`)
     await payload.delete({
       collection: 'ratings',
+      where: {
+        customer: { in: finalUserIds },
+      },
+      overrideAccess: true,
+    })
+    await payload.delete({
+      collection: 'wishlists',
       where: {
         customer: { in: finalUserIds },
       },

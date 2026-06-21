@@ -24,6 +24,7 @@ import { Brands } from '@/collections/Brands'
 import { Footer } from '@/globals/Footer'
 import { Header } from '@/globals/Header'
 import { Ratings } from '@/collections/Ratings'
+import { Wishlists } from '@/collections/Wishlists'
 import { plugins } from './plugins'
 import { productDetailsEndpoint } from '@/endpoints/mobile/catalog/productDetails'
 
@@ -42,7 +43,7 @@ export default buildConfig({
     },
     user: Users.slug,
   },
-  collections: [Users, Pages, Categories, Media, Retailers, DeliveryPartners, Brands, Ratings],
+  collections: [Users, Pages, Categories, Media, Retailers, DeliveryPartners, Brands, Ratings, Wishlists],
   db: postgresAdapter({
     pool: {
       connectionString: process.env.DATABASE_URL || '',
