@@ -20,6 +20,7 @@ import { mobileOtpAuthPlugin, mobileOtpAuthPaths } from '@/plugins/mobileOtpAuth
 import { openapi, swaggerUI } from 'payload-oapi'
 import { mobileCatalogPaths } from '@/endpoints/mobile/catalog/openapi'
 import { mobileSearchPaths } from '@/endpoints/mobile/search/openapi'
+import { seedPaths } from '@/endpoints/seed/openapi'
 
 const generateTitle: GenerateTitle<Product | Page> = ({ doc }) => {
   return doc?.title ? `${doc.title} | Payload Ecommerce Template` : 'Payload Ecommerce Template'
@@ -51,6 +52,7 @@ const openapiEnhancerPlugin = (): Plugin => (config) => {
           ...mobileOtpAuthPaths,
           ...mobileCatalogPaths,
           ...mobileSearchPaths,
+          ...seedPaths,
         }
 
         return Response.json(spec)
