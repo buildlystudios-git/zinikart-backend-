@@ -12,6 +12,7 @@ import { Elements } from '@stripe/react-stripe-js'
 import { loadStripe } from '@stripe/stripe-js'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import Script from 'next/script'
 import React, { Suspense, useCallback, useEffect, useState } from 'react'
 
 import { cssVariables } from '@/cssVariables'
@@ -32,7 +33,7 @@ const stripe = loadStripe(apiKey)
 export const CheckoutPage: React.FC = () => {
   const { user } = useAuth()
   const router = useRouter()
-  const { cart } = useCart()
+  const { cart, clearCart } = useCart()
   const [error, setError] = useState<null | string>(null)
   const { theme } = useTheme()
   /**
@@ -41,7 +42,7 @@ export const CheckoutPage: React.FC = () => {
   const [email, setEmail] = useState('')
   const [emailEditable, setEmailEditable] = useState(true)
   const [paymentData, setPaymentData] = useState<null | Record<string, unknown>>(null)
-  const { initiatePayment } = usePayments()
+  const { confirmOrder, initiatePayment } = usePayments()
   const { addresses } = useAddresses()
   const [shippingAddress, setShippingAddress] = useState<Partial<Address>>()
   const [billingAddress, setBillingAddress] = useState<Partial<Address>>()
@@ -89,6 +90,60 @@ export const CheckoutPage: React.FC = () => {
 
         if (paymentData) {
           setPaymentData(paymentData)
+
+          if (paymentID === 'razorpay') {
+            const options = {
+              key: paymentData.key,
+              amount: paymentData.amount,
+              currency: paymentData.currency || 'INR',
+              name: 'ZiniKart',
+              description: 'Order Purchase',
+              order_id: paymentData.razorpayOrderID,
+              prefill: {
+                email: email || user?.email,
+                contact: billingAddress?.phone,
+              },
+              handler: async (response: any) => {
+                setProcessingPayment(true)
+                try {
+                  const confirmResult = (await confirmOrder('razorpay', {
+                    additionalData: {
+                      razorpayOrderID: response.razorpay_order_id,
+                      razorpayPaymentID: response.razorpay_payment_id,
+                      razorpaySignature: response.razorpay_signature,
+                      customerEmail: email || user?.email,
+                    },
+                  })) as any
+
+                  if (confirmResult?.orderID) {
+                    clearCart()
+                    const queryParams = new URLSearchParams()
+                    if (email) {
+                      queryParams.set('email', email)
+                    }
+                    if (confirmResult.accessToken) {
+                      queryParams.set('accessToken', confirmResult.accessToken)
+                    }
+                    const queryString = queryParams.toString()
+                    const redirectUrl = `/orders/${confirmResult.orderID}${queryString ? `?${queryString}` : ''}`
+                    router.push(redirectUrl)
+                  }
+                } catch (err) {
+                  console.error(err)
+                  setError('Failed to confirm order with Razorpay')
+                  setProcessingPayment(false)
+                }
+              },
+              modal: {
+                ondismiss: () => {
+                  setProcessingPayment(false)
+                  setPaymentData(null)
+                },
+              },
+            }
+            const rzp = new (window as any).Razorpay(options)
+            rzp.open()
+          }
         }
       } catch (error) {
         const errorData = error instanceof Error ? JSON.parse(error.message) : {}
@@ -102,10 +157,10 @@ export const CheckoutPage: React.FC = () => {
         toast.error(errorMessage)
       }
     },
-    [billingAddress, billingAddressSameAsShipping, shippingAddress],
+    [billingAddress, billingAddressSameAsShipping, shippingAddress, email, user, confirmOrder, clearCart, router],
   )
 
-  if (!stripe) return null
+  // Stripe instance check removed to support Razorpay as alternative payment provider
 
   if (cartIsEmpty && isProcessingPayment) {
     return (
@@ -275,7 +330,7 @@ export const CheckoutPage: React.FC = () => {
             disabled={!canGoToPayment}
             onClick={(e) => {
               e.preventDefault()
-              void initiatePaymentIntent('stripe')
+              void initiatePaymentIntent('razorpay')
             }}
           >
             Go to payment
@@ -435,6 +490,7 @@ export const CheckoutPage: React.FC = () => {
           </div>
         </div>
       )}
+      <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
     </div>
   )
 }

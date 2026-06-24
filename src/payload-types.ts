@@ -995,10 +995,15 @@ export interface Transaction {
         id?: string | null;
       }[]
     | null;
-  paymentMethod?: 'stripe' | null;
+  paymentMethod?: ('stripe' | 'razorpay') | null;
   stripe?: {
     customerID?: string | null;
     paymentIntentID?: string | null;
+  };
+  razorpay?: {
+    orderID?: string | null;
+    paymentID?: string | null;
+    signature?: string | null;
   };
   billingAddress?: {
     title?: string | null;
@@ -2058,6 +2063,13 @@ export interface TransactionsSelect<T extends boolean = true> {
     | {
         customerID?: T;
         paymentIntentID?: T;
+      };
+  razorpay?:
+    | T
+    | {
+        orderID?: T;
+        paymentID?: T;
+        signature?: T;
       };
   billingAddress?:
     | T

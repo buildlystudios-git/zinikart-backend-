@@ -6,6 +6,7 @@ import { FixedToolbarFeature, HeadingFeature, lexicalEditor } from '@payloadcms/
 import { ecommercePlugin } from '@payloadcms/plugin-ecommerce'
 
 import { stripeAdapter } from '@payloadcms/plugin-ecommerce/payments/stripe'
+import { razorpayAdapter } from '@/plugins/payments/razorpay'
 
 import { Page, Product } from '@/payload-types'
 import { getServerSideURL } from '@/utilities/getURL'
@@ -167,9 +168,14 @@ export const plugins: Plugin[] = [
     payments: {
       paymentMethods: [
         stripeAdapter({
-          secretKey: process.env.STRIPE_SECRET_KEY!,
-          publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!,
-          webhookSecret: process.env.STRIPE_WEBHOOKS_SIGNING_SECRET!,
+          secretKey: process.env.STRIPE_SECRET_KEY || 'sk_test_mock',
+          publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_mock',
+          webhookSecret: process.env.STRIPE_WEBHOOKS_SIGNING_SECRET || 'whsec_mock',
+        }),
+        razorpayAdapter({
+          keyId: process.env.RAZORPAY_API_KEY || process.env.RAZORPAY_KEY_ID || 'rzp_test_mock',
+          keySecret: process.env.RAZORPAY_API_SECRET || process.env.RAZORPAY_KEY_SECRET || 'rzp_secret_mock',
+          webhookSecret: process.env.RAZORPAY_WEBHOOKS_SIGNING_SECRET,
         }),
       ],
     },

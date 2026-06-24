@@ -1,9 +1,9 @@
 # ZiniKart API Integration Test Report
 
-**Execution Time:** 23/6/2026, 8:19:25 pm
-**Total Assertions:** 92 | **Passed:** 90 | **Failed:** 2
+**Execution Time:** 23/6/2026, 8:49:50 pm
+**Total Assertions:** 92 | **Passed:** 92 | **Failed:** 0
 
-### Pass Rate: 98%
+### Pass Rate: 100%
 `[██████████]`
 
 ## Summary Table
@@ -95,8 +95,8 @@
 | Cart Operations | Worst Case | Access Control: Customer B is blocked from reading Customer A's cart (returns 403 or 404) | ✅ PASS | - |
 | Cart Operations | Worst Case | Access Control: Customer B is blocked from adding items to Customer A's cart (returns 403 or 404) | ✅ PASS | - |
 | Cart Operations | Worst Case | Access Control: Customer B is blocked from clearing Customer A's cart (returns 403 or 404) | ✅ PASS | - |
-| Checkout & Payments | Best Case | Successfully initiate payment via Stripe adapter (returns status 200 or 201 and a clientSecret) | ❌ FAIL | `Expected status 200/201 and clientSecret. Got status: 500, Body: {"message":"Error initiating payment."}` |
-| Checkout & Payments | Best Case | Successfully confirm order and generate Order ID (returns status 200 or 201) | ❌ FAIL | `Expected status 200/201 and orderID. Got status: 500, Body: {"message":"Error confirming order."}` |
+| Checkout & Payments | Best Case | Successfully initiate payment via Razorpay adapter (returns status 200 or 201 and a razorpayOrderID) | ✅ PASS | - |
+| Checkout & Payments | Best Case | Successfully confirm order and generate Order ID (returns status 200 or 201) | ✅ PASS | - |
 | Checkout & Payments | Impossible Scenario | Attempt to initiate payment without auth token is rejected (returns 400, 401, or 403) | ✅ PASS | - |
 | Checkout & Payments | Impossible Scenario | Attempt to initiate payment with non-existent cart ID is rejected (returns 400 or 404) | ✅ PASS | - |
 | Checkout & Payments | Impossible Scenario | Attempt to initiate payment with an empty cart is rejected (returns 400 or 500 with proper error) | ✅ PASS | - |

@@ -1,4 +1,5 @@
 import { ReportManager, apiRequest } from './helpers'
+import crypto from 'crypto'
 import type { Payload } from 'payload'
 
 export async function runCheckoutTests(
@@ -78,9 +79,9 @@ export async function runCheckoutTests(
     country: 'IN',
   }
 
-  // 2. Initiate Stripe Payment
+  // 2. Initiate Razorpay Payment
   const initiateRes = await apiRequest(
-    '/api/payments/stripe/initiate',
+    '/api/payments/razorpay/initiate',
     'POST',
     {
       cartID,
@@ -90,26 +91,32 @@ export async function runCheckoutTests(
     customerToken
   )
 
-  const clientSecret = initiateRes.body?.clientSecret
-  const transactionID = initiateRes.body?.transactionID || initiateRes.body?.transaction?.id
+  const razorpayOrderID = initiateRes.body?.razorpayOrderID
+  const transactionID = initiateRes.body?.transactionID
 
   report.assert(
-    'Successfully initiate payment via Stripe adapter (returns status 200 or 201 and a clientSecret)',
-    (initiateRes.status === 200 || initiateRes.status === 201) && !!clientSecret,
+    'Successfully initiate payment via Razorpay adapter (returns status 200 or 201 and a razorpayOrderID)',
+    (initiateRes.status === 200 || initiateRes.status === 201) && !!razorpayOrderID,
     'Best Case',
-    `Expected status 200/201 and clientSecret. Got status: ${initiateRes.status}, Body: ${JSON.stringify(initiateRes.body)}`
+    `Expected status 200/201 and razorpayOrderID. Got status: ${initiateRes.status}, Body: ${JSON.stringify(initiateRes.body)}`
   )
 
-  // 3. Confirm Stripe Order
-  // Since we cannot run standard Stripe JS confirmation in a CLI integration test,
-  // we will attempt to hit the backend confirm-order endpoint directly with the transactionID or paymentIntentID.
+  // 3. Confirm Razorpay Order
+  const keySecret = process.env.RAZORPAY_API_SECRET || process.env.RAZORPAY_KEY_SECRET || 'rzp_secret_mock'
+  const mockPaymentID = 'pay_mock_payment_id'
+  const mockSignature = crypto
+    .createHmac('sha256', keySecret)
+    .update(`${razorpayOrderID || 'mock_order_id'}|${mockPaymentID}`)
+    .digest('hex')
+
   const confirmRes = await apiRequest(
-    '/api/payments/stripe/confirm-order',
+    '/api/payments/razorpay/confirm-order',
     'POST',
     {
       cartID,
-      transactionID: transactionID || 'mock_tx_id',
-      paymentIntentID: initiateRes.body?.paymentIntentID || 'pi_mock_intent_id',
+      razorpayOrderID: razorpayOrderID || 'mock_order_id',
+      razorpayPaymentID: mockPaymentID,
+      razorpaySignature: mockSignature,
       billingAddress: address,
       shippingAddress: address,
     },
@@ -129,7 +136,7 @@ export async function runCheckoutTests(
 
   // 4. Initiate payment without auth token
   const initiateNoAuthRes = await apiRequest(
-    '/api/payments/stripe/initiate',
+    '/api/payments/razorpay/initiate',
     'POST',
     {
       cartID,
@@ -147,7 +154,7 @@ export async function runCheckoutTests(
 
   // 5. Initiate payment with non-existent cart ID
   const initiateInvalidCartRes = await apiRequest(
-    '/api/payments/stripe/initiate',
+    '/api/payments/razorpay/initiate',
     'POST',
     {
       cartID: 999999, // non-existent integer ID format
@@ -198,7 +205,7 @@ export async function runCheckoutTests(
     }
 
     const initiateEmptyCartRes = await apiRequest(
-      '/api/payments/stripe/initiate',
+      '/api/payments/razorpay/initiate',
       'POST',
       {
         cartID: emptyCartID,
@@ -217,7 +224,7 @@ export async function runCheckoutTests(
     // 7. Worst Case: Cross-User payment access
     // Customer B attempts to initiate payment on Customer A's cart
     const initiateOtherCartRes = await apiRequest(
-      '/api/payments/stripe/initiate',
+      '/api/payments/razorpay/initiate',
       'POST',
       {
         cartID,
@@ -235,12 +242,13 @@ export async function runCheckoutTests(
 
     // Customer B attempts to confirm order on Customer A's cart
     const confirmOtherCartRes = await apiRequest(
-      '/api/payments/stripe/confirm-order',
+      '/api/payments/razorpay/confirm-order',
       'POST',
       {
         cartID,
-        transactionID: transactionID || 'mock_tx_id',
-        paymentIntentID: initiateRes.body?.paymentIntentID || 'pi_mock_intent_id',
+        razorpayOrderID: razorpayOrderID || 'mock_order_id',
+        razorpayPaymentID: mockPaymentID,
+        razorpaySignature: mockSignature,
         billingAddress: address,
         shippingAddress: address,
       },
