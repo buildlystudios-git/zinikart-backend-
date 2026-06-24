@@ -21,6 +21,9 @@ import { openapi, swaggerUI } from 'payload-oapi'
 import { mobileCatalogPaths } from '@/endpoints/mobile/catalog/openapi'
 import { mobileSearchPaths } from '@/endpoints/mobile/search/openapi'
 import { seedPaths } from '@/endpoints/seed/openapi'
+import { cartPaths } from '@/endpoints/cart/openapi'
+import { paymentPaths } from '@/endpoints/payments/openapi'
+import { usersAuthPaths } from '@/endpoints/users/openapi'
 
 const generateTitle: GenerateTitle<Product | Page> = ({ doc }) => {
   return doc?.title ? `${doc.title} | Payload Ecommerce Template` : 'Payload Ecommerce Template'
@@ -41,8 +44,8 @@ const openapiEnhancerPlugin = (): Plugin => (config) => {
     const originalHandler = specEndpoint.handler
     specEndpoint.handler = async (req) => {
       const response = await originalHandler(req)
-      if (response instanceof Response) {
-        const spec = await response.json()
+      if (response && typeof response === 'object' && 'json' in response && typeof (response as any).json === 'function') {
+        const spec = await (response as any).json()
         if (!spec.paths) {
           spec.paths = {}
         }
@@ -53,6 +56,38 @@ const openapiEnhancerPlugin = (): Plugin => (config) => {
           ...mobileCatalogPaths,
           ...mobileSearchPaths,
           ...seedPaths,
+          ...cartPaths,
+          ...paymentPaths,
+          ...usersAuthPaths,
+        }
+
+        if (!spec.components) {
+          spec.components = {}
+        }
+        if (!spec.components.securitySchemes) {
+          spec.components.securitySchemes = {}
+        }
+
+        // Replace the default oauth2 password flow with direct API key / JWT header authentication
+        spec.components.securitySchemes.ApiKey = {
+          type: 'apiKey',
+          in: 'header',
+          name: 'Authorization',
+          description: 'Enter JWT token with prefix (e.g. "JWT <token>" or "Bearer <token>").',
+        }
+
+        spec.components.securitySchemes.BearerAuth = {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          description: 'Enter JWT token (value only).',
+        }
+
+        spec.components.securitySchemes.CookieAuth = {
+          type: 'apiKey',
+          in: 'cookie',
+          name: 'payload-token',
+          description: 'Authenticate using payload-token cookie.',
         }
 
         return Response.json(spec)
@@ -136,6 +171,15 @@ export const plugins: Plugin[] = [
       ],
       defaultCurrency: 'INR',
     },
+    addresses: {
+      addressesCollectionOverride: ({ defaultCollection }) => ({
+        ...defaultCollection,
+        admin: {
+          ...defaultCollection.admin,
+          hidden: false,
+        },
+      }),
+    },
     customers: {
       slug: 'users',
     },
@@ -183,6 +227,32 @@ export const plugins: Plugin[] = [
     },
     products: {
       productsCollectionOverride: ProductsCollection,
+      variants: {
+        variantsCollectionOverride: ({ defaultCollection }) => ({
+          ...defaultCollection,
+          admin: {
+            ...defaultCollection.admin,
+            group: 'Ecommerce',
+            hidden: false,
+          },
+        }),
+        variantOptionsCollectionOverride: ({ defaultCollection }) => ({
+          ...defaultCollection,
+          admin: {
+            ...defaultCollection.admin,
+            group: 'Ecommerce',
+            hidden: false,
+          },
+        }),
+        variantTypesCollectionOverride: ({ defaultCollection }) => ({
+          ...defaultCollection,
+          admin: {
+            ...defaultCollection.admin,
+            group: 'Ecommerce',
+            hidden: false,
+          },
+        }),
+      },
     },
   }),
   openapi({

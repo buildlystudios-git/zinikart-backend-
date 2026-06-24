@@ -2,7 +2,7 @@ export const mobileOtpAuthPaths = {
   '/api/mobile/auth/otp/request': {
     post: {
       summary: 'Request mobile OTP',
-      tags: ['Mobile Auth'],
+      tags: ['Users'],
       requestBody: {
         required: true,
         content: {
@@ -46,7 +46,7 @@ export const mobileOtpAuthPaths = {
   '/api/mobile/auth/otp/verify': {
     post: {
       summary: 'Verify mobile OTP and login',
-      tags: ['Mobile Auth'],
+      tags: ['Users'],
       requestBody: {
         required: true,
         content: {
@@ -123,7 +123,7 @@ export const mobileOtpAuthPaths = {
   '/api/mobile/auth/me': {
     get: {
       summary: 'Get current mobile user',
-      tags: ['Mobile Auth'],
+      tags: ['Users'],
       security: [{ CookieAuth: [] }, { BearerAuth: [] }],
       responses: {
         200: {

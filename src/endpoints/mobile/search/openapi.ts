@@ -3,7 +3,7 @@ export const mobileSearchPaths = {
     get: {
       summary: 'Search products, brands, categories, and retailers',
       description: 'Search for active retailer product listings and retailer profiles matching a text query in title, brand, category, or retailer attributes.',
-      tags: ['Mobile Catalog'],
+      tags: ['products'],
       parameters: [
         {
           name: 'q',

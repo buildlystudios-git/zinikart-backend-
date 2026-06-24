@@ -3,7 +3,7 @@ export const mobileCatalogPaths = {
     get: {
       summary: 'Get product details for customer',
       description: 'Fetch detailed specifications of a retailer product listing along with active retailer profile and alternative competitor offers for the same product model.',
-      tags: ['Mobile Catalog'],
+      tags: ['products'],
       parameters: [
         {
           name: 'id',
