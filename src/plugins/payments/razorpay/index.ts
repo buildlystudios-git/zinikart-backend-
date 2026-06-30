@@ -21,6 +21,23 @@ type InitiatePaymentReturnType = {
   message: string
 }
 
+const sanitizeAddress = (addr: any) => {
+  if (!addr) return undefined
+  return {
+    title: addr.title || undefined,
+    firstName: addr.firstName || undefined,
+    lastName: addr.lastName || undefined,
+    company: addr.company || undefined,
+    addressLine1: addr.addressLine1 || undefined,
+    addressLine2: addr.addressLine2 || undefined,
+    city: addr.city || undefined,
+    state: addr.state || undefined,
+    postalCode: addr.postalCode || undefined,
+    country: addr.country || undefined,
+    phone: addr.phone || undefined,
+  }
+}
+
 export const razorpayAdapter = (props: RazorpayAdapterArgs): PaymentAdapter => {
   const { keyId, keySecret, webhookSecret } = props
   const label = props?.label || 'Razorpay'
@@ -64,8 +81,8 @@ export const razorpayAdapter = (props: RazorpayAdapterArgs): PaymentAdapter => {
     const currency = data.currency || 'INR'
     const cart = data.cart
     const amount = cart.subtotal
-    const billingAddressFromData = data.billingAddress
-    const shippingAddressFromData = data.shippingAddress
+    const billingAddressFromData = sanitizeAddress(data.billingAddress)
+    const shippingAddressFromData = sanitizeAddress(data.shippingAddress)
 
     if (!keyId || !keySecret) {
       throw new Error('Razorpay credentials keyId and keySecret are required.')
@@ -137,6 +154,7 @@ export const razorpayAdapter = (props: RazorpayAdapterArgs): PaymentAdapter => {
           ...(req.user ? { customer: req.user.id } : { customerEmail }),
           amount: razorpayOrder.amount,
           billingAddress: billingAddressFromData,
+          shippingAddress: shippingAddressFromData,
           cart: cart.id,
           currency: razorpayOrder.currency.toUpperCase(),
           items: flattenedCart,
@@ -197,7 +215,7 @@ export const razorpayAdapter = (props: RazorpayAdapterArgs): PaymentAdapter => {
       // Find matching transaction
       const transactionsResults = await payload.find({
         collection: transactionsSlug as any,
-        req,
+        overrideAccess: true,
         where: {
           'razorpay.orderID': {
             equals: razorpayOrderID,
@@ -227,11 +245,11 @@ export const razorpayAdapter = (props: RazorpayAdapterArgs): PaymentAdapter => {
           currency: transaction.currency.toUpperCase(),
           ...(req.user ? { customer: req.user.id } : { customerEmail }),
           items: cartItemsSnapshot,
-          shippingAddress,
+          shippingAddress: sanitizeAddress(shippingAddress),
           status: 'processing',
           transactions: [transaction.id],
         },
-        req,
+        overrideAccess: true,
       })
 
       const timestamp = new Date().toISOString()
@@ -243,7 +261,7 @@ export const razorpayAdapter = (props: RazorpayAdapterArgs): PaymentAdapter => {
         data: {
           purchasedAt: timestamp,
         },
-        req,
+        overrideAccess: true,
       })
 
       // Update transaction status
@@ -259,7 +277,7 @@ export const razorpayAdapter = (props: RazorpayAdapterArgs): PaymentAdapter => {
             signature: razorpaySignature,
           },
         },
-        req,
+        overrideAccess: true,
       })
 
       return {

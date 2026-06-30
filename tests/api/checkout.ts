@@ -21,6 +21,7 @@ export async function runCheckoutTests(
     collection: 'products',
     where: {
       isMasterTemplate: { equals: false },
+      enableVariants: { not_equals: true },
     },
     limit: 1,
     overrideAccess: true,

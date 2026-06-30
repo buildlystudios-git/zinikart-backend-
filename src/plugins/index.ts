@@ -24,6 +24,7 @@ import { seedPaths } from '@/endpoints/seed/openapi'
 import { cartPaths } from '@/endpoints/cart/openapi'
 import { paymentPaths } from '@/endpoints/payments/openapi'
 import { usersAuthPaths } from '@/endpoints/users/openapi'
+import { deductInventory } from '@/hooks/deductInventory'
 
 const generateTitle: GenerateTitle<Product | Page> = ({ doc }) => {
   return doc?.title ? `${doc.title} | Payload Ecommerce Template` : 'Payload Ecommerce Template'
@@ -186,6 +187,13 @@ export const plugins: Plugin[] = [
     orders: {
       ordersCollectionOverride: ({ defaultCollection }) => ({
         ...defaultCollection,
+        hooks: {
+          ...defaultCollection.hooks,
+          beforeChange: [
+            ...(defaultCollection.hooks?.beforeChange || []),
+            deductInventory,
+          ],
+        },
         fields: [
           ...defaultCollection.fields,
           {
