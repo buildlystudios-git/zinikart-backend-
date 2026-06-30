@@ -3,9 +3,17 @@ import { adminOnlyFieldAccess } from '@/access/adminOnlyFieldAccess'
 import { isAdmin } from '@/access/isAdmin'
 import { isAuthenticated } from '@/access/isAuthenticated'
 import { adminOrFieldOwner } from '@/access/adminOrFieldOwner'
+import { analyticsEndpoint } from '@/endpoints/retailers/analytics'
 
 export const Retailers: CollectionConfig = {
   slug: 'retailers',
+  endpoints: [
+    {
+      path: '/analytics',
+      method: 'get',
+      handler: analyticsEndpoint,
+    },
+  ],
   access: {
     create: isAuthenticated,
     read: adminOrFieldOwner('user'),

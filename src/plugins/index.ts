@@ -24,6 +24,7 @@ import { seedPaths } from '@/endpoints/seed/openapi'
 import { cartPaths } from '@/endpoints/cart/openapi'
 import { paymentPaths } from '@/endpoints/payments/openapi'
 import { usersAuthPaths } from '@/endpoints/users/openapi'
+import { retailerAnalyticsPaths } from '@/endpoints/retailers/openapi'
 import { deductInventory } from '@/hooks/deductInventory'
 
 const generateTitle: GenerateTitle<Product | Page> = ({ doc }) => {
@@ -60,6 +61,7 @@ const openapiEnhancerPlugin = (): Plugin => (config) => {
           ...cartPaths,
           ...paymentPaths,
           ...usersAuthPaths,
+          ...retailerAnalyticsPaths,
         }
 
         if (!spec.components) {
