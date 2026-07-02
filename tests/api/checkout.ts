@@ -78,6 +78,8 @@ export async function runCheckoutTests(
     state: 'Maharashtra',
     postalCode: '400001',
     country: 'IN',
+    lat: 19.0760,
+    lng: 72.8777,
   }
 
   // 2. Initiate Razorpay Payment
@@ -153,12 +155,11 @@ export async function runCheckoutTests(
     `Expected status 400/401/403, got status: ${initiateNoAuthRes.status}, Body: ${JSON.stringify(initiateNoAuthRes.body)}`
   )
 
-  // 5. Initiate payment with non-existent cart ID
   const initiateInvalidCartRes = await apiRequest(
     '/api/payments/razorpay/initiate',
     'POST',
     {
-      cartID: 999999, // non-existent integer ID format
+      cartID: '00000000-0000-0000-0000-999999999999', // non-existent UUID format
       billingAddress: address,
       shippingAddress: address,
     },
@@ -261,6 +262,292 @@ export async function runCheckoutTests(
       'Worst Case',
       `Expected status 403/404, got status: ${confirmOtherCartRes.status}, Body: ${JSON.stringify(confirmOtherCartRes.body)}`
     )
+
+    // === CASH ON DELIVERY (COD) TESTS ===
+    console.log('Running Cash on Delivery (COD) tests...')
+
+    // Re-add product to cart for COD checkout
+    const codCartRes = await apiRequest('/api/carts', 'GET', null, customerToken)
+    let codCartID = codCartRes.body?.docs?.[0]?.id
+    if (!codCartID || codCartRes.body?.docs?.[0]?.purchasedAt) {
+      // Create new cart
+      const meRes = await apiRequest('/api/users/me', 'GET', null, customerToken)
+      const customerId = meRes.body?.user?.id
+      const createCartRes = await apiRequest('/api/carts', 'POST', { customer: customerId }, customerToken)
+      codCartID = createCartRes.body?.doc?.id
+    }
+
+    // Add item
+    const codAddRes = await apiRequest(
+      `/api/carts/${codCartID}/add-item`,
+      'POST',
+      {
+        item: { product: product.id },
+        quantity: 1,
+      },
+      customerToken
+    )
+    report.assert(
+      'COD setup: Item added to cart',
+      codAddRes.status === 200 || codAddRes.status === 201,
+      'Best Case'
+    )
+
+    // 1. Initiate COD Payment
+    const codInitiateRes = await apiRequest(
+      '/api/payments/cod/initiate',
+      'POST',
+      {
+        cartID: codCartID,
+        billingAddress: address,
+        shippingAddress: address,
+      },
+      customerToken
+    )
+    const codTxID = codInitiateRes.body?.transactionID
+    report.assert(
+      'Successfully initiate payment via COD adapter (returns transactionID)',
+      (codInitiateRes.status === 200 || codInitiateRes.status === 201) && !!codTxID,
+      'Best Case',
+      `Got status: ${codInitiateRes.status}, Body: ${JSON.stringify(codInitiateRes.body)}`
+    )
+
+    // 2. Confirm COD Order
+    const codConfirmRes = await apiRequest(
+      '/api/payments/cod/confirm-order',
+      'POST',
+      {
+        cartID: codCartID,
+        transactionID: codTxID,
+        billingAddress: address,
+        shippingAddress: address,
+      },
+      customerToken
+    )
+    const codOrderID = codConfirmRes.body?.orderID
+    report.assert(
+      'Successfully confirm COD order (returns orderID)',
+      (codConfirmRes.status === 200 || codConfirmRes.status === 201) && !!codOrderID,
+      'Best Case',
+      `Got status: ${codConfirmRes.status}, Body: ${JSON.stringify(codConfirmRes.body)}`
+    )
+
+    // 3. Create Delivery Partner user A & B
+    const randA = crypto.randomBytes(4).toString('hex')
+    const randB = crypto.randomBytes(4).toString('hex')
+    const mobileA = `+9199${Math.floor(10000000 + Math.random() * 90000000)}`
+    const mobileB = `+9199${Math.floor(10000000 + Math.random() * 90000000)}`
+    const emailA = `delivery.a.${randA}@testing.zinikart.local`
+    const emailB = `delivery.b.${randB}@testing.zinikart.local`
+
+    // Fetch a valid media ID to satisfy foreign key constraint
+    const mediaRes = await payload.find({
+      collection: 'media',
+      limit: 1,
+      overrideAccess: true,
+    })
+    const validMediaId = mediaRes.docs[0]?.id
+    if (!validMediaId) {
+      throw new Error('No media records found in database for checkout tests setup')
+    }
+
+    const deliveryUserA = await payload.create({
+      collection: 'users',
+      data: {
+        email: emailA,
+        mobileNumber: mobileA,
+        mobileVerified: true,
+        password: 'password123',
+        roles: ['delivery_partner'],
+      } as any,
+      overrideAccess: true,
+    })
+
+    const deliveryPartnerProfileA = await payload.create({
+      collection: 'delivery-partners',
+      data: {
+        fullName: 'Delivery Partner A',
+        mobileNumber: mobileA,
+        email: emailA,
+        drivingLicense: validMediaId,
+        vehicleType: 'bike',
+        approvalStatus: 'approved',
+        onlineStatus: true,
+        user: deliveryUserA.id,
+      } as any,
+      overrideAccess: true,
+    })
+
+    const deliveryUserB = await payload.create({
+      collection: 'users',
+      data: {
+        email: emailB,
+        mobileNumber: mobileB,
+        mobileVerified: true,
+        password: 'password123',
+        roles: ['delivery_partner'],
+      } as any,
+      overrideAccess: true,
+    })
+
+    const deliveryPartnerProfileB = await payload.create({
+      collection: 'delivery-partners',
+      data: {
+        fullName: 'Delivery Partner B',
+        mobileNumber: mobileB,
+        email: emailB,
+        drivingLicense: validMediaId,
+        vehicleType: 'bike',
+        approvalStatus: 'approved',
+        onlineStatus: true,
+        user: deliveryUserB.id,
+      } as any,
+      overrideAccess: true,
+    })
+
+    // Assign Delivery Partner A to the order
+    await payload.update({
+      collection: 'orders',
+      id: codOrderID,
+      data: {
+        deliveryPartner: deliveryPartnerProfileA.id,
+      },
+      overrideAccess: true,
+    })
+
+    // Login both delivery partners to get their tokens
+    const loginARes = await apiRequest('/api/users/login', 'POST', {
+      email: emailA,
+      password: 'password123',
+    })
+    const tokenA = loginARes.body?.token
+
+    const loginBRes = await apiRequest('/api/users/login', 'POST', {
+      email: emailB,
+      password: 'password123',
+    })
+    const tokenB2 = loginBRes.body?.token
+
+    // 4. Test Cross-partner update protection (Partner B tries to update Order assigned to Partner A)
+    const updateByPartnerBRes = await apiRequest(
+      `/api/orders/${codOrderID}`,
+      'PATCH',
+      {
+        status: 'completed',
+      },
+      tokenB2
+    )
+    report.assert(
+      'Access Control: Unassigned delivery partner is blocked from updating the order (returns 403 or 404)',
+      updateByPartnerBRes.status === 403 || updateByPartnerBRes.status === 404,
+      'Worst Case',
+      `Got status: ${updateByPartnerBRes.status}, Body: ${JSON.stringify(updateByPartnerBRes.body)}`
+    )
+
+    // 5. Test Field Restriction (Partner A tries to update status AND hijack/change order amount)
+    const originalOrder = await payload.findByID({
+      collection: 'orders',
+      id: codOrderID,
+      overrideAccess: true,
+    })
+    const hijackedAmount = 100 // 1 INR in Paise
+
+    const updateAttemptRes = await apiRequest(
+      `/api/orders/${codOrderID}`,
+      'PATCH',
+      {
+        status: 'completed',
+        amount: hijackedAmount, // this should be ignored/reverted
+        codCollectionRecord: {
+          paymentType: 'qr',
+        },
+      },
+      tokenA
+    )
+
+    report.assert(
+      'Assigned delivery partner can successfully change order status',
+      updateAttemptRes.status === 200 || updateAttemptRes.status === 201,
+      'Best Case',
+      `Got status: ${updateAttemptRes.status}`
+    )
+
+    // Verify order fields in database
+    const updatedOrder = await payload.findByID({
+      collection: 'orders',
+      id: codOrderID,
+      overrideAccess: true,
+    })
+
+    report.assert(
+      'Order status is successfully set to completed',
+      updatedOrder.status === 'completed',
+      'Best Case'
+    )
+
+    report.assert(
+      'Security: Order amount was NOT hijacked and remained original',
+      updatedOrder.amount === originalOrder.amount,
+      'Worst Case',
+      `Expected amount: ${originalOrder.amount}, Got: ${updatedOrder.amount}`
+    )
+
+    // Check automated COD collection logging
+    report.assert(
+      'COD collection record status is updated to collected',
+      updatedOrder.codCollectionRecord?.status === 'collected',
+      'Best Case'
+    )
+
+    report.assert(
+      'COD collection record paymentType is set to qr',
+      updatedOrder.codCollectionRecord?.paymentType === 'qr',
+      'Best Case'
+    )
+
+    const collectedByStr = typeof updatedOrder.codCollectionRecord?.collectedBy === 'object'
+      ? updatedOrder.codCollectionRecord?.collectedBy?.id
+      : updatedOrder.codCollectionRecord?.collectedBy
+    report.assert(
+      'COD collection record is stamped with correct delivery partner profile ID',
+      collectedByStr === deliveryPartnerProfileA.id,
+      'Best Case',
+      `Expected: ${deliveryPartnerProfileA.id}, Got: ${collectedByStr}`
+    )
+
+    // Check that transaction status automatically transitioned to succeeded
+    const finalTx = await payload.findByID({
+      collection: 'transactions',
+      id: codTxID,
+      overrideAccess: true,
+    })
+    report.assert(
+      'COD transaction automatically updated to status succeeded when order completed',
+      finalTx.status === 'succeeded',
+      'Best Case'
+    )
+
+    // Clean up COD test data
+    await payload.delete({
+      collection: 'delivery-partners',
+      id: deliveryPartnerProfileA.id,
+      overrideAccess: true,
+    })
+    await payload.delete({
+      collection: 'users',
+      id: deliveryUserA.id,
+      overrideAccess: true,
+    })
+    await payload.delete({
+      collection: 'delivery-partners',
+      id: deliveryPartnerProfileB.id,
+      overrideAccess: true,
+    })
+    await payload.delete({
+      collection: 'users',
+      id: deliveryUserB.id,
+      overrideAccess: true,
+    })
 
   } catch (err: any) {
     console.error('Error during cross-user checkout security tests:', err)

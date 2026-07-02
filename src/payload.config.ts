@@ -46,6 +46,7 @@ export default buildConfig({
   },
   collections: [Users, Pages, Categories, Media, Retailers, DeliveryPartners, Brands, Ratings, Wishlists],
   db: postgresAdapter({
+    idType: 'uuid',
     pool: {
       connectionString: process.env.DATABASE_URL || '',
     },

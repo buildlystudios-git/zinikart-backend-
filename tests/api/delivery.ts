@@ -105,7 +105,7 @@ export async function runDeliveryTests(
   )
 
   const profileId = createProfileRes.body?.doc?.id
-  const isCreated = createProfileRes.status === 201 && typeof profileId === 'number'
+  const isCreated = createProfileRes.status === 201 && typeof profileId === 'string'
 
   report.assert(
     'Create delivery partner profile with valid data returns 201 and profile document ID',

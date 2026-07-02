@@ -482,6 +482,8 @@ async function manageAddresses() {
       const state = await rl.question('State: ');
       const postalCode = await rl.question('Postal / Zip Code: ');
       const country = await rl.question('Country ISO Code (e.g. IN, US): ');
+      const latStr = await rl.question('Latitude (optional): ');
+      const lngStr = await rl.question('Longitude (optional): ');
 
       if (!firstName || !addressLine1 || !city || !postalCode || !country) {
         log('Missing required fields.');
@@ -497,6 +499,9 @@ async function manageAddresses() {
         postalCode,
         country,
       };
+
+      if (latStr.trim()) addressData.lat = parseFloat(latStr.trim()) || undefined;
+      if (lngStr.trim()) addressData.lng = parseFloat(lngStr.trim()) || undefined;
 
       printApiCall('/api/addresses', 'POST', 'Saves a new shipping/billing address document associated with the logged-in customer.', addressData);
       const res = await makeRequest('/api/addresses', 'POST', addressData);
@@ -517,6 +522,8 @@ async function manageAddresses() {
       const state = await rl.question('New State: ');
       const postalCode = await rl.question('New Postal Code: ');
       const country = await rl.question('New Country ISO: ');
+      const lat = await rl.question('New Latitude: ');
+      const lng = await rl.question('New Longitude: ');
 
       const updateData = {};
       if (firstName.trim()) updateData.firstName = firstName.trim();
@@ -526,6 +533,8 @@ async function manageAddresses() {
       if (state.trim()) updateData.state = state.trim();
       if (postalCode.trim()) updateData.postalCode = postalCode.trim();
       if (country.trim()) updateData.country = country.trim();
+      if (lat.trim()) updateData.lat = parseFloat(lat.trim()) || undefined;
+      if (lng.trim()) updateData.lng = parseFloat(lng.trim()) || undefined;
 
       if (Object.keys(updateData).length === 0) {
         log('No edits specified.');
@@ -780,61 +789,110 @@ async function checkoutFlow() {
       state: 'Maharashtra',
       postalCode: '400001',
       country: 'IN',
+      lat: 19.0760,
+      lng: 72.8777,
     };
   }
 
-  // Step 1: Initiate Razorpay payment
-  const initiateBody = {
-    cartID: currentCart.id,
-    billingAddress: selectedAddress,
-    shippingAddress: selectedAddress,
-  };
-  printApiCall('/api/payments/razorpay/initiate', 'POST', 'Initiates a payment session with Razorpay. Resolves product stock/pricing and generates a pending Transaction in ZiniKart database.', initiateBody);
-  const initRes = await makeRequest('/api/payments/razorpay/initiate', 'POST', initiateBody);
+  // Select Payment Method
+  log('\nSelect Payment Method:');
+  log('1. Online Payment (Razorpay)');
+  log('2. Cash on Delivery (COD)');
+  const payChoice = await rl.question('Choose option (1-2, default is 1): ');
 
-  if (initRes.status !== 200 && initRes.status !== 201) {
-    log(`Failed to initiate payment. Status: ${initRes.status}, Error: ${JSON.stringify(initRes.body)}`, '\x1b[31m');
-    return;
-  }
+  if (payChoice === '2') {
+    // Step 1: Initiate COD payment
+    const initiateBody = {
+      cartID: currentCart.id,
+      billingAddress: selectedAddress,
+      shippingAddress: selectedAddress,
+    };
+    printApiCall('/api/payments/cod/initiate', 'POST', 'Initiates a COD payment. Generates a pending Transaction with paymentMethod cod in ZiniKart database.', initiateBody);
+    const initRes = await makeRequest('/api/payments/cod/initiate', 'POST', initiateBody);
 
-  const { razorpayOrderID, amount } = initRes.body;
-  log(`\nRazorpay Payment Initiated successfully!`, '\x1b[32m');
-  log(`Razorpay Order ID: ${razorpayOrderID}`);
-  log(`Total Amount: ₹${amount / 100}`);
+    if (initRes.status !== 200 && initRes.status !== 201) {
+      log(`Failed to initiate COD. Status: ${initRes.status}, Error: ${JSON.stringify(initRes.body)}`, '\x1b[31m');
+      return;
+    }
 
-  log('\nSimulating customer payment overlay and authorization...');
-  
-  // Step 2: Confirm Order with Signature
-  const mockPaymentID = 'pay_' + crypto.randomBytes(8).toString('hex');
-  const keySecret = process.env.RAZORPAY_API_SECRET || process.env.RAZORPAY_KEY_SECRET || 'rzp_secret_mock';
-  
-  // Hash order_id + "|" + payment_id using HMAC-SHA256 to sign
-  const mockSignature = crypto
-    .createHmac('sha256', keySecret)
-    .update(`${razorpayOrderID}|${mockPaymentID}`)
-    .digest('hex');
+    const { transactionID, amount } = initRes.body;
+    log(`\nCOD Transaction Initiated successfully!`, '\x1b[32m');
+    log(`Transaction ID: ${transactionID}`);
+    log(`Total Amount: ₹${amount / 100}`);
 
-  log('Creating payment verification signature...');
+    // Step 2: Confirm COD Order immediately
+    const confirmBody = {
+      cartID: currentCart.id,
+      transactionID,
+      billingAddress: selectedAddress,
+      shippingAddress: selectedAddress,
+    };
 
-  const confirmBody = {
-    cartID: currentCart.id,
-    razorpayOrderID,
-    razorpayPaymentID: mockPaymentID,
-    razorpaySignature: mockSignature,
-    billingAddress: selectedAddress,
-    shippingAddress: selectedAddress,
-  };
+    printApiCall('/api/payments/cod/confirm-order', 'POST', 'Finalizes the COD order, clears the cart, and creates a permanent Order document.', confirmBody);
+    const confirmRes = await makeRequest('/api/payments/cod/confirm-order', 'POST', confirmBody);
 
-  printApiCall('/api/payments/razorpay/confirm-order', 'POST', 'Validates the payment signature, marks the Transaction as succeeded, clears the cart, and creates a permanent Order document.', confirmBody);
-  const confirmRes = await makeRequest('/api/payments/razorpay/confirm-order', 'POST', confirmBody);
-
-  if (confirmRes.status === 200 || confirmRes.status === 201) {
-    const finalOrderId = confirmRes.body?.orderID || confirmRes.body?.order?.id;
-    log(`\n🎉 PURCHASE COMPLETED SUCCESSFULLY!`, '\x1b[32m');
-    log(`Order Document ID Created: ${finalOrderId}`, '\x1b[32m');
-    currentCart = null;
+    if (confirmRes.status === 200 || confirmRes.status === 201) {
+      const finalOrderId = confirmRes.body?.orderID || confirmRes.body?.order?.id;
+      log(`\n🎉 COD ORDER PLACED SUCCESSFULLY!`, '\x1b[32m');
+      log(`Order Document ID Created: ${finalOrderId}`, '\x1b[32m');
+      currentCart = null;
+    } else {
+      log(`Order confirmation failed. Status: ${confirmRes.status}, Error: ${JSON.stringify(confirmRes.body)}`, '\x1b[31m');
+    }
   } else {
-    log(`Order confirmation failed. Status: ${confirmRes.status}, Error: ${JSON.stringify(confirmRes.body)}`, '\x1b[31m');
+    // Step 1: Initiate Razorpay payment
+    const initiateBody = {
+      cartID: currentCart.id,
+      billingAddress: selectedAddress,
+      shippingAddress: selectedAddress,
+    };
+    printApiCall('/api/payments/razorpay/initiate', 'POST', 'Initiates a payment session with Razorpay. Resolves product stock/pricing and generates a pending Transaction in ZiniKart database.', initiateBody);
+    const initRes = await makeRequest('/api/payments/razorpay/initiate', 'POST', initiateBody);
+
+    if (initRes.status !== 200 && initRes.status !== 201) {
+      log(`Failed to initiate payment. Status: ${initRes.status}, Error: ${JSON.stringify(initRes.body)}`, '\x1b[31m');
+      return;
+    }
+
+    const { razorpayOrderID, amount } = initRes.body;
+    log(`\nRazorpay Payment Initiated successfully!`, '\x1b[32m');
+    log(`Razorpay Order ID: ${razorpayOrderID}`);
+    log(`Total Amount: ₹${amount / 100}`);
+
+    log('\nSimulating customer payment overlay and authorization...');
+    
+    // Step 2: Confirm Order with Signature
+    const mockPaymentID = 'pay_' + crypto.randomBytes(8).toString('hex');
+    const keySecret = process.env.RAZORPAY_API_SECRET || process.env.RAZORPAY_KEY_SECRET || 'rzp_secret_mock';
+    
+    // Hash order_id + "|" + payment_id using HMAC-SHA256 to sign
+    const mockSignature = crypto
+      .createHmac('sha256', keySecret)
+      .update(`${razorpayOrderID}|${mockPaymentID}`)
+      .digest('hex');
+
+    log('Creating payment verification signature...');
+
+    const confirmBody = {
+      cartID: currentCart.id,
+      razorpayOrderID,
+      razorpayPaymentID: mockPaymentID,
+      razorpaySignature: mockSignature,
+      billingAddress: selectedAddress,
+      shippingAddress: selectedAddress,
+    };
+
+    printApiCall('/api/payments/razorpay/confirm-order', 'POST', 'Validates the payment signature, marks the Transaction as succeeded, clears the cart, and creates a permanent Order document.', confirmBody);
+    const confirmRes = await makeRequest('/api/payments/razorpay/confirm-order', 'POST', confirmBody);
+
+    if (confirmRes.status === 200 || confirmRes.status === 201) {
+      const finalOrderId = confirmRes.body?.orderID || confirmRes.body?.order?.id;
+      log(`\n🎉 PURCHASE COMPLETED SUCCESSFULLY!`, '\x1b[32m');
+      log(`Order Document ID Created: ${finalOrderId}`, '\x1b[32m');
+      currentCart = null;
+    } else {
+      log(`Order confirmation failed. Status: ${confirmRes.status}, Error: ${JSON.stringify(confirmRes.body)}`, '\x1b[31m');
+    }
   }
 }
 

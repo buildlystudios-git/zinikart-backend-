@@ -80,6 +80,9 @@ importers:
       dotenv:
         specifier: ^8.2.0
         version: 8.6.0
+      drizzle-orm:
+        specifier: 0.45.2
+        version: 0.45.2(@types/pg@8.20.0)(pg@8.20.0)
       embla-carousel-auto-scroll:
         specifier: ^8.1.5
         version: 8.6.0(embla-carousel@8.6.0)
@@ -110,6 +113,9 @@ importers:
       payload-oapi:
         specifier: ^0.2.5
         version: 0.2.5(@types/json-schema@7.0.15)(payload@3.84.1(graphql@16.14.0)(typescript@5.7.2))
+      pg:
+        specifier: ^8.11.3
+        version: 8.20.0
       prism-react-renderer:
         specifier: ^2.3.1
         version: 2.4.1(react@19.2.6)
@@ -162,6 +168,9 @@ importers:
       '@types/node':
         specifier: 22.19.9
         version: 22.19.9
+      '@types/pg':
+        specifier: ^8.20.0
+        version: 8.20.0
       '@types/react':
         specifier: 19.2.14
         version: 19.2.14

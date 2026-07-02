@@ -20,7 +20,9 @@
     "test": "pnpm run test:int && pnpm run test:e2e",
     "test:api": "cross-env NODE_OPTIONS=--no-deprecation tsx tests/api/run.ts",
     "test:e2e": "cross-env NODE_OPTIONS=\"--no-deprecation --import=tsx/esm\" playwright test --config=playwright.config.ts",
-    "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts"
+    "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts",
+    "clear-db": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/clear-db.ts",
+    "playground": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/playground.ts"
   },
   "dependencies": {
     "@payloadcms/admin-bar": "3.84.1",
@@ -57,6 +59,7 @@
     "next-themes": "0.4.6",
     "payload": "3.84.1",
     "payload-oapi": "^0.2.5",
+    "pg": "^8.11.3",
     "prism-react-renderer": "^2.3.1",
     "qs-esm": "8.0.1",
     "react": "19.2.6",
@@ -76,6 +79,7 @@
     "@testing-library/react": "16.3.0",
     "@types/jsonwebtoken": "^9.0.7",
     "@types/node": "22.19.9",
+    "@types/pg": "^8.20.0",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@vercel/git-hooks": "^1.0.0",

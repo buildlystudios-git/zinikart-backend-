@@ -48,6 +48,7 @@ export const CheckoutPage: React.FC = () => {
   const [billingAddress, setBillingAddress] = useState<Partial<Address>>()
   const [billingAddressSameAsShipping, setBillingAddressSameAsShipping] = useState(true)
   const [isProcessingPayment, setProcessingPayment] = useState(false)
+  const [selectedMethod, setSelectedMethod] = useState<'razorpay' | 'cod'>('razorpay')
 
   const cartIsEmpty = !cart || !cart.items || !cart.items.length
 
@@ -76,6 +77,64 @@ export const CheckoutPage: React.FC = () => {
       setEmailEditable(true)
     }
   }, [])
+
+  const placeCodOrder = useCallback(
+    async () => {
+      setProcessingPayment(true)
+      setError(null)
+      try {
+        const paymentData = (await initiatePayment('cod', {
+          additionalData: {
+            ...(email ? { customerEmail: email } : {}),
+            billingAddress,
+            shippingAddress: billingAddressSameAsShipping ? billingAddress : shippingAddress,
+          },
+        })) as Record<string, unknown>
+
+        if (!paymentData?.transactionID) {
+          throw new Error('Failed to initiate COD transaction')
+        }
+
+        const confirmResult = (await confirmOrder('cod', {
+          additionalData: {
+            transactionID: paymentData.transactionID,
+            customerEmail: email || user?.email,
+            billingAddress,
+            shippingAddress: billingAddressSameAsShipping ? billingAddress : shippingAddress,
+          },
+        })) as any
+
+        if (confirmResult?.orderID) {
+          clearCart()
+          const queryParams = new URLSearchParams()
+          if (email) {
+            queryParams.set('email', email)
+          }
+          if (confirmResult.accessToken) {
+            queryParams.set('accessToken', confirmResult.accessToken)
+          }
+          const queryString = queryParams.toString()
+          const redirectUrl = `/orders/${confirmResult.orderID}${queryString ? `?${queryString}` : ''}`
+          router.push(redirectUrl)
+        } else {
+          throw new Error('Failed to confirm COD order')
+        }
+      } catch (error) {
+        console.error(error)
+        const errorData = error instanceof Error ? JSON.parse(error.cause as any || '{}') : {}
+        let errorMessage = 'An error occurred while placing COD order.'
+
+        if (errorData?.cause?.code === 'OutOfStock') {
+          errorMessage = 'One or more items in your cart are out of stock.'
+        }
+
+        setError(errorMessage)
+        toast.error(errorMessage)
+        setProcessingPayment(false)
+      }
+    },
+    [billingAddress, billingAddressSameAsShipping, shippingAddress, email, user, initiatePayment, confirmOrder, clearCart, router],
+  )
 
   const initiatePaymentIntent = useCallback(
     async (paymentID: string) => {
@@ -325,15 +384,55 @@ export const CheckoutPage: React.FC = () => {
         )}
 
         {!paymentData && (
+          <div className="flex flex-col gap-4 p-4 border rounded-lg bg-card text-card-foreground">
+            <h3 className="font-semibold text-lg">Select Payment Method</h3>
+            <div className="flex flex-col gap-3">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="razorpay"
+                  checked={selectedMethod === 'razorpay'}
+                  onChange={() => setSelectedMethod('razorpay')}
+                  className="h-4 w-4"
+                />
+                <div>
+                  <span className="font-medium">Online Payment</span>
+                  <p className="text-sm text-muted-foreground">Pay securely online using Razorpay</p>
+                </div>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="cod"
+                  checked={selectedMethod === 'cod'}
+                  onChange={() => setSelectedMethod('cod')}
+                  className="h-4 w-4"
+                />
+                <div>
+                  <span className="font-medium">Cash on Delivery</span>
+                  <p className="text-sm text-muted-foreground">Pay with Cash or QR code on delivery</p>
+                </div>
+              </label>
+            </div>
+          </div>
+        )}
+
+        {!paymentData && (
           <Button
             className="self-start"
-            disabled={!canGoToPayment}
+            disabled={!canGoToPayment || isProcessingPayment}
             onClick={(e) => {
               e.preventDefault()
-              void initiatePaymentIntent('razorpay')
+              if (selectedMethod === 'cod') {
+                void placeCodOrder()
+              } else {
+                void initiatePaymentIntent('razorpay')
+              }
             }}
           >
-            Go to payment
+            {isProcessingPayment ? 'Processing...' : (selectedMethod === 'cod' ? 'Place COD Order' : 'Go to payment')}
           </Button>
         )}
 

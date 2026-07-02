@@ -1,22 +1,12 @@
-import type { Endpoint, Field, GroupField, PayloadRequest } from 'payload'
-import crypto from 'crypto'
+import type { Field, GroupField, PayloadRequest } from 'payload'
 import type { PaymentAdapter } from '@payloadcms/plugin-ecommerce/types'
 
 type InitiatePayment = PaymentAdapter['initiatePayment']
 type ConfirmOrder = PaymentAdapter['confirmOrder']
 
-export type RazorpayAdapterArgs = {
-  keyId: string
-  keySecret: string
-  webhookSecret?: string
-  label?: string
-}
-
 type InitiatePaymentReturnType = {
-  razorpayOrderID: string
   amount: number
   currency: string
-  key: string
   transactionID: string
   message: string
 }
@@ -40,37 +30,24 @@ const sanitizeAddress = (addr: any) => {
   }
 }
 
-export const razorpayAdapter = (props: RazorpayAdapterArgs): PaymentAdapter => {
-  const { keyId, keySecret, webhookSecret } = props
-  const label = props?.label || 'Razorpay'
-
-  const baseFields: Field[] = [
-    {
-      name: 'orderID',
-      type: 'text',
-      label: 'Razorpay Order ID',
-    },
-    {
-      name: 'paymentID',
-      type: 'text',
-      label: 'Razorpay Payment ID',
-    },
-    {
-      name: 'signature',
-      type: 'text',
-      label: 'Razorpay Signature',
-    },
-  ]
+export const codAdapter = (): PaymentAdapter => {
+  const label = 'Cash on Delivery'
 
   const groupField: GroupField = {
-    name: 'razorpay',
+    name: 'cod',
     type: 'group',
     admin: {
       condition: (data) => {
-        return data?.paymentMethod === 'razorpay'
+        return data?.paymentMethod === 'cod'
       },
     },
-    fields: baseFields,
+    fields: [
+      {
+        name: 'notes',
+        type: 'text',
+        label: 'COD Notes',
+      },
+    ],
   }
 
   const initiatePayment: InitiatePayment = async ({
@@ -96,10 +73,6 @@ export const razorpayAdapter = (props: RazorpayAdapterArgs): PaymentAdapter => {
       }
     }
 
-    if (!keyId || !keySecret) {
-      throw new Error('Razorpay credentials keyId and keySecret are required.')
-    }
-
     if (!cart || !cart.items || cart.items.length === 0) {
       throw new Error('Cart is empty or not provided.')
     }
@@ -109,7 +82,7 @@ export const razorpayAdapter = (props: RazorpayAdapterArgs): PaymentAdapter => {
     }
 
     try {
-      const flattenedCart = cart.items.map((item) => {
+      const flattenedCart = cart.items.map((item: any) => {
         const productID = typeof item.product === 'object' ? item.product.id : item.product
         const variantID = item.variant
           ? typeof item.variant === 'object'
@@ -127,70 +100,34 @@ export const razorpayAdapter = (props: RazorpayAdapterArgs): PaymentAdapter => {
         }
       })
 
-      let razorpayOrder: { id: string; amount: number; currency: string }
-
-      if (keyId.startsWith('rzp_test_mock')) {
-        razorpayOrder = {
-          id: `order_mock_${crypto.randomBytes(8).toString('hex')}`,
-          amount,
-          currency: currency.toUpperCase(),
-        }
-      } else {
-        // Create Order on Razorpay via direct API fetch
-        const authHeader = `Basic ${Buffer.from(`${keyId}:${keySecret}`).toString('base64')}`
-        const razorpayResponse = await fetch('https://api.razorpay.com/v1/orders', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: authHeader,
-          },
-          body: JSON.stringify({
-            amount, // already in Paise (due to decimals: 2)
-            currency: currency.toUpperCase(),
-            receipt: String(cart.id),
-          }),
-        })
-
-        if (!razorpayResponse.ok) {
-          const errText = await razorpayResponse.text()
-          throw new Error(`Razorpay Order creation failed: ${errText}`)
-        }
-
-        razorpayOrder = (await razorpayResponse.json()) as { id: string; amount: number; currency: string }
-      }
 
       // Create transaction record in database
       const transaction = await payload.create({
         collection: transactionsSlug as any,
         data: {
           ...(req.user ? { customer: req.user.id } : { customerEmail }),
-          amount: razorpayOrder.amount,
+          amount,
           billingAddress: billingAddressFromData,
           shippingAddress: shippingAddressFromData,
           cart: cart.id,
-          currency: razorpayOrder.currency.toUpperCase(),
+          currency: currency.toUpperCase(),
           items: flattenedCart,
-          paymentMethod: 'razorpay',
+          paymentMethod: 'cod',
           status: 'pending',
-          razorpay: {
-            orderID: razorpayOrder.id,
-          },
         },
         req,
       })
 
       const returnData: InitiatePaymentReturnType = {
-        razorpayOrderID: razorpayOrder.id,
-        amount: razorpayOrder.amount,
-        currency: razorpayOrder.currency,
-        key: keyId,
+        amount,
+        currency,
         transactionID: String(transaction.id),
-        message: 'Razorpay payment initiated successfully',
+        message: 'COD payment initiated successfully',
       }
 
       return returnData
     } catch (error) {
-      payload.logger.error({ err: error, msg: 'Error initiating payment with Razorpay' })
+      payload.logger.error({ err: error, msg: 'Error initiating payment with COD' })
       throw new Error(error instanceof Error ? error.message : 'Unknown error initiating payment')
     }
   }
@@ -204,41 +141,27 @@ export const razorpayAdapter = (props: RazorpayAdapterArgs): PaymentAdapter => {
   }) => {
     const payload = req.payload
     const customerEmail = data.customerEmail
-    const razorpayOrderID = data.razorpayOrderID as string
-    const razorpayPaymentID = data.razorpayPaymentID as string
-    const razorpaySignature = data.razorpaySignature as string
+    const transactionID = data.transactionID as string
 
-    if (!razorpayOrderID || !razorpayPaymentID || !razorpaySignature) {
-      throw new Error('razorpayOrderID, razorpayPaymentID, and razorpaySignature are required to confirm order.')
-    }
-
-    // Verify signature
-    const textToHash = `${razorpayOrderID}|${razorpayPaymentID}`
-    const generatedSignature = crypto
-      .createHmac('sha256', keySecret)
-      .update(textToHash)
-      .digest('hex')
-
-    if (generatedSignature !== razorpaySignature) {
-      throw new Error('Razorpay signature verification failed. Possible fraud attempt.')
+    if (!transactionID) {
+      throw new Error('transactionID is required to confirm order.')
     }
 
     try {
       // Find matching transaction
-      const transactionsResults = await payload.find({
+      const transaction = await payload.findByID({
         collection: transactionsSlug as any,
+        id: transactionID,
         overrideAccess: true,
-        where: {
-          'razorpay.orderID': {
-            equals: razorpayOrderID,
-          },
-        },
+        req,
       })
 
-      const transaction = transactionsResults.docs[0]
+      if (!transaction) {
+        throw new Error(`No transaction found for ID: ${transactionID}`)
+      }
 
-      if (!transactionsResults.totalDocs || !transaction) {
-        throw new Error(`No transaction found for Razorpay Order ID: ${razorpayOrderID}`)
+      if (transaction.paymentMethod !== 'cod') {
+        throw new Error(`Transaction is not for COD: ${transactionID}`)
       }
 
       const cartID = transaction.cart
@@ -262,6 +185,7 @@ export const razorpayAdapter = (props: RazorpayAdapterArgs): PaymentAdapter => {
           transactions: [transaction.id],
         },
         overrideAccess: true,
+        req,
       })
 
       const timestamp = new Date().toISOString()
@@ -275,74 +199,37 @@ export const razorpayAdapter = (props: RazorpayAdapterArgs): PaymentAdapter => {
           items: [],
         },
         overrideAccess: true,
+        req,
       })
 
-      // Update transaction status
+      // Update transaction status to link the created order, but keep transaction status as pending
       await payload.update({
         id: transaction.id,
         collection: transactionsSlug as any,
         data: {
           order: order.id,
-          status: 'succeeded',
-          razorpay: {
-            orderID: razorpayOrderID,
-            paymentID: razorpayPaymentID,
-            signature: razorpaySignature,
-          },
         },
         overrideAccess: true,
+        req,
       })
 
       return {
-        message: 'Order confirmed successfully via Razorpay',
+        message: 'Order confirmed successfully via COD',
         orderID: order.id,
         transactionID: transaction.id,
         ...(order.accessToken ? { accessToken: order.accessToken } : {}),
       }
     } catch (error) {
-      payload.logger.error({ err: error, msg: 'Error confirming order with Razorpay' })
+      payload.logger.error({ err: error, msg: 'Error confirming order with COD' })
       throw new Error(error instanceof Error ? error.message : 'Unknown error confirming payment')
     }
   }
 
-  const webhooksEndpoint: Endpoint = {
-    path: '/webhooks',
-    method: 'post',
-    handler: async (req) => {
-      let returnStatus = 200
-
-      if (webhookSecret && req.text) {
-        const body = await req.text()
-        const razorpaySignature = req.headers.get('x-razorpay-signature')
-
-        if (razorpaySignature) {
-          const expectedSignature = crypto
-            .createHmac('sha256', webhookSecret)
-            .update(body)
-            .digest('hex')
-
-          if (expectedSignature !== razorpaySignature) {
-            req.payload.logger.error('Invalid Razorpay webhook signature')
-            returnStatus = 400
-          } else {
-            // Process webhook events if needed in the future
-            // E.g. order.paid, payment.failed
-            const parsedBody = JSON.parse(body)
-            req.payload.logger.info(`Received Razorpay webhook event: ${parsedBody.event}`)
-          }
-        }
-      }
-
-      return Response.json({ received: true }, { status: returnStatus })
-    },
-  }
-
   return {
-    name: 'razorpay',
+    name: 'cod',
     label,
     initiatePayment,
     confirmOrder,
-    endpoints: [webhooksEndpoint],
     group: groupField,
   }
 }

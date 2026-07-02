@@ -33,7 +33,7 @@ export const ProductsCollection: CollectionOverride = ({ defaultCollection }) =>
   ...defaultCollection,
   admin: {
     ...defaultCollection?.admin,
-    defaultColumns: ['title', 'enableVariants', '_status', 'variants.variants'],
+    defaultColumns: ['title', 'enableVariants', '_status', 'variants.variants', 'isMasterTemplate', 'inventory', 'categories', 'brand', 'retailer'],
     livePreview: {
       url: ({ data, req }) =>
         generatePreviewPath({

@@ -413,6 +413,8 @@ async function listNewProduct() {
   let selectedCategory = '';
   let galleryImageId = '';
   let specifications = [];
+  let templateEnableVariants = false;
+  let templateVariantTypes = [];
 
   if (typeChoice === '1') {
     const query = '/api/products?where[isMasterTemplate][equals]=true&depth=1';
@@ -436,6 +438,8 @@ async function listNewProduct() {
         description = template.description?.root?.children?.[0]?.children?.[0]?.text || 'Listed cloned product';
         selectedCategory = template.categories?.[0]?.id || template.categories?.[0];
         galleryImageId = template.gallery?.[0]?.image?.id || template.gallery?.[0]?.image;
+        templateEnableVariants = template.enableVariants || false;
+        templateVariantTypes = template.variantTypes || [];
 
         // Copy existing specifications from template if available
         if (template.specifications && Array.isArray(template.specifications)) {
@@ -484,10 +488,15 @@ async function listNewProduct() {
     specifications = await collectSpecifications(selectedCategory, specifications);
   }
 
-  const basePriceStr = await rl.question('\nEnter Selling Price in INR (e.g. 500 for ₹500.00): ');
-  const priceInINR = (parseFloat(basePriceStr) || 0) * 100;
+  let priceInINR = null;
+  if (!templateEnableVariants) {
+    const basePriceStr = await rl.question('\nEnter Selling Price in INR (e.g. 500 for ₹500.00): ');
+    priceInINR = (parseFloat(basePriceStr) || 0) * 100;
+  } else {
+    log('\nNote: This product uses variants. Prices and inventory are configured at the variant level.', '\x1b[33m');
+  }
   
-  if ((!title.trim() && !parentTemplateId) || priceInINR <= 0) {
+  if ((!title.trim() && !parentTemplateId) || (!templateEnableVariants && priceInINR <= 0)) {
     log('Invalid product details.');
     return;
   }
@@ -516,8 +525,9 @@ async function listNewProduct() {
         version: 1
       }
     },
-    priceInINR,
-    enableVariants: false,
+    priceInINR: priceInINR || undefined,
+    enableVariants: templateEnableVariants,
+    variantTypes: templateVariantTypes.map(vt => typeof vt === 'object' ? vt.id : vt),
     categories: selectedCategory ? [selectedCategory] : undefined,
     gallery: galleryImageId ? [{ image: galleryImageId }] : undefined,
     retailer: currentUser.id, // Linked to the retailer's authenticated User ID
@@ -626,6 +636,181 @@ async function manageRetailerStoreMenu() {
   }
 }
 
+async function manageProductVariants() {
+  if (!token || !currentRetailer) {
+    log('You must be registered and approved to list variants.', '\x1b[31m');
+    return;
+  }
+
+  // 1. Fetch current retailer products
+  const productsQuery = `/api/products?where[retailer][equals]=${currentUser.id}&depth=1`;
+  printApiCall(productsQuery, 'GET', 'Fetches products listed by the current retailer.');
+  const prodRes = await makeRequest(productsQuery);
+  const products = prodRes.body?.docs || [];
+
+  if (products.length === 0) {
+    log('No products found in your store catalog. Please list a product first.');
+    return;
+  }
+
+  log('\n=== Select Product to Manage Variants ===');
+  products.forEach((p, idx) => {
+    log(`${idx + 1}. ID: ${p.id} | ${p.title} (Variants: ${p.enableVariants ? 'Enabled' : 'Disabled'})`);
+  });
+
+  const pChoice = await rl.question(`Select option (1-${products.length}): `);
+  const pIdx = parseInt(pChoice) - 1;
+  if (pIdx < 0 || pIdx >= products.length) {
+    log('Invalid selection.');
+    return;
+  }
+
+  const selectedProduct = products[pIdx];
+
+  // 2. Check if product has variants enabled
+  if (!selectedProduct.enableVariants) {
+    log('\nVariants are not enabled for this product. You can update its direct price/inventory under option 3.', '\x1b[31m');
+    return;
+  }
+
+  const productId = selectedProduct.id;
+
+  // 3. Fetch all variant configurations for this product
+  const variantsQuery = `/api/variants?where[product][equals]=${productId}&depth=1&limit=100`;
+  printApiCall(variantsQuery, 'GET', 'Fetches all variants currently linked to this retailer product.');
+  const variantsRes = await makeRequest(variantsQuery);
+  const variants = variantsRes.body?.docs || [];
+
+  // Map option ID to name/value for readability
+  const optionMap = {};
+  const vtList = selectedProduct.variantTypes || [];
+  vtList.forEach((vt) => {
+    const opts = vt.options || [];
+    opts.forEach((opt) => {
+      optionMap[opt.id] = { typeName: vt.name, optValue: opt.value };
+    });
+  });
+
+  function getVariantLabel(v) {
+    const opts = v.options || [];
+    const labels = opts.map((o) => {
+      const optId = typeof o === 'object' ? o.id : o;
+      const mapping = optionMap[optId];
+      return mapping ? `${mapping.typeName}: ${mapping.optValue}` : `Option #${optId}`;
+    });
+    return labels.join(', ') || 'Default Configuration';
+  }
+
+  while (true) {
+    log(`\n=== Variants for: ${selectedProduct.title} ===`, '\x1b[33m');
+    if (variants.length === 0) {
+      log('No variants currently configured.');
+    } else {
+      variants.forEach((v, idx) => {
+        log(`${idx + 1}. ID: ${v.id} | Configuration: [${getVariantLabel(v)}]`);
+        log(`   Price: ₹${v.priceInINR / 100} | Qty: ${v.inventory} | Status: ${v._status}`);
+      });
+    }
+
+    log('\n1. Create / Update a Variant Combination');
+    log('2. Back to Product Catalog Menu');
+
+    const subChoice = await rl.question('\nSelect an option (1-2): ');
+
+    if (subChoice === '1') {
+      if (vtList.length === 0) {
+        log('No variant types found on the master template. Cannot define combinations.', '\x1b[31m');
+        continue;
+      }
+
+      const chosenOptionIds = [];
+      let aborted = false;
+
+      for (const vt of vtList) {
+        log(`\nSelect option for: "${vt.name}"`);
+        const opts = vt.options || [];
+        if (opts.length === 0) {
+          log(`No options defined for variant type "${vt.name}".`);
+          aborted = true;
+          break;
+        }
+
+        opts.forEach((o, idx) => {
+          log(`${idx + 1}. ${o.value}`);
+        });
+
+        const oChoice = await rl.question(`Choose option (1-${opts.length}): `);
+        const oIdx = parseInt(oChoice) - 1;
+        if (oIdx < 0 || oIdx >= opts.length) {
+          log('Invalid selection.');
+          aborted = true;
+          break;
+        }
+        chosenOptionIds.push(opts[oIdx].id);
+      }
+
+      if (aborted) continue;
+
+      // Ask for Price, Stock, Status
+      const priceStr = await rl.question('\nEnter Selling Price in INR: ');
+      const priceInINR = (parseFloat(priceStr) || 0) * 100;
+      const qtyStr = await rl.question('Enter Stock Quantity: ');
+      const inventory = parseInt(qtyStr) || 0;
+      const status = await rl.question('Enter Status (draft or published, default: published): ') || 'published';
+
+      if (priceInINR <= 0 || inventory < 0) {
+        log('Invalid price or inventory values.', '\x1b[31m');
+        continue;
+      }
+
+      // Check if this combination already exists
+      const existing = variants.find((v) => {
+        const vOpts = (v.options || []).map((o) => typeof o === 'object' ? o.id : o);
+        return chosenOptionIds.every((id) => vOpts.includes(id));
+      });
+
+      if (existing) {
+        // Update existing variant
+        const updateData = {
+          priceInINR,
+          inventory,
+          _status: status,
+        };
+        printApiCall(`/api/variants/${existing.id}`, 'PATCH', 'Updates price/stock for an existing variant combination.', updateData);
+        const res = await makeRequest(`/api/variants/${existing.id}`, 'PATCH', updateData);
+        if (res.status === 200) {
+          log('\nVariant updated successfully!', '\x1b[32m');
+          const updatedDoc = res.body?.doc || res.body;
+          const idx = variants.findIndex(v => v.id === existing.id);
+          if (idx !== -1) variants[idx] = updatedDoc;
+        } else {
+          log(`Failed to update variant. Status: ${res.status}, Error: ${JSON.stringify(res.body)}`, '\x1b[31m');
+        }
+      } else {
+        // Create new variant
+        const createData = {
+          product: productId,
+          options: chosenOptionIds,
+          priceInINR,
+          inventory,
+          priceInINREnabled: true,
+          _status: status,
+        };
+        printApiCall('/api/variants', 'POST', 'Registers a new variant combination (e.g. Storage + Color) with custom stock/pricing.', createData);
+        const res = await makeRequest('/api/variants', 'POST', createData);
+        if (res.status === 200 || res.status === 201) {
+          log('\nVariant created successfully!', '\x1b[32m');
+          variants.push(res.body?.doc || res.body);
+        } else {
+          log(`Failed to create variant. Status: ${res.status}, Error: ${JSON.stringify(res.body)}`, '\x1b[31m');
+        }
+      }
+    } else {
+      break;
+    }
+  }
+}
+
 async function manageRetailerProductsMenu() {
   if (!token || !currentRetailer) {
     log('You must be registered and approved to list products.', '\x1b[31m');
@@ -638,9 +823,10 @@ async function manageRetailerProductsMenu() {
     log('2. List New Product for Sale');
     log('3. Update Existing Product Details (Price / Status)');
     log('4. Delete / De-list Product');
-    log('5. Back to Main Menu');
+    log('5. Manage Product Variants (Stock / Price / Status)');
+    log('6. Back to Main Menu');
 
-    const choice = await rl.question('\nSelect an option (1-5): ');
+    const choice = await rl.question('\nSelect an option (1-6): ');
 
     if (choice === '1') {
       await viewStoreProducts();
@@ -688,6 +874,8 @@ async function manageRetailerProductsMenu() {
         log(`Failed to delete product. Status: ${res.status}`, '\x1b[31m');
       }
     } else if (choice === '5') {
+      await manageProductVariants();
+    } else if (choice === '6') {
       break;
     }
   }

@@ -2,6 +2,7 @@ import { AuthProvider } from '@/providers/Auth'
 import { EcommerceProvider } from '@payloadcms/plugin-ecommerce/client/react'
 import { stripeAdapterClient } from '@payloadcms/plugin-ecommerce/payments/stripe'
 import { razorpayAdapterClient } from '@/plugins/payments/razorpay/client'
+import { codAdapterClient } from '@/plugins/payments/cod/client'
 import React from 'react'
 
 import { HeaderThemeProvider } from './HeaderTheme'
@@ -51,6 +52,7 @@ export const Providers: React.FC<{
                 publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',
               }),
               razorpayAdapterClient(),
+              codAdapterClient(),
             ]}
           >
             {children}

@@ -26,6 +26,10 @@ import { paymentPaths } from '@/endpoints/payments/openapi'
 import { usersAuthPaths } from '@/endpoints/users/openapi'
 import { retailerAnalyticsPaths } from '@/endpoints/retailers/openapi'
 import { deductInventory } from '@/hooks/deductInventory'
+import { codAdapter } from '@/plugins/payments/cod'
+import { orderUpdateAccess } from '@/access/orderUpdateAccess'
+import { restrictDeliveryPartnerFields } from '@/hooks/restrictDeliveryPartnerFields'
+import { confirmCodTransaction } from '@/hooks/confirmCodTransaction'
 
 const generateTitle: GenerateTitle<Product | Page> = ({ doc }) => {
   return doc?.title ? `${doc.title} | Payload Ecommerce Template` : 'Payload Ecommerce Template'
@@ -175,6 +179,25 @@ export const plugins: Plugin[] = [
       defaultCurrency: 'INR',
     },
     addresses: {
+      addressFields: ({ defaultFields }) => [
+        ...defaultFields,
+        {
+          name: 'lat',
+          type: 'number',
+          label: 'Latitude',
+          admin: {
+            placeholder: 'e.g. 28.6139',
+          },
+        },
+        {
+          name: 'lng',
+          type: 'number',
+          label: 'Longitude',
+          admin: {
+            placeholder: 'e.g. 77.2090',
+          },
+        },
+      ],
       addressesCollectionOverride: ({ defaultCollection }) => ({
         ...defaultCollection,
         admin: {
@@ -189,11 +212,20 @@ export const plugins: Plugin[] = [
     orders: {
       ordersCollectionOverride: ({ defaultCollection }) => ({
         ...defaultCollection,
+        access: {
+          ...defaultCollection.access,
+          update: orderUpdateAccess,
+        },
         hooks: {
           ...defaultCollection.hooks,
           beforeChange: [
             ...(defaultCollection.hooks?.beforeChange || []),
             deductInventory,
+            restrictDeliveryPartnerFields,
+          ],
+          afterChange: [
+            ...(defaultCollection.hooks?.afterChange || []),
+            confirmCodTransaction,
           ],
         },
         fields: [
@@ -218,6 +250,60 @@ export const plugins: Plugin[] = [
               ],
             },
           },
+          {
+            name: 'deliveryPartner',
+            type: 'relationship',
+            relationTo: 'delivery-partners',
+            required: false,
+            access: {
+              update: adminOnlyFieldAccess,
+            },
+            admin: {
+              position: 'sidebar',
+              description: 'The assigned delivery partner for this order',
+            },
+          },
+          {
+            name: 'codCollectionRecord',
+            type: 'group',
+            admin: {
+              description: 'Doorstep COD payment collection log',
+            },
+            fields: [
+              {
+                name: 'status',
+                type: 'select',
+                options: [
+                  { label: 'Pending', value: 'pending' },
+                  { label: 'Collected', value: 'collected' },
+                ],
+                defaultValue: 'pending',
+              },
+              {
+                name: 'collectedAt',
+                type: 'date',
+                admin: {
+                  readOnly: true,
+                },
+              },
+              {
+                name: 'paymentType',
+                type: 'select',
+                options: [
+                  { label: 'Cash', value: 'cash' },
+                  { label: 'Online QR', value: 'qr' },
+                ],
+              },
+              {
+                name: 'collectedBy',
+                type: 'relationship',
+                relationTo: 'delivery-partners',
+                admin: {
+                  readOnly: true,
+                },
+              },
+            ],
+          },
         ],
       }),
     },
@@ -233,6 +319,7 @@ export const plugins: Plugin[] = [
           keySecret: process.env.RAZORPAY_API_SECRET || process.env.RAZORPAY_KEY_SECRET || 'rzp_secret_mock',
           webhookSecret: process.env.RAZORPAY_WEBHOOKS_SIGNING_SECRET,
         }),
+        codAdapter(),
       ],
     },
     products: {

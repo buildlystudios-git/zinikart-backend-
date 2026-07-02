@@ -304,4 +304,125 @@ export const paymentPaths = {
       },
     },
   },
+  '/api/payments/cod/initiate': {
+    post: {
+      summary: 'Initiate payment session via COD',
+      description: 'Creates a pending Cash on Delivery transaction for checkout.',
+      tags: ['payments'],
+      security: [
+        {
+          CookieAuth: [],
+        },
+        {
+          BearerAuth: [],
+        },
+      ],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                cartID: {
+                  type: 'string',
+                  description: 'The ID of the cart to checkout',
+                },
+                billingAddress: {
+                  type: 'object',
+                },
+                shippingAddress: {
+                  type: 'object',
+                },
+              },
+              required: ['cartID', 'billingAddress', 'shippingAddress'],
+            },
+          },
+        },
+      },
+      responses: {
+        200: {
+          description: 'COD transaction initiated successfully.',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  transactionID: {
+                    type: 'string',
+                    description: 'The internal pending Transaction ID',
+                  },
+                },
+              },
+            },
+          },
+        },
+        400: { description: 'Invalid payload or empty cart' },
+        401: { description: 'Unauthorized' },
+        404: { description: 'Cart not found' },
+      },
+    },
+  },
+  '/api/payments/cod/confirm-order': {
+    post: {
+      summary: 'Confirm COD payment and create Order',
+      description: 'Places the final order for Cash on Delivery checkout and clears the cart.',
+      tags: ['payments'],
+      security: [
+        {
+          CookieAuth: [],
+        },
+        {
+          BearerAuth: [],
+        },
+      ],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                cartID: {
+                  type: 'string',
+                  description: 'The ID of the checked out cart',
+                },
+                transactionID: {
+                  type: 'string',
+                  description: 'The internal pending Transaction ID',
+                },
+                billingAddress: {
+                  type: 'object',
+                },
+                shippingAddress: {
+                  type: 'object',
+                },
+              },
+              required: ['cartID', 'transactionID', 'billingAddress', 'shippingAddress'],
+            },
+          },
+        },
+      },
+      responses: {
+        200: {
+          description: 'COD order created successfully.',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  orderID: {
+                    type: 'string',
+                    description: 'The created internal Order document ID',
+                  },
+                },
+              },
+            },
+          },
+        },
+        400: { description: 'Invalid transaction or validation error' },
+        401: { description: 'Unauthorized' },
+      },
+    },
+  },
 }

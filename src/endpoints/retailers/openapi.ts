@@ -74,6 +74,12 @@ export const retailerAnalyticsPaths = {
                       ordersCount: { type: 'number' },
                       productsSoldCount: { type: 'number' },
                       averageOrderValueInINR: { type: 'number' },
+                      weeklyGrossSalesInINR: { type: 'number' },
+                      weeklyPlatformCommissionInINR: { type: 'number' },
+                      weeklyNetEarningsInINR: { type: 'number' },
+                      totalGrossSalesInINR: { type: 'number' },
+                      totalPlatformCommissionInINR: { type: 'number' },
+                      totalNetEarningsInINR: { type: 'number' },
                     },
                   },
                   inventory: {
@@ -83,6 +89,26 @@ export const retailerAnalyticsPaths = {
                       totalStock: { type: 'number' },
                       lowStockCount: { type: 'number' },
                       outOfStockCount: { type: 'number' },
+                    },
+                  },
+                  liveOrders: {
+                    type: 'object',
+                    properties: {
+                      count: { type: 'number' },
+                      orders: {
+                        type: 'array',
+                        items: { type: 'object' },
+                      },
+                    },
+                  },
+                  latestOrders: {
+                    type: 'object',
+                    properties: {
+                      count: { type: 'number' },
+                      orders: {
+                        type: 'array',
+                        items: { type: 'object' },
+                      },
                     },
                   },
                   topSellingProducts: {

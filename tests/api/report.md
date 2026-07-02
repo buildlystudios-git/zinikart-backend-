@@ -1,9 +1,9 @@
 # ZiniKart API Integration Test Report
 
-**Execution Time:** 30/6/2026, 9:20:10 pm
-**Total Assertions:** 92 | **Passed:** 89 | **Failed:** 3
+**Execution Time:** 2/7/2026, 4:43:47 pm
+**Total Assertions:** 103 | **Passed:** 103 | **Failed:** 0
 
-### Pass Rate: 97%
+### Pass Rate: 100%
 `[██████████]`
 
 ## Summary Table
@@ -16,7 +16,7 @@
 | Authentication Endpoints | Possible Scenario | Verify OTP for an existing user requesting a new role updates the user roles list | ✅ PASS | - |
 | Authentication Endpoints | Impossible Scenario | Request OTP with missing phone number returns 400 error | ✅ PASS | - |
 | Authentication Endpoints | Impossible Scenario | Request OTP with malformed phone number returns 400 error | ✅ PASS | - |
-| Authentication Endpoints | Impossible Scenario | Verify OTP with incorrect code returns 401 unauthorized error | ❌ FAIL | `Expected status 401, got 400` |
+| Authentication Endpoints | Impossible Scenario | Verify OTP with incorrect code returns 401 unauthorized error | ✅ PASS | - |
 | Authentication Endpoints | Impossible Scenario | Verify OTP with invalid role parameter returns 400 error | ✅ PASS | - |
 | Retailer Profile Lifecycle | Impossible Scenario | Attempt to create profile without auth token returns 401 or 403 error | ✅ PASS | - |
 | Retailer Profile Lifecycle | Best Case | Create retailer profile with valid data returns 201 and profile document ID | ✅ PASS | - |
@@ -95,10 +95,21 @@
 | Cart Operations | Worst Case | Access Control: Customer B is blocked from reading Customer A's cart (returns 403 or 404) | ✅ PASS | - |
 | Cart Operations | Worst Case | Access Control: Customer B is blocked from adding items to Customer A's cart (returns 403 or 404) | ✅ PASS | - |
 | Cart Operations | Worst Case | Access Control: Customer B is blocked from clearing Customer A's cart (returns 403 or 404) | ✅ PASS | - |
-| Checkout & Payments | Best Case | Successfully initiate payment via Razorpay adapter (returns status 200 or 201 and a razorpayOrderID) | ❌ FAIL | `Expected status 200/201 and razorpayOrderID. Got status: 500, Body: {"message":"Error initiating payment."}` |
-| Checkout & Payments | Best Case | Successfully confirm order and generate Order ID (returns status 200 or 201) | ❌ FAIL | `Expected status 200/201 and orderID. Got status: 500, Body: {"message":"Error confirming order."}` |
+| Checkout & Payments | Best Case | Successfully initiate payment via Razorpay adapter (returns status 200 or 201 and a razorpayOrderID) | ✅ PASS | - |
+| Checkout & Payments | Best Case | Successfully confirm order and generate Order ID (returns status 200 or 201) | ✅ PASS | - |
 | Checkout & Payments | Impossible Scenario | Attempt to initiate payment without auth token is rejected (returns 400, 401, or 403) | ✅ PASS | - |
 | Checkout & Payments | Impossible Scenario | Attempt to initiate payment with non-existent cart ID is rejected (returns 400 or 404) | ✅ PASS | - |
 | Checkout & Payments | Impossible Scenario | Attempt to initiate payment with an empty cart is rejected (returns 400 or 500 with proper error) | ✅ PASS | - |
 | Checkout & Payments | Worst Case | Access Control: Customer B is blocked from initiating payment on Customer A's cart (returns 403 or 404) | ✅ PASS | - |
 | Checkout & Payments | Worst Case | Access Control: Customer B is blocked from confirming order on Customer A's cart (returns 403 or 404) | ✅ PASS | - |
+| Checkout & Payments | Best Case | COD setup: Item added to cart | ✅ PASS | - |
+| Checkout & Payments | Best Case | Successfully initiate payment via COD adapter (returns transactionID) | ✅ PASS | - |
+| Checkout & Payments | Best Case | Successfully confirm COD order (returns orderID) | ✅ PASS | - |
+| Checkout & Payments | Worst Case | Access Control: Unassigned delivery partner is blocked from updating the order (returns 403 or 404) | ✅ PASS | - |
+| Checkout & Payments | Best Case | Assigned delivery partner can successfully change order status | ✅ PASS | - |
+| Checkout & Payments | Best Case | Order status is successfully set to completed | ✅ PASS | - |
+| Checkout & Payments | Worst Case | Security: Order amount was NOT hijacked and remained original | ✅ PASS | - |
+| Checkout & Payments | Best Case | COD collection record status is updated to collected | ✅ PASS | - |
+| Checkout & Payments | Best Case | COD collection record paymentType is set to qr | ✅ PASS | - |
+| Checkout & Payments | Best Case | COD collection record is stamped with correct delivery partner profile ID | ✅ PASS | - |
+| Checkout & Payments | Best Case | COD transaction automatically updated to status succeeded when order completed | ✅ PASS | - |

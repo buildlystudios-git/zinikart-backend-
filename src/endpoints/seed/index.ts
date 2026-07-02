@@ -47,6 +47,8 @@ const baseAddressUSData: Transaction['billingAddress'] = {
   state: 'NY',
   postalCode: '10001',
   country: 'US',
+  lat: 40.7128,
+  lng: -74.0060,
 }
 
 const baseAddressUKData: Transaction['billingAddress'] = {
@@ -58,6 +60,8 @@ const baseAddressUKData: Transaction['billingAddress'] = {
   city: 'London',
   postalCode: 'W1W 7ND',
   country: 'GB',
+  lat: 51.5074,
+  lng: -0.1278,
 }
 
 // Next.js revalidation errors are normal when seeding the database without a server running
@@ -845,6 +849,8 @@ export const seed = async ({
           city: 'New Delhi',
           state: 'Delhi',
           zipCode: '110001',
+          lat: 28.6139,
+          lng: 77.2090,
         },
         bankDetails: {
           accountHolderName: r.owner,
@@ -1136,159 +1142,6 @@ export const seed = async ({
     data: {
       customer: customer.id,
       ...(baseAddressUKData as Address),
-    },
-  })
-
-  payload.logger.info(`— Seeding transactions...`)
-
-  const pendingTransaction = await payload.create({
-    collection: 'transactions',
-    data: {
-      currency: 'INR',
-      customer: customer.id,
-      paymentMethod: 'stripe',
-      stripe: {
-        customerID: 'cus_123',
-        paymentIntentID: 'pi_123',
-      },
-      status: 'pending',
-      billingAddress: baseAddressUSData,
-    },
-  })
-
-  const succeededTransaction = await payload.create({
-    collection: 'transactions',
-    data: {
-      currency: 'INR',
-      customer: customer.id,
-      paymentMethod: 'stripe',
-      stripe: {
-        customerID: 'cus_123',
-        paymentIntentID: 'pi_123',
-      },
-      status: 'succeeded',
-      billingAddress: baseAddressUSData,
-    },
-  })
-
-  let succeededTransactionID: number | string = succeededTransaction.id
-
-  if (payload.db.defaultIDType === 'text') {
-    succeededTransactionID = `"${succeededTransactionID}"`
-  }
-
-  payload.logger.info(`— Seeding carts...`)
-
-  // This cart is open as it's created now
-  const openCart = await payload.create({
-    collection: 'carts',
-    data: {
-      customer: customer.id,
-      currency: 'INR',
-      items: [
-        {
-          product: productSmartphone.id,
-          variant: smartphoneVar2.id,
-          quantity: 1,
-        },
-      ],
-    },
-  })
-
-  const oldTimestamp = new Date('2023-01-01T00:00:00Z').toISOString()
-
-  // Cart is abandoned because it was created long in the past
-  const abandonedCart = await payload.create({
-    collection: 'carts',
-    data: {
-      currency: 'INR',
-      createdAt: oldTimestamp,
-      items: [
-        {
-          product: productHeadphones.id,
-          variant: headphonesVar1.id,
-          quantity: 1,
-        },
-      ],
-    },
-  })
-
-  // Cart is purchased because it has a purchasedAt date
-  const completedCart = await payload.create({
-    collection: 'carts',
-    data: {
-      customer: customer.id,
-      currency: 'INR',
-      purchasedAt: new Date().toISOString(),
-      subtotal: 209800,
-      items: [
-        {
-          product: productSmartphone.id,
-          variant: smartphoneVar1.id,
-          quantity: 1,
-        },
-        {
-          product: productSmartphone.id,
-          variant: smartphoneVar2.id,
-          quantity: 1,
-        },
-      ],
-    },
-  })
-
-  let completedCartID: number | string = completedCart.id
-
-  if (payload.db.defaultIDType === 'text') {
-    completedCartID = `"${completedCartID}"`
-  }
-
-  payload.logger.info(`— Seeding orders...`)
-
-  const orderInCompleted = await payload.create({
-    collection: 'orders',
-    data: {
-      amount: 209800,
-      currency: 'INR',
-      customer: customer.id,
-      shippingAddress: baseAddressUSData,
-      items: [
-        {
-          product: productSmartphone.id,
-          variant: smartphoneVar1.id,
-          quantity: 1,
-        },
-        {
-          product: productSmartphone.id,
-          variant: smartphoneVar2.id,
-          quantity: 1,
-        },
-      ],
-      status: 'completed',
-      transactions: [succeededTransaction.id],
-    },
-  })
-
-  const orderInProcessing = await payload.create({
-    collection: 'orders',
-    data: {
-      amount: 209800,
-      currency: 'INR',
-      customer: customer.id,
-      shippingAddress: baseAddressUSData,
-      items: [
-        {
-          product: productSmartphone.id,
-          variant: smartphoneVar1.id,
-          quantity: 1,
-        },
-        {
-          product: productSmartphone.id,
-          variant: smartphoneVar2.id,
-          quantity: 1,
-        },
-      ],
-      status: 'processing',
-      transactions: [succeededTransaction.id],
     },
   })
 

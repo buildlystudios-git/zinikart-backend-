@@ -105,26 +105,41 @@ export const analyticsEndpoint = async (req: PayloadRequest): Promise<Response> 
       }
     }
 
-    // 2. Fetch orders within the date range
-    const ordersRes = await req.payload.find({
-      collection: 'orders',
-      where: {
-        createdAt: {
-          greater_than_equal: start.toISOString(),
-          less_than_equal: end.toISOString(),
-        },
-        status: {
-          not_equals: 'cancelled', // Exclude cancelled orders from analytics
-        },
-      },
-      limit: 10000,
-      depth: 2, // Needs depth 2 to populate item.product & item.variant
-      overrideAccess: true,
-    })
+    // 2. Fetch all orders (excluding cancelled) containing retailer's products
+    let ordersDocs: any[] = []
+    if (!retailerUserId || productIds.length > 0) {
+      const orderWhere: Where = retailerUserId
+        ? {
+            'items.product': { in: productIds },
+            status: { not_equals: 'cancelled' },
+          }
+        : {
+            status: { not_equals: 'cancelled' },
+          }
 
+      const ordersRes = await req.payload.find({
+        collection: 'orders',
+        where: orderWhere,
+        limit: 10000,
+        depth: 2, // Needs depth 2 to populate item.product & item.variant
+        overrideAccess: true,
+      })
+      ordersDocs = ordersRes.docs
+    }
+
+    const rangeStart = start.getTime()
+    const rangeEnd = end.getTime()
+
+    // Weekly calculations: last 7 days from the end of the query range
+    const sevenDaysAgo = new Date(rangeEnd - 7 * 24 * 60 * 60 * 1000)
+    const weeklyStart = sevenDaysAgo.getTime()
+
+    let dateRangeGrossSales = 0
+    let dateRangeOrdersCount = 0
+    let dateRangeProductsSold = 0
+
+    let weeklyGrossSales = 0
     let totalGrossSales = 0
-    let totalOrdersCount = 0
-    let totalProductsSold = 0
 
     const productSalesMap = new Map<number, { title: string; quantity: number; revenue: number }>()
     const categorySalesMap = new Map<number, { title: string; quantity: number; revenue: number }>()
@@ -139,10 +154,23 @@ export const analyticsEndpoint = async (req: PayloadRequest): Promise<Response> 
       tempDate.setDate(tempDate.getDate() + 1)
     }
 
-    for (const order of ordersRes.docs) {
-      let orderContributed = false
-      let orderSales = 0
-      let orderProductsSold = 0
+    const liveOrdersList: any[] = []
+    const latestOrdersList: any[] = []
+
+    for (const order of ordersDocs) {
+      const orderTime = new Date(order.createdAt).getTime()
+
+      let orderContributedToRange = false
+      let orderContributedToWeekly = false
+      let orderContributedToTotal = false
+
+      let dateRangeOrderSales = 0
+      let dateRangeOrderProductsSold = 0
+
+      let weeklyOrderSales = 0
+      let totalOrderSales = 0
+
+      const orderItems = []
 
       const items = order.items || []
       for (const item of items) {
@@ -152,8 +180,6 @@ export const analyticsEndpoint = async (req: PayloadRequest): Promise<Response> 
         const pId = prod.id
         // Filter: does it belong to the retailer (or all if admin/no retailer selected)
         if (!retailerUserId || productIds.includes(pId)) {
-          orderContributed = true
-
           // Pricing logic
           let price = 0
           if (item.variant) {
@@ -168,63 +194,113 @@ export const analyticsEndpoint = async (req: PayloadRequest): Promise<Response> 
           const qty = item.quantity || 0
           const itemRevenue = price * qty // Paise
 
-          orderSales += itemRevenue
-          orderProductsSold += qty
+          orderItems.push({
+            id: pId,
+            title: prod.title,
+            quantity: qty,
+            priceInINR: price / 100,
+          })
 
-          // Product aggregates
-          if (!productSalesMap.has(pId)) {
-            productSalesMap.set(pId, { title: prod.title, quantity: 0, revenue: 0 })
+          // Total calculations
+          orderContributedToTotal = true
+          totalOrderSales += itemRevenue
+
+          // Weekly calculations (within last 7 days from `end`)
+          if (orderTime >= weeklyStart && orderTime <= rangeEnd) {
+            orderContributedToWeekly = true
+            weeklyOrderSales += itemRevenue
           }
-          const pStat = productSalesMap.get(pId)!
-          pStat.quantity += qty
-          pStat.revenue += itemRevenue
 
-          // Category aggregates
-          const categories = prod.categories || []
-          for (const cat of categories) {
-            if (typeof cat === 'object') {
-              const catId = cat.id
-              if (!categorySalesMap.has(catId)) {
-                categorySalesMap.set(catId, { title: cat.title, quantity: 0, revenue: 0 })
+          // Date Range calculations (within selected query date range)
+          if (orderTime >= rangeStart && orderTime <= rangeEnd) {
+            orderContributedToRange = true
+            dateRangeOrderSales += itemRevenue
+            dateRangeOrderProductsSold += qty
+
+            // Product aggregates
+            if (!productSalesMap.has(pId)) {
+              productSalesMap.set(pId, { title: prod.title, quantity: 0, revenue: 0 })
+            }
+            const pStat = productSalesMap.get(pId)!
+            pStat.quantity += qty
+            pStat.revenue += itemRevenue
+
+            // Category aggregates
+            const categories = prod.categories || []
+            for (const cat of categories) {
+              if (typeof cat === 'object') {
+                const catId = cat.id
+                if (!categorySalesMap.has(catId)) {
+                  categorySalesMap.set(catId, { title: cat.title, quantity: 0, revenue: 0 })
+                }
+                const cStat = categorySalesMap.get(catId)!
+                cStat.quantity += qty
+                cStat.revenue += itemRevenue
               }
-              const cStat = categorySalesMap.get(catId)!
-              cStat.quantity += qty
-              cStat.revenue += itemRevenue
             }
-          }
 
-          // Brand aggregates
-          const brand = prod.brand
-          if (brand && typeof brand === 'object') {
-            const brandId = brand.id
-            if (!brandSalesMap.has(brandId)) {
-              brandSalesMap.set(brandId, { name: brand.name, quantity: 0, revenue: 0 })
+            // Brand aggregates
+            const brand = prod.brand
+            if (brand && typeof brand === 'object') {
+              const brandId = brand.id
+              if (!brandSalesMap.has(brandId)) {
+                brandSalesMap.set(brandId, { name: brand.name, quantity: 0, revenue: 0 })
+              }
+              const bStat = brandSalesMap.get(brandId)!
+              bStat.quantity += qty
+              bStat.revenue += itemRevenue
             }
-            const bStat = brandSalesMap.get(brandId)!
-            bStat.quantity += qty
-            bStat.revenue += itemRevenue
           }
         }
       }
 
-      if (orderContributed) {
-        totalOrdersCount++
-        totalGrossSales += orderSales
-        totalProductsSold += orderProductsSold
+      // Compile order statistics
+      if (orderContributedToTotal) {
+        totalGrossSales += totalOrderSales
+
+        const formatted = {
+          id: order.id,
+          createdAt: order.createdAt,
+          status: order.status,
+          totalInINR: totalOrderSales / 100,
+          items: orderItems,
+        }
+
+        latestOrdersList.push(formatted)
+
+        if (order.status === 'processing') {
+          liveOrdersList.push(formatted)
+        }
+      }
+
+      if (orderContributedToWeekly) {
+        weeklyGrossSales += weeklyOrderSales
+      }
+
+      if (orderContributedToRange) {
+        dateRangeOrdersCount++
+        dateRangeGrossSales += dateRangeOrderSales
+        dateRangeProductsSold += dateRangeOrderProductsSold
 
         const orderDateStr = new Date(order.createdAt).toISOString().split('T')[0]
         if (dailyDataMap.has(orderDateStr)) {
           const dStat = dailyDataMap.get(orderDateStr)!
-          dStat.sales += orderSales
+          dStat.sales += dateRangeOrderSales
           dStat.orders += 1
-          dStat.productsSold += orderProductsSold
+          dStat.productsSold += dateRangeOrderProductsSold
         }
       }
     }
 
     const platformCommissionPercent = 5 // 5% simulated commission fee
-    const platformCommission = Math.round(totalGrossSales * (platformCommissionPercent / 100))
-    const netEarnings = totalGrossSales - platformCommission
+    const dateRangeCommission = Math.round(dateRangeGrossSales * (platformCommissionPercent / 100))
+    const dateRangeNet = dateRangeGrossSales - dateRangeCommission
+
+    const weeklyCommission = Math.round(weeklyGrossSales * (platformCommissionPercent / 100))
+    const weeklyNet = weeklyGrossSales - weeklyCommission
+
+    const totalCommission = Math.round(totalGrossSales * (platformCommissionPercent / 100))
+    const totalNet = totalGrossSales - totalCommission
 
     const topSellingProducts = Array.from(productSalesMap.entries()).map(([id, stat]) => ({
       id,
@@ -254,7 +330,11 @@ export const analyticsEndpoint = async (req: PayloadRequest): Promise<Response> 
       productsSoldCount: stat.productsSold,
     })).sort((a, b) => a.date.localeCompare(b.date))
 
-    const averageOrderValue = totalOrdersCount > 0 ? Math.round(totalGrossSales / totalOrdersCount) : 0
+    const averageOrderValue = dateRangeOrdersCount > 0 ? Math.round(dateRangeGrossSales / dateRangeOrdersCount) : 0
+
+    // Sort latest and live lists by date descending
+    latestOrdersList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    liveOrdersList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
     return Response.json({
       range: {
@@ -262,18 +342,32 @@ export const analyticsEndpoint = async (req: PayloadRequest): Promise<Response> 
         end: end.toISOString(),
       },
       summary: {
-        grossSalesInINR: totalGrossSales / 100,
-        platformCommissionInINR: platformCommission / 100,
-        netEarningsInINR: netEarnings / 100, // this shows what they have earned
-        ordersCount: totalOrdersCount,
-        productsSoldCount: totalProductsSold,
+        grossSalesInINR: dateRangeGrossSales / 100,
+        platformCommissionInINR: dateRangeCommission / 100,
+        netEarningsInINR: dateRangeNet / 100,
+        ordersCount: dateRangeOrdersCount,
+        productsSoldCount: dateRangeProductsSold,
         averageOrderValueInINR: averageOrderValue / 100,
+        weeklyGrossSalesInINR: weeklyGrossSales / 100,
+        weeklyPlatformCommissionInINR: weeklyCommission / 100,
+        weeklyNetEarningsInINR: weeklyNet / 100,
+        totalGrossSalesInINR: totalGrossSales / 100,
+        totalPlatformCommissionInINR: totalCommission / 100,
+        totalNetEarningsInINR: totalNet / 100,
       },
       inventory: {
         totalProducts: retailerProducts.totalDocs,
         totalStock,
         lowStockCount,
         outOfStockCount,
+      },
+      liveOrders: {
+        count: liveOrdersList.length,
+        orders: liveOrdersList.slice(0, 50),
+      },
+      latestOrders: {
+        count: latestOrdersList.length,
+        orders: latestOrdersList.slice(0, 10),
       },
       topSellingProducts,
       topCategories,
