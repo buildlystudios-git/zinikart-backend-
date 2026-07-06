@@ -3,6 +3,7 @@ import { adminOnlyFieldAccess } from '@/access/adminOnlyFieldAccess'
 import { isAdmin } from '@/access/isAdmin'
 import { isAuthenticated } from '@/access/isAuthenticated'
 import { adminOrFieldOwner } from '@/access/adminOrFieldOwner'
+import { associateUser } from './hooks/associateUser'
 
 export const DeliveryPartners: CollectionConfig = {
   slug: 'delivery-partners',
@@ -18,14 +19,7 @@ export const DeliveryPartners: CollectionConfig = {
     group: 'Profiles',
   },
   hooks: {
-    beforeChange: [
-      ({ req, operation, data }) => {
-        if (operation === 'create' && req.user && !data.user) {
-          data.user = req.user.id
-        }
-        return data
-      },
-    ],
+    beforeChange: [associateUser],
   },
   fields: [
     {
@@ -46,10 +40,95 @@ export const DeliveryPartners: CollectionConfig = {
       required: true,
     },
     {
+      name: 'gender',
+      type: 'select',
+      required: true,
+      options: [
+        { label: 'Male', value: 'male' },
+        { label: 'Female', value: 'female' },
+        { label: 'Other', value: 'other' },
+      ],
+    },
+    {
+      name: 'dob',
+      type: 'date',
+      required: true,
+      admin: {
+        date: {
+          pickerAppearance: 'dayOnly',
+          displayFormat: 'yyyy-MM-dd',
+        },
+      },
+    },
+    {
       name: 'drivingLicense',
       type: 'upload',
       relationTo: 'media',
       required: true,
+    },
+    {
+      name: 'drivingLicenseNumber',
+      type: 'text',
+      required: true,
+    },
+    {
+      name: 'pancardNumber',
+      type: 'text',
+      required: true,
+    },
+    {
+      name: 'pancardImage',
+      type: 'upload',
+      relationTo: 'media',
+      required: true,
+    },
+    {
+      name: 'vehicleBrand',
+      type: 'text',
+      required: true,
+    },
+    {
+      name: 'vehicleRegistrationNumber',
+      type: 'text',
+      required: true,
+    },
+    {
+      name: 'selfieImage',
+      type: 'upload',
+      relationTo: 'media',
+      required: true,
+    },
+    {
+      name: 'bankDetails',
+      type: 'group',
+      required: true,
+      fields: [
+        {
+          name: 'accountHolderName',
+          type: 'text',
+          required: true,
+        },
+        {
+          name: 'accountNumber',
+          type: 'text',
+          required: true,
+        },
+        {
+          name: 'ifscCode',
+          type: 'text',
+          required: true,
+        },
+        {
+          name: 'bankName',
+          type: 'text',
+          required: true,
+        },
+        {
+          name: 'upiId',
+          type: 'text',
+          required: false,
+        },
+      ],
     },
     {
       name: 'vehicleType',

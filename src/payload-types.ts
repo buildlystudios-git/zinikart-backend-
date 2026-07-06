@@ -1080,7 +1080,22 @@ export interface DeliveryPartner {
   fullName: string;
   mobileNumber: string;
   email: string;
+  gender: 'male' | 'female' | 'other';
+  dob: string;
   drivingLicense: string | Media;
+  drivingLicenseNumber: string;
+  pancardNumber: string;
+  pancardImage: string | Media;
+  vehicleBrand: string;
+  vehicleRegistrationNumber: string;
+  selfieImage: string | Media;
+  bankDetails: {
+    accountHolderName: string;
+    accountNumber: string;
+    ifscCode: string;
+    bankName: string;
+    upiId?: string | null;
+  };
   vehicleType: 'bike' | 'scooter' | 'bicycle' | 'car';
   approvalStatus: 'pending' | 'approved' | 'rejected' | 'suspended';
   onlineStatus: boolean;
@@ -1691,7 +1706,24 @@ export interface DeliveryPartnersSelect<T extends boolean = true> {
   fullName?: T;
   mobileNumber?: T;
   email?: T;
+  gender?: T;
+  dob?: T;
   drivingLicense?: T;
+  drivingLicenseNumber?: T;
+  pancardNumber?: T;
+  pancardImage?: T;
+  vehicleBrand?: T;
+  vehicleRegistrationNumber?: T;
+  selfieImage?: T;
+  bankDetails?:
+    | T
+    | {
+        accountHolderName?: T;
+        accountNumber?: T;
+        ifscCode?: T;
+        bankName?: T;
+        upiId?: T;
+      };
   vehicleType?: T;
   approvalStatus?: T;
   onlineStatus?: T;
