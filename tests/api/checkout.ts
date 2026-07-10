@@ -22,6 +22,7 @@ export async function runCheckoutTests(
     where: {
       isMasterTemplate: { equals: false },
       enableVariants: { not_equals: true },
+      priceInINR: { greater_than: 0 },
     },
     limit: 1,
     overrideAccess: true,

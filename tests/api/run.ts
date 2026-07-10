@@ -127,7 +127,7 @@ async function main() {
   await payload.delete({
     collection: 'products',
     where: {
-      title: { in: ['ZiniPhone 14 Max', 'Retailer Standalone Phone', 'Cloned ZiniPhone 14 Max'] },
+      title: { in: ['ZiniPhone 14 Max', 'Retailer Standalone Phone', 'Cloned ZiniPhone 14 Max', 'Product 1', 'Product 2'] },
     },
     overrideAccess: true,
   })
@@ -197,6 +197,45 @@ async function main() {
   if (!retailerUserToken) {
     throw new Error(`Failed to log in retailer user: ${JSON.stringify(retailerLoginRes.body)}`)
   }
+
+  // Create a retailers profile for retailerUser so checkout/ratings tests can link orders to a valid retailer profile
+  const mediaResForRetailer = await payload.find({
+    collection: 'media',
+    limit: 1,
+    overrideAccess: true,
+  })
+  const mockMediaId = mediaResForRetailer.docs[0]?.id
+
+  await payload.create({
+    collection: 'retailers',
+    data: {
+      user: retailerUser.id,
+      shopName: 'ZiniTech Store',
+      ownerName: 'Retailer Tester',
+      mobileNumber: retailerMobile,
+      emailId: 'retailer.user@testing.zinikart.local',
+      gstNumber: 'GSTIN666666666',
+      approvalStatus: 'approved',
+      images: mockMediaId ? [mockMediaId] : [],
+      shopAddress: {
+        street: '666 Retail Ave',
+        city: 'Delhi',
+        state: 'Delhi',
+        zipCode: '110001',
+      },
+      bankDetails: {
+        accountHolderName: 'Retailer Tester',
+        accountNumber: '6666666666',
+        ifscCode: 'IFSC6666',
+        bankName: 'Retailer Bank',
+      },
+      businessHours: {
+        startTime: '09:00',
+        endTime: '21:00',
+      },
+    } as any,
+    overrideAccess: true,
+  })
 
   // Create an admin user locally for catalog tests
   console.log('\nCreating admin test user for catalog tests...')

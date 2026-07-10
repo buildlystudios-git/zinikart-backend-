@@ -16,6 +16,7 @@ export const validateSingleVendor: CollectionBeforeValidateHook = async ({ data,
         collection: 'products',
         where: { id: { in: productIds } },
         depth: 0,
+        overrideAccess: true,
         req,
       })
 
@@ -31,12 +32,33 @@ export const validateSingleVendor: CollectionBeforeValidateHook = async ({ data,
         throw new APIError('An order can only contain items from a single retailer.', 400)
       }
 
-      if (retailers.size === 1 && !data.retailer) {
-        data.retailer = Array.from(retailers)[0]
-      } else if (retailers.size === 1 && data.retailer) {
-        const orderRetailerId = typeof data.retailer === 'object' ? data.retailer.id : data.retailer
-        if (orderRetailerId !== Array.from(retailers)[0]) {
-          throw new APIError('The items in the order do not match the specified retailer.', 400)
+      if (retailers.size === 1) {
+        const retailerUserId = Array.from(retailers)[0]
+        
+        // Find the retailers profile linked to this user
+        const retailerProfileDocs = await payload.find({
+          collection: 'retailers',
+          where: { user: { equals: retailerUserId } },
+          depth: 0,
+          overrideAccess: true,
+          req,
+        })
+        
+        const profileId = retailerProfileDocs.docs[0]?.id
+        if (!profileId) {
+          throw new APIError('Retailer profile not found for this product.', 400)
+        }
+
+        if (!data.retailer) {
+          data.retailer = profileId
+        } else {
+          const clientPassedId = typeof data.retailer === 'object' ? data.retailer.id : data.retailer
+          // Client might have passed the user ID or the profile ID
+          if (clientPassedId !== profileId && clientPassedId !== retailerUserId) {
+            throw new APIError('The items in the order do not match the specified retailer.', 400)
+          }
+          // Always normalize data.retailer to be the retailers profile ID
+          data.retailer = profileId
         }
       }
     }

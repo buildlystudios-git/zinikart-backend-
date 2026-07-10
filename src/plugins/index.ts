@@ -34,6 +34,8 @@ import { cartPaths } from '@/endpoints/cart/openapi'
 import { paymentPaths } from '@/endpoints/payments/openapi'
 import { usersAuthPaths } from '@/endpoints/users/openapi'
 import { retailerAnalyticsPaths } from '@/endpoints/retailers/openapi'
+import { orderPaths } from '@/endpoints/orders/openapi'
+import { deliveryPartnerPaths } from '@/endpoints/delivery-partners/openapi'
 import { deductInventory } from '@/hooks/deductInventory'
 import { codAdapter } from '@/plugins/payments/cod'
 import { orderUpdateAccess } from '@/access/orderUpdateAccess'
@@ -81,6 +83,8 @@ const openapiEnhancerPlugin = (): Plugin => (config) => {
           ...paymentPaths,
           ...usersAuthPaths,
           ...retailerAnalyticsPaths,
+          ...orderPaths,
+          ...deliveryPartnerPaths,
         }
 
         if (!spec.components) {
