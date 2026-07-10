@@ -1135,13 +1135,24 @@ export interface Retailer {
     lat?: number | null;
     lng?: number | null;
   };
-  bankDetails: {
-    accountHolderName: string;
-    accountNumber: string;
-    ifscCode: string;
-    bankName: string;
-    upiId?: string | null;
-  };
+  /**
+   * Add one or more payment methods. Mark one as the default payout destination.
+   */
+  paymentMethods?:
+    | {
+        methodType: 'bank_account' | 'upi';
+        /**
+         * Only one payment method can be the default at a time.
+         */
+        isDefault?: boolean | null;
+        accountHolderName?: string | null;
+        accountNumber?: string | null;
+        ifscCode?: string | null;
+        bankName?: string | null;
+        upiId?: string | null;
+        id?: string | null;
+      }[]
+    | null;
   businessHours: {
     startTime: string;
     endTime: string;
@@ -1179,13 +1190,24 @@ export interface DeliveryPartner {
   vehicleBrand: string;
   vehicleRegistrationNumber: string;
   selfieImage: string | Media;
-  bankDetails: {
-    accountHolderName: string;
-    accountNumber: string;
-    ifscCode: string;
-    bankName: string;
-    upiId?: string | null;
-  };
+  /**
+   * Add one or more payment methods. Mark one as the default payout destination.
+   */
+  paymentMethods?:
+    | {
+        methodType: 'bank_account' | 'upi';
+        /**
+         * Only one payment method can be the default at a time.
+         */
+        isDefault?: boolean | null;
+        accountHolderName?: string | null;
+        accountNumber?: string | null;
+        ifscCode?: string | null;
+        bankName?: string | null;
+        upiId?: string | null;
+        id?: string | null;
+      }[]
+    | null;
   vehicleType: 'bike' | 'scooter' | 'bicycle' | 'car';
   approvalStatus: 'pending' | 'approved' | 'rejected' | 'suspended';
   onlineStatus: boolean;
@@ -1818,14 +1840,17 @@ export interface RetailersSelect<T extends boolean = true> {
         lat?: T;
         lng?: T;
       };
-  bankDetails?:
+  paymentMethods?:
     | T
     | {
+        methodType?: T;
+        isDefault?: T;
         accountHolderName?: T;
         accountNumber?: T;
         ifscCode?: T;
         bankName?: T;
         upiId?: T;
+        id?: T;
       };
   businessHours?:
     | T
@@ -1859,14 +1884,17 @@ export interface DeliveryPartnersSelect<T extends boolean = true> {
   vehicleBrand?: T;
   vehicleRegistrationNumber?: T;
   selfieImage?: T;
-  bankDetails?:
+  paymentMethods?:
     | T
     | {
+        methodType?: T;
+        isDefault?: T;
         accountHolderName?: T;
         accountNumber?: T;
         ifscCode?: T;
         bankName?: T;
         upiId?: T;
+        id?: T;
       };
   vehicleType?: T;
   approvalStatus?: T;

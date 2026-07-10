@@ -223,12 +223,16 @@ async function main() {
         state: 'Delhi',
         zipCode: '110001',
       },
-      bankDetails: {
-        accountHolderName: 'Retailer Tester',
-        accountNumber: '6666666666',
-        ifscCode: 'IFSC6666',
-        bankName: 'Retailer Bank',
-      },
+      paymentMethods: [
+        {
+          methodType: 'bank_account',
+          isDefault: true,
+          accountHolderName: 'Retailer Tester',
+          accountNumber: '6666666666',
+          ifscCode: 'IFSC6666',
+          bankName: 'Retailer Bank',
+        },
+      ],
       businessHours: {
         startTime: '09:00',
         endTime: '21:00',

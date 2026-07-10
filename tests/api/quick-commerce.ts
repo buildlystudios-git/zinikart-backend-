@@ -69,12 +69,16 @@ export async function runQuickCommerceTests(
           state: 'Karnataka',
           zipCode: '560001',
         },
-        bankDetails: {
-          accountHolderName: 'Owner Name',
-          accountNumber: '1234567890',
-          ifscCode: 'IFSC1234',
-          bankName: 'Test Bank',
-        },
+        paymentMethods: [
+          {
+            methodType: 'bank_account',
+            isDefault: true,
+            accountHolderName: 'Owner Name',
+            accountNumber: '1234567890',
+            ifscCode: 'IFSC1234',
+            bankName: 'Test Bank',
+          },
+        ],
         businessHours: {
           startTime: '09:00',
           endTime: '18:00',
@@ -119,12 +123,16 @@ export async function runQuickCommerceTests(
         vehicleRegistrationNumber: 'KA-01-1234',
         selfieImage: mockMedia.id,
         vehicleType: 'bike',
-        bankDetails: {
-          accountHolderName: 'DP',
-          accountNumber: '123',
-          ifscCode: 'IFSC123',
-          bankName: 'Bank',
-        },
+        paymentMethods: [
+          {
+            methodType: 'bank_account',
+            isDefault: true,
+            accountHolderName: 'DP',
+            accountNumber: '123',
+            ifscCode: 'IFSC123',
+            bankName: 'Bank',
+          },
+        ],
         lat: 12.9716,
         lng: 77.5946,
         onlineStatus: true,
@@ -167,12 +175,16 @@ export async function runQuickCommerceTests(
         vehicleRegistrationNumber: 'KA-01-1235',
         selfieImage: mockMedia.id,
         vehicleType: 'bike',
-        bankDetails: {
-          accountHolderName: 'DP 2',
-          accountNumber: '124',
-          ifscCode: 'IFSC124',
-          bankName: 'Bank',
-        },
+        paymentMethods: [
+          {
+            methodType: 'bank_account',
+            isDefault: true,
+            accountHolderName: 'DP 2',
+            accountNumber: '124',
+            ifscCode: 'IFSC124',
+            bankName: 'Bank',
+          },
+        ],
         lat: 12.9716,
         lng: 77.5946,
         onlineStatus: true,

@@ -74,13 +74,21 @@ export async function runRetailerTests(
       weekOff: ['Sunday'],
       openEveryday: false,
     },
-    bankDetails: {
-      accountHolderName: 'Hacker',
-      accountNumber: '999999',
-      ifscCode: 'IFSC999',
-      bankName: 'HackerBank',
-      upiId: 'hacker@upi',
-    },
+    paymentMethods: [
+      {
+        methodType: 'bank_account',
+        isDefault: true,
+        accountHolderName: 'Hacker',
+        accountNumber: '999999',
+        ifscCode: 'IFSC999',
+        bankName: 'HackerBank',
+      },
+      {
+        methodType: 'upi',
+        isDefault: false,
+        upiId: 'hacker@upi',
+      },
+    ],
   })
   report.assert(
     'Attempt to create profile without auth token returns 401 or 403 error',
@@ -116,13 +124,21 @@ export async function runRetailerTests(
         weekOff: ['Sunday'],
         openEveryday: false,
       },
-      bankDetails: {
-        accountHolderName: 'Madhav Seller',
-        accountNumber: '9876543210',
-        ifscCode: 'IFSC0009876',
-        bankName: 'Innovators Bank',
-        upiId: 'madhav@okaxis',
-      },
+      paymentMethods: [
+        {
+          methodType: 'bank_account',
+          isDefault: true,
+          accountHolderName: 'Madhav Seller',
+          accountNumber: '9876543210',
+          ifscCode: 'IFSC0009876',
+          bankName: 'Innovators Bank',
+        },
+        {
+          methodType: 'upi',
+          isDefault: false,
+          upiId: 'madhav@okaxis',
+        },
+      ],
       // Worst Case test: try to set approvalStatus during creation
       approvalStatus: 'approved',
     },
@@ -232,13 +248,21 @@ export async function runRetailerTests(
         weekOff: ['Saturday', 'Sunday'],
         openEveryday: false,
       },
-      bankDetails: {
-        accountHolderName: 'Another Owner',
-        accountNumber: '999999',
-        ifscCode: 'IFSC999',
-        bankName: 'HackerBank',
-        upiId: 'dup@okicici',
-      },
+      paymentMethods: [
+        {
+          methodType: 'bank_account',
+          isDefault: true,
+          accountHolderName: 'Another Owner',
+          accountNumber: '999999',
+          ifscCode: 'IFSC999',
+          bankName: 'HackerBank',
+        },
+        {
+          methodType: 'upi',
+          isDefault: false,
+          upiId: 'dup@okicici',
+        },
+      ],
     },
     token
   )

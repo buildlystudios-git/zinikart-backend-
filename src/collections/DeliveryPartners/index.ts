@@ -5,6 +5,7 @@ import { isAuthenticated } from '@/access/isAuthenticated'
 import { adminOrFieldOwner } from '@/access/adminOrFieldOwner'
 import { associateUser } from './hooks/associateUser'
 import { locationTrackingEndpoint } from '@/endpoints/delivery-partners/location'
+import { enforceDefaultPaymentMethod } from '@/hooks/enforceDefaultPaymentMethod'
 
 export const DeliveryPartners: CollectionConfig = {
   slug: 'delivery-partners',
@@ -20,7 +21,7 @@ export const DeliveryPartners: CollectionConfig = {
     group: 'Profiles',
   },
   hooks: {
-    beforeChange: [associateUser],
+    beforeChange: [associateUser, enforceDefaultPaymentMethod],
   },
   endpoints: [locationTrackingEndpoint],
   fields: [
@@ -101,34 +102,73 @@ export const DeliveryPartners: CollectionConfig = {
       required: true,
     },
     {
-      name: 'bankDetails',
-      type: 'group',
-      required: true,
+      name: 'paymentMethods',
+      type: 'array',
+      label: 'Payment Methods',
+      admin: {
+        description: 'Add one or more payment methods. Mark one as the default payout destination.',
+      },
       fields: [
+        {
+          name: 'methodType',
+          type: 'select',
+          label: 'Method Type',
+          required: true,
+          options: [
+            { label: 'Bank Account', value: 'bank_account' },
+            { label: 'UPI', value: 'upi' },
+          ],
+        },
+        {
+          name: 'isDefault',
+          type: 'checkbox',
+          label: 'Set as Default',
+          defaultValue: false,
+          admin: {
+            description: 'Only one payment method can be the default at a time.',
+          },
+        },
+        // Bank account fields – shown when methodType is bank_account
         {
           name: 'accountHolderName',
           type: 'text',
-          required: true,
+          label: 'Account Holder Name',
+          admin: {
+            condition: (data, siblingData) => siblingData?.methodType === 'bank_account',
+          },
         },
         {
           name: 'accountNumber',
           type: 'text',
-          required: true,
+          label: 'Account Number',
+          admin: {
+            condition: (data, siblingData) => siblingData?.methodType === 'bank_account',
+          },
         },
         {
           name: 'ifscCode',
           type: 'text',
-          required: true,
+          label: 'IFSC Code',
+          admin: {
+            condition: (data, siblingData) => siblingData?.methodType === 'bank_account',
+          },
         },
         {
           name: 'bankName',
           type: 'text',
-          required: true,
+          label: 'Bank Name',
+          admin: {
+            condition: (data, siblingData) => siblingData?.methodType === 'bank_account',
+          },
         },
+        // UPI field – shown when methodType is upi
         {
           name: 'upiId',
           type: 'text',
-          required: false,
+          label: 'UPI ID',
+          admin: {
+            condition: (data, siblingData) => siblingData?.methodType === 'upi',
+          },
         },
       ],
     },

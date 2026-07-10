@@ -852,12 +852,16 @@ export const seed = async ({
           lat: 28.6139,
           lng: 77.2090,
         },
-        bankDetails: {
-          accountHolderName: r.owner,
-          accountNumber: `123456789${idx}`,
-          ifscCode: 'UTIB0000001',
-          bankName: 'Axis Bank',
-        },
+        paymentMethods: [
+          {
+            methodType: 'bank_account',
+            isDefault: true,
+            accountHolderName: r.owner,
+            accountNumber: `123456789${idx}`,
+            ifscCode: 'UTIB0000001',
+            bankName: 'Axis Bank',
+          },
+        ],
         businessHours: {
           startTime: '09:00',
           endTime: '21:00',
@@ -1092,13 +1096,21 @@ export const seed = async ({
       vehicleBrand: 'Hero Splendor',
       vehicleRegistrationNumber: 'MH-01-AB-1234',
       selfieImage: imageHat.id,
-      bankDetails: {
-        accountHolderName: 'Rider Ramesh',
-        accountNumber: '987654321012',
-        ifscCode: 'HDFC0001234',
-        bankName: 'HDFC Bank',
-        upiId: 'ramesh@okhdfc',
-      },
+      paymentMethods: [
+        {
+          methodType: 'bank_account',
+          isDefault: true,
+          accountHolderName: 'Rider Ramesh',
+          accountNumber: '987654321012',
+          ifscCode: 'HDFC0001234',
+          bankName: 'HDFC Bank',
+        },
+        {
+          methodType: 'upi',
+          isDefault: false,
+          upiId: 'ramesh@okhdfc',
+        },
+      ],
       vehicleType: 'bike',
       approvalStatus: 'approved',
       onlineStatus: true,

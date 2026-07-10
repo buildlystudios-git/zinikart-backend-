@@ -105,13 +105,21 @@ export async function runDeliveryTests(
       vehicleBrand: 'Suzuki Access',
       vehicleRegistrationNumber: 'MH-02-CD-5678',
       selfieImage: mediaId,
-      bankDetails: {
-        accountHolderName: 'Jane Delivery Rider',
-        accountNumber: '123456789012',
-        ifscCode: 'ICIC0005678',
-        bankName: 'ICICI Bank',
-        upiId: 'jane.rider@okicici',
-      },
+      paymentMethods: [
+        {
+          methodType: 'bank_account',
+          isDefault: true,
+          accountHolderName: 'Jane Delivery Rider',
+          accountNumber: '123456789012',
+          ifscCode: 'ICIC0005678',
+          bankName: 'ICICI Bank',
+        },
+        {
+          methodType: 'upi',
+          isDefault: false,
+          upiId: 'jane.rider@okicici',
+        },
+      ],
       vehicleType: 'scooter',
       // Worst Case: try to set approvalStatus on creation
       approvalStatus: 'approved',
