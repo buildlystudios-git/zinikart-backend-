@@ -60,6 +60,31 @@ export const razorpayAdapter = (props: RazorpayAdapterArgs): PaymentAdapter => {
       type: 'text',
       label: 'Razorpay Signature',
     },
+    {
+      name: 'refundID',
+      type: 'text',
+      label: 'Razorpay Refund ID',
+    },
+    {
+      name: 'refundStatus',
+      type: 'select',
+      label: 'Refund Status',
+      options: [
+        { label: 'Pending', value: 'pending' },
+        { label: 'Processed', value: 'processed' },
+        { label: 'Failed', value: 'failed' },
+      ],
+    },
+    {
+      name: 'refundedAmount',
+      type: 'number',
+      label: 'Refunded Amount',
+    },
+    {
+      name: 'refundedAt',
+      type: 'date',
+      label: 'Refunded At',
+    },
   ]
 
   const groupField: GroupField = {
@@ -171,12 +196,15 @@ export const razorpayAdapter = (props: RazorpayAdapterArgs): PaymentAdapter => {
           currency: razorpayOrder.currency.toUpperCase(),
           items: flattenedCart,
           paymentMethod: 'razorpay',
+          paymentMethodDetails: {
+            paymentMethod: 'razorpay',
+          },
           status: 'pending',
           razorpay: {
             orderID: razorpayOrder.id,
           },
         },
-        req,
+        overrideAccess: true,
       })
 
       const returnData: InitiatePaymentReturnType = {
@@ -227,6 +255,7 @@ export const razorpayAdapter = (props: RazorpayAdapterArgs): PaymentAdapter => {
       // Find matching transaction
       const transactionsResults = await payload.find({
         collection: transactionsSlug as any,
+        depth: 0,
         overrideAccess: true,
         where: {
           'razorpay.orderID': {
@@ -258,7 +287,7 @@ export const razorpayAdapter = (props: RazorpayAdapterArgs): PaymentAdapter => {
           ...(req.user ? { customer: req.user.id } : { customerEmail }),
           items: cartItemsSnapshot,
           shippingAddress: sanitizeAddress(shippingAddress),
-          status: 'processing',
+          status: 'placed',
           transactions: [transaction.id],
         },
         overrideAccess: true,

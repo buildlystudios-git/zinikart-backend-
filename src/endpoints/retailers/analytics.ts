@@ -1,4 +1,5 @@
 import type { PayloadRequest, Where } from 'payload'
+import { ORDER_STATUS } from '@/constants/orderStatuses'
 import { checkRole } from '@/access/utilities'
 
 export const analyticsEndpoint = async (req: PayloadRequest): Promise<Response> => {
@@ -111,10 +112,10 @@ export const analyticsEndpoint = async (req: PayloadRequest): Promise<Response> 
       const orderWhere: Where = retailerUserId
         ? {
             'items.product': { in: productIds },
-            status: { not_equals: 'cancelled' },
+            status: { not_equals: ORDER_STATUS.CANCELLED },
           }
         : {
-            status: { not_equals: 'cancelled' },
+            status: { not_equals: ORDER_STATUS.CANCELLED },
           }
 
       const ordersRes = await req.payload.find({

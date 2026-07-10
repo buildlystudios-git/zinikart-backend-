@@ -115,7 +115,7 @@ export const codAdapter = (): PaymentAdapter => {
           paymentMethod: 'cod',
           status: 'pending',
         },
-        req,
+        overrideAccess: true,
       })
 
       const returnData: InitiatePaymentReturnType = {
@@ -149,12 +149,17 @@ export const codAdapter = (): PaymentAdapter => {
 
     try {
       // Find matching transaction
-      const transaction = await payload.findByID({
+      const transactionsResults = await payload.find({
         collection: transactionsSlug as any,
-        id: transactionID,
+        depth: 0,
         overrideAccess: true,
-        req,
+        where: {
+          id: {
+            equals: transactionID,
+          },
+        },
       })
+      const transaction = transactionsResults.docs[0]
 
       if (!transaction) {
         throw new Error(`No transaction found for ID: ${transactionID}`)
@@ -181,7 +186,7 @@ export const codAdapter = (): PaymentAdapter => {
           ...(req.user ? { customer: req.user.id } : { customerEmail }),
           items: cartItemsSnapshot,
           shippingAddress: sanitizeAddress(shippingAddress),
-          status: 'processing',
+          status: 'placed',
           transactions: [transaction.id],
         },
         overrideAccess: true,

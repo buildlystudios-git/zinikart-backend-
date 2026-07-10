@@ -28,6 +28,11 @@ import { Wishlists } from '@/collections/Wishlists'
 import { plugins } from './plugins'
 import { productDetailsEndpoint } from '@/endpoints/mobile/catalog/productDetails'
 import { searchEndpoint } from '@/endpoints/mobile/search/index'
+import { assignDeliveryPartnerTask } from '@/jobs/assignDeliveryPartner'
+import { checkOfferTimeoutTask } from '@/jobs/checkOfferTimeout'
+import { retailerActionTimeoutTask } from '@/jobs/retailerActionTimeout'
+import { processRazorpayRefundTask } from '@/jobs/processRazorpayRefund'
+import { DATABASE_URL, PAYLOAD_SECRET } from '@/constants/env'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -48,7 +53,7 @@ export default buildConfig({
   db: postgresAdapter({
     idType: 'uuid',
     pool: {
-      connectionString: process.env.DATABASE_URL || '',
+      connectionString: DATABASE_URL,
     },
     schemaName: 'payload',
   }),
@@ -102,12 +107,45 @@ export default buildConfig({
   ],
   globals: [Header, Footer],
   plugins,
-  secret: process.env.PAYLOAD_SECRET || '',
+  secret: PAYLOAD_SECRET,
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },
-  // Sharp is now an optional dependency -
-  // if you want to resize images, crop, set focal point, etc.
-  // make sure to install it and pass it to the config.
-  // sharp,
+  jobs: {
+    enableConcurrencyControl: true,
+    access: {
+      run: () => true,
+    },
+    tasks: [
+      {
+        slug: 'assignDeliveryPartner',
+        inputSchema: [
+          { name: 'orderId', type: 'text', required: true }
+        ],
+        handler: assignDeliveryPartnerTask,
+      },
+      {
+        slug: 'checkOfferTimeout',
+        inputSchema: [
+          { name: 'orderId', type: 'text', required: true },
+          { name: 'candidateId', type: 'text', required: true },
+        ],
+        handler: checkOfferTimeoutTask,
+      },
+      {
+        slug: 'retailerActionTimeout',
+        inputSchema: [
+          { name: 'orderId', type: 'text', required: true }
+        ],
+        handler: retailerActionTimeoutTask,
+      },
+      {
+        slug: 'processRazorpayRefund',
+        inputSchema: [
+          { name: 'transactionId', type: 'text', required: true }
+        ],
+        handler: processRazorpayRefundTask,
+      },
+    ],
+  },
 })

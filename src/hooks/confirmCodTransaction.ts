@@ -1,4 +1,5 @@
 import type { CollectionAfterChangeHook } from 'payload'
+import { ORDER_STATUS } from '@/constants/orderStatuses'
 
 export const confirmCodTransaction: CollectionAfterChangeHook = async ({
   doc,
@@ -8,7 +9,7 @@ export const confirmCodTransaction: CollectionAfterChangeHook = async ({
 }) => {
   const payload = req.payload
 
-  if (operation === 'update' && doc.status === 'completed' && previousDoc?.status !== 'completed') {
+  if (operation === 'update' && doc.status === ORDER_STATUS.COD_PAYMENT_RECEIVED && previousDoc?.status !== ORDER_STATUS.COD_PAYMENT_RECEIVED) {
     try {
       // Retrieve the full order with overrideAccess: true to bypass user-level field restrictions
       const fullOrder = await payload.findByID({

@@ -433,15 +433,17 @@ export async function runCheckoutTests(
       overrideAccess: true,
     })
 
-    // Assign Delivery Partner A to the order
-    await payload.update({
-      collection: 'orders',
-      id: codOrderID,
-      data: {
-        deliveryPartner: deliveryPartnerProfileA.id,
-      },
-      overrideAccess: true,
-    })
+    if (codOrderID) {
+      // Assign Delivery Partner A to the order
+      await payload.update({
+        collection: 'orders',
+        id: codOrderID,
+        data: {
+          deliveryPartner: deliveryPartnerProfileA.id,
+        },
+        overrideAccess: true,
+      })
+    }
 
     // Login both delivery partners to get their tokens
     const loginARes = await apiRequest('/api/users/login', 'POST', {
@@ -461,7 +463,7 @@ export async function runCheckoutTests(
       `/api/orders/${codOrderID}`,
       'PATCH',
       {
-        status: 'completed',
+        status: 'cod_payment_received',
       },
       tokenB2
     )
@@ -484,7 +486,7 @@ export async function runCheckoutTests(
       `/api/orders/${codOrderID}`,
       'PATCH',
       {
-        status: 'completed',
+        status: 'cod_payment_received',
         amount: hijackedAmount, // this should be ignored/reverted
         codCollectionRecord: {
           paymentType: 'qr',
@@ -508,8 +510,8 @@ export async function runCheckoutTests(
     })
 
     report.assert(
-      'Order status is successfully set to completed',
-      updatedOrder.status === 'completed',
+      'Order status is successfully set to cod_payment_received',
+      updatedOrder.status === 'cod_payment_received',
       'Best Case'
     )
 

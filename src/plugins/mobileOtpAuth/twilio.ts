@@ -1,7 +1,9 @@
+import { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_VERIFY_SERVICE_SID } from '@/constants/env'
+
 export const requestTwilioOtp = async (mobileNumber: string): Promise<void> => {
-  const accountSid = process.env.TWILIO_ACCOUNT_SID
-  const authToken = process.env.TWILIO_AUTH_TOKEN
-  const verifyServiceSid = process.env.TWILIO_VERIFY_SERVICE_SID
+  const accountSid = TWILIO_ACCOUNT_SID
+  const authToken = TWILIO_AUTH_TOKEN
+  const verifyServiceSid = TWILIO_VERIFY_SERVICE_SID
 
   if (!accountSid || !authToken || !verifyServiceSid) {
     throw new Error('Twilio Verify is not configured.')
@@ -28,9 +30,9 @@ export const requestTwilioOtp = async (mobileNumber: string): Promise<void> => {
 }
 
 export const verifyTwilioOtp = async (mobileNumber: string, code: string): Promise<boolean> => {
-  const accountSid = process.env.TWILIO_ACCOUNT_SID
-  const authToken = process.env.TWILIO_AUTH_TOKEN
-  const verifyServiceSid = process.env.TWILIO_VERIFY_SERVICE_SID
+  const accountSid = TWILIO_ACCOUNT_SID
+  const authToken = TWILIO_AUTH_TOKEN
+  const verifyServiceSid = TWILIO_VERIFY_SERVICE_SID
 
   if (!accountSid || !authToken || !verifyServiceSid) {
     throw new Error('Twilio Verify is not configured.')

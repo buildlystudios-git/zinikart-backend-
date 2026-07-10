@@ -1,10 +1,10 @@
 # ZiniKart API Integration Test Report
 
-**Execution Time:** 6/7/2026, 3:28:44 pm
-**Total Assertions:** 103 | **Passed:** 103 | **Failed:** 0
+**Execution Time:** 10/7/2026, 9:56:38 pm
+**Total Assertions:** 100 | **Passed:** 94 | **Failed:** 6
 
-### Pass Rate: 100%
-`[██████████]`
+### Pass Rate: 94%
+`[█████████.]`
 
 ## Summary Table
 
@@ -96,20 +96,17 @@
 | Cart Operations | Worst Case | Access Control: Customer B is blocked from adding items to Customer A's cart (returns 403 or 404) | ✅ PASS | - |
 | Cart Operations | Worst Case | Access Control: Customer B is blocked from clearing Customer A's cart (returns 403 or 404) | ✅ PASS | - |
 | Checkout & Payments | Best Case | Successfully initiate payment via Razorpay adapter (returns status 200 or 201 and a razorpayOrderID) | ✅ PASS | - |
-| Checkout & Payments | Best Case | Successfully confirm order and generate Order ID (returns status 200 or 201) | ✅ PASS | - |
+| Checkout & Payments | Best Case | Successfully confirm order and generate Order ID (returns status 200 or 201) | ❌ FAIL | `Expected status 200/201 and orderID. Got status: 500, Body: {"message":"Error confirming order."}` |
 | Checkout & Payments | Impossible Scenario | Attempt to initiate payment without auth token is rejected (returns 400, 401, or 403) | ✅ PASS | - |
 | Checkout & Payments | Impossible Scenario | Attempt to initiate payment with non-existent cart ID is rejected (returns 400 or 404) | ✅ PASS | - |
 | Checkout & Payments | Impossible Scenario | Attempt to initiate payment with an empty cart is rejected (returns 400 or 500 with proper error) | ✅ PASS | - |
 | Checkout & Payments | Worst Case | Access Control: Customer B is blocked from initiating payment on Customer A's cart (returns 403 or 404) | ✅ PASS | - |
 | Checkout & Payments | Worst Case | Access Control: Customer B is blocked from confirming order on Customer A's cart (returns 403 or 404) | ✅ PASS | - |
 | Checkout & Payments | Best Case | COD setup: Item added to cart | ✅ PASS | - |
-| Checkout & Payments | Best Case | Successfully initiate payment via COD adapter (returns transactionID) | ✅ PASS | - |
-| Checkout & Payments | Best Case | Successfully confirm COD order (returns orderID) | ✅ PASS | - |
+| Checkout & Payments | Best Case | Successfully initiate payment via COD adapter (returns transactionID) | ❌ FAIL | `Got status: 500, Body: {"message":"Error initiating payment."}` |
+| Checkout & Payments | Best Case | Successfully confirm COD order (returns orderID) | ❌ FAIL | `Got status: 500, Body: {"message":"Error confirming order."}` |
 | Checkout & Payments | Worst Case | Access Control: Unassigned delivery partner is blocked from updating the order (returns 403 or 404) | ✅ PASS | - |
-| Checkout & Payments | Best Case | Assigned delivery partner can successfully change order status | ✅ PASS | - |
-| Checkout & Payments | Best Case | Order status is successfully set to completed | ✅ PASS | - |
-| Checkout & Payments | Worst Case | Security: Order amount was NOT hijacked and remained original | ✅ PASS | - |
-| Checkout & Payments | Best Case | COD collection record status is updated to collected | ✅ PASS | - |
-| Checkout & Payments | Best Case | COD collection record paymentType is set to qr | ✅ PASS | - |
-| Checkout & Payments | Best Case | COD collection record is stamped with correct delivery partner profile ID | ✅ PASS | - |
-| Checkout & Payments | Best Case | COD transaction automatically updated to status succeeded when order completed | ✅ PASS | - |
+| Checkout & Payments | Worst Case | Cross-User checkout checks setup error | ❌ FAIL | `Not Found` |
+| Quick Commerce Backend | Impossible Scenario | Should fail when ordering from multiple retailers | ✅ PASS | - |
+| Quick Commerce Backend | Best Case | Should succeed when ordering from a single retailer | ❌ FAIL | `Assertion failed` |
+| Quick Commerce Backend | Impossible Scenario | Suite completed without unhandled exceptions: Not Found | ❌ FAIL | `Assertion failed` |

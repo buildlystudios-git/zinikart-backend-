@@ -4,6 +4,7 @@ import { isAdmin } from '@/access/isAdmin'
 import { isAuthenticated } from '@/access/isAuthenticated'
 import { adminOrFieldOwner } from '@/access/adminOrFieldOwner'
 import { associateUser } from './hooks/associateUser'
+import { locationTrackingEndpoint } from '@/endpoints/delivery-partners/location'
 
 export const DeliveryPartners: CollectionConfig = {
   slug: 'delivery-partners',
@@ -21,6 +22,7 @@ export const DeliveryPartners: CollectionConfig = {
   hooks: {
     beforeChange: [associateUser],
   },
+  endpoints: [locationTrackingEndpoint],
   fields: [
     {
       name: 'fullName',
@@ -186,6 +188,27 @@ export const DeliveryPartners: CollectionConfig = {
       type: 'checkbox',
       required: true,
       defaultValue: false,
+    },
+    {
+      name: 'lat',
+      type: 'number',
+      admin: {
+        readOnly: true,
+      },
+    },
+    {
+      name: 'lng',
+      type: 'number',
+      admin: {
+        readOnly: true,
+      },
+    },
+    {
+      name: 'lastLocationUpdatedAt',
+      type: 'date',
+      admin: {
+        readOnly: true,
+      },
     },
     {
       name: 'user',

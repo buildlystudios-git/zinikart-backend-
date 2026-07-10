@@ -58,6 +58,10 @@ export const Users: CollectionConfig = {
           label: 'retailer',
           value: 'retailer',
         },
+        {
+          label: 'delivery_partner',
+          value: 'delivery_partner',
+        },
       ],
     },
     {

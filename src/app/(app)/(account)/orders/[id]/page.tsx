@@ -102,7 +102,7 @@ export default async function Order({ params, searchParams }: PageProps) {
         : orderResult.customer) === user.id
 
     if (orderResult && (canAccessAsGuest || canAccessAsUser)) {
-      order = orderResult
+      order = orderResult as unknown as Order
     }
   } catch (error) {
     console.error(error)

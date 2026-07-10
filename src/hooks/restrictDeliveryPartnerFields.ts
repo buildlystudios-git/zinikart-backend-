@@ -1,5 +1,6 @@
 import type { CollectionBeforeChangeHook } from 'payload'
 import { checkRole } from '@/access/utilities'
+import { ORDER_STATUS } from '@/constants/orderStatuses'
 
 export const restrictDeliveryPartnerFields: CollectionBeforeChangeHook = async ({
   data,
@@ -18,8 +19,8 @@ export const restrictDeliveryPartnerFields: CollectionBeforeChangeHook = async (
       }
     }
 
-    // 2. Auto-populate codCollectionRecord when status changes to completed
-    if (data.status === 'completed' && originalDoc.status !== 'completed') {
+    // 2. Auto-populate codCollectionRecord when status changes to cod_payment_received
+    if (data.status === ORDER_STATUS.COD_PAYMENT_RECEIVED && originalDoc.status !== ORDER_STATUS.COD_PAYMENT_RECEIVED) {
       try {
         // Check if it's a COD order by checking linked transactions
         const transactionIds = originalDoc.transactions || []

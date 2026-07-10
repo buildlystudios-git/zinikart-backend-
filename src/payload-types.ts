@@ -7,11 +7,6 @@
  */
 
 /**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "OrderStatus".
- */
-export type OrderStatus = ('processing' | 'completed' | 'cancelled' | 'refunded') | null;
-/**
  * Supported timezones in IANA format.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -92,6 +87,7 @@ export interface Config {
     orders: Order;
     transactions: Transaction;
     'payload-kv': PayloadKv;
+    'payload-jobs': PayloadJob;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
@@ -130,6 +126,7 @@ export interface Config {
     orders: OrdersSelect<false> | OrdersSelect<true>;
     transactions: TransactionsSelect<false> | TransactionsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
+    'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
@@ -152,7 +149,16 @@ export interface Config {
   };
   user: User;
   jobs: {
-    tasks: unknown;
+    tasks: {
+      assignDeliveryPartner: TaskAssignDeliveryPartner;
+      checkOfferTimeout: TaskCheckOfferTimeout;
+      retailerActionTimeout: TaskRetailerActionTimeout;
+      processRazorpayRefund: TaskProcessRazorpayRefund;
+      inline: {
+        input: unknown;
+        output: unknown;
+      };
+    };
     workflows: unknown;
   };
   /**
@@ -270,14 +276,46 @@ export interface Order {
   customer?: (string | null) | User;
   customerEmail?: string | null;
   transactions?: (string | Transaction)[] | null;
-  status?: OrderStatus;
   amount?: number | null;
   currency?: 'INR' | null;
+  status:
+    | 'placed'
+    | 'order_received'
+    | 'preparing'
+    | 'packed'
+    | 'ready_for_pickup'
+    | 'picked_up'
+    | 'out_for_delivery'
+    | 'reached_location'
+    | 'delivered'
+    | 'cod_payment_received'
+    | 'cancelled';
+  retailer: string | Retailer;
+  statusHistory?:
+    | {
+        status: string;
+        timestamp: string;
+        changedBy?: (string | null) | User;
+        changeSource: 'retailer' | 'delivery_partner' | 'customer' | 'admin' | 'system';
+        id?: string | null;
+      }[]
+    | null;
   accessToken?: string | null;
   /**
    * The assigned delivery partner for this order
    */
   deliveryPartner?: (string | null) | DeliveryPartner;
+  deliveryPartnerAcceptance?: ('pending' | 'accepted' | 'rejected' | 'unassignable') | null;
+  rejectedDeliveryPartners?: (string | DeliveryPartner)[] | null;
+  currentOfferedPartner?: (string | null) | DeliveryPartner;
+  offerExpiresAt?: string | null;
+  pickupOTP?: string | null;
+  deliveryOTP?: string | null;
+  cancellationDetails?: {
+    cancelledBy?: (string | null) | User;
+    cancelledAt?: string | null;
+    cancellationReason?: string | null;
+  };
   /**
    * Doorstep COD payment collection log
    */
@@ -1019,6 +1057,10 @@ export interface Transaction {
     orderID?: string | null;
     paymentID?: string | null;
     signature?: string | null;
+    refundID?: string | null;
+    refundStatus?: ('pending' | 'processed' | 'failed') | null;
+    refundedAmount?: number | null;
+    refundedAt?: string | null;
   };
   cod?: {
     notes?: string | null;
@@ -1073,6 +1115,54 @@ export interface Cart {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "retailers".
+ */
+export interface Retailer {
+  id: string;
+  shopName: string;
+  ownerName: string;
+  mobileNumber: string;
+  emailId: string;
+  alternateContactNumber?: string | null;
+  gstNumber: string;
+  images: (string | Media)[];
+  shopAddress: {
+    street: string;
+    landmark?: string | null;
+    city: string;
+    state: string;
+    zipCode: string;
+    lat?: number | null;
+    lng?: number | null;
+  };
+  bankDetails: {
+    accountHolderName: string;
+    accountNumber: string;
+    ifscCode: string;
+    bankName: string;
+    upiId?: string | null;
+  };
+  businessHours: {
+    startTime: string;
+    endTime: string;
+    weekOff?: ('Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday')[] | null;
+    openEveryday?: boolean | null;
+  };
+  approvalStatus: 'pending' | 'approved' | 'rejected' | 'suspended';
+  user: string | User;
+  /**
+   * Pre-calculated average rating cached from the reviews
+   */
+  averageRating?: number | null;
+  /**
+   * Total number of ratings submitted for this retailer
+   */
+  ratingCount?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "delivery-partners".
  */
 export interface DeliveryPartner {
@@ -1099,6 +1189,9 @@ export interface DeliveryPartner {
   vehicleType: 'bike' | 'scooter' | 'bicycle' | 'car';
   approvalStatus: 'pending' | 'approved' | 'rejected' | 'suspended';
   onlineStatus: boolean;
+  lat?: number | null;
+  lng?: number | null;
+  lastLocationUpdatedAt?: string | null;
   user: string | User;
   updatedAt: string;
   createdAt: string;
@@ -1168,54 +1261,6 @@ export interface Address {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "retailers".
- */
-export interface Retailer {
-  id: string;
-  shopName: string;
-  ownerName: string;
-  mobileNumber: string;
-  emailId: string;
-  alternateContactNumber?: string | null;
-  gstNumber: string;
-  images: (string | Media)[];
-  shopAddress: {
-    street: string;
-    landmark?: string | null;
-    city: string;
-    state: string;
-    zipCode: string;
-    lat?: number | null;
-    lng?: number | null;
-  };
-  bankDetails: {
-    accountHolderName: string;
-    accountNumber: string;
-    ifscCode: string;
-    bankName: string;
-    upiId?: string | null;
-  };
-  businessHours: {
-    startTime: string;
-    endTime: string;
-    weekOff?: ('Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday')[] | null;
-    openEveryday?: boolean | null;
-  };
-  approvalStatus: 'pending' | 'approved' | 'rejected' | 'suspended';
-  user: string | User;
-  /**
-   * Pre-calculated average rating cached from the reviews
-   */
-  averageRating?: number | null;
-  /**
-   * Total number of ratings submitted for this retailer
-   */
-  ratingCount?: number | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "ratings".
  */
 export interface Rating {
@@ -1278,6 +1323,105 @@ export interface PayloadKv {
     | number
     | boolean
     | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs".
+ */
+export interface PayloadJob {
+  id: string;
+  /**
+   * Input data provided to the job
+   */
+  input?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  taskStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  completedAt?: string | null;
+  totalTried?: number | null;
+  /**
+   * If hasError is true this job will not be retried
+   */
+  hasError?: boolean | null;
+  /**
+   * If hasError is true, this is the error that caused it
+   */
+  error?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Task execution log
+   */
+  log?:
+    | {
+        executedAt: string;
+        completedAt: string;
+        taskSlug:
+          'inline' | 'assignDeliveryPartner' | 'checkOfferTimeout' | 'retailerActionTimeout' | 'processRazorpayRefund';
+        taskID: string;
+        input?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        output?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        state: 'failed' | 'succeeded';
+        error?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        id?: string | null;
+      }[]
+    | null;
+  taskSlug?:
+    | ('inline' | 'assignDeliveryPartner' | 'checkOfferTimeout' | 'retailerActionTimeout' | 'processRazorpayRefund')
+    | null;
+  queue?: string | null;
+  waitUntil?: string | null;
+  processing?: boolean | null;
+  /**
+   * Used for concurrency control. Jobs with the same key are subject to exclusive/supersedes rules.
+   */
+  concurrencyKey?: string | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1727,6 +1871,9 @@ export interface DeliveryPartnersSelect<T extends boolean = true> {
   vehicleType?: T;
   approvalStatus?: T;
   onlineStatus?: T;
+  lat?: T;
+  lng?: T;
+  lastLocationUpdatedAt?: T;
   user?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -2095,11 +2242,34 @@ export interface OrdersSelect<T extends boolean = true> {
   customer?: T;
   customerEmail?: T;
   transactions?: T;
-  status?: T;
   amount?: T;
   currency?: T;
+  status?: T;
+  retailer?: T;
+  statusHistory?:
+    | T
+    | {
+        status?: T;
+        timestamp?: T;
+        changedBy?: T;
+        changeSource?: T;
+        id?: T;
+      };
   accessToken?: T;
   deliveryPartner?: T;
+  deliveryPartnerAcceptance?: T;
+  rejectedDeliveryPartners?: T;
+  currentOfferedPartner?: T;
+  offerExpiresAt?: T;
+  pickupOTP?: T;
+  deliveryOTP?: T;
+  cancellationDetails?:
+    | T
+    | {
+        cancelledBy?: T;
+        cancelledAt?: T;
+        cancellationReason?: T;
+      };
   codCollectionRecord?:
     | T
     | {
@@ -2137,6 +2307,10 @@ export interface TransactionsSelect<T extends boolean = true> {
         orderID?: T;
         paymentID?: T;
         signature?: T;
+        refundID?: T;
+        refundStatus?: T;
+        refundedAmount?: T;
+        refundedAt?: T;
       };
   cod?:
     | T
@@ -2177,6 +2351,38 @@ export interface TransactionsSelect<T extends boolean = true> {
 export interface PayloadKvSelect<T extends boolean = true> {
   key?: T;
   data?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs_select".
+ */
+export interface PayloadJobsSelect<T extends boolean = true> {
+  input?: T;
+  taskStatus?: T;
+  completedAt?: T;
+  totalTried?: T;
+  hasError?: T;
+  error?: T;
+  log?:
+    | T
+    | {
+        executedAt?: T;
+        completedAt?: T;
+        taskSlug?: T;
+        taskID?: T;
+        input?: T;
+        output?: T;
+        state?: T;
+        error?: T;
+        id?: T;
+      };
+  taskSlug?: T;
+  queue?: T;
+  waitUntil?: T;
+  processing?: T;
+  concurrencyKey?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2313,6 +2519,47 @@ export interface CollectionsWidget {
     [k: string]: unknown;
   };
   width: 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskAssignDeliveryPartner".
+ */
+export interface TaskAssignDeliveryPartner {
+  input: {
+    orderId: string;
+  };
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskCheckOfferTimeout".
+ */
+export interface TaskCheckOfferTimeout {
+  input: {
+    orderId: string;
+    candidateId: string;
+  };
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskRetailerActionTimeout".
+ */
+export interface TaskRetailerActionTimeout {
+  input: {
+    orderId: string;
+  };
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskProcessRazorpayRefund".
+ */
+export interface TaskProcessRazorpayRefund {
+  input: {
+    transactionId: string;
+  };
+  output?: unknown;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

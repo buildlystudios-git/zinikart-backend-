@@ -12,7 +12,7 @@ import { runRatingsTests } from './ratings'
 import { runWishlistTests } from './wishlist'
 import { runCartTests } from './cart'
 import { runCheckoutTests } from './checkout'
-
+import { runQuickCommerceTests } from './quick-commerce'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -90,14 +90,14 @@ async function main() {
       overrideAccess: true,
     })
     await payload.delete({
-      collection: 'retailers',
+      collection: 'delivery-partners',
       where: {
         user: { in: userIds },
       },
       overrideAccess: true,
     })
     await payload.delete({
-      collection: 'delivery-partners',
+      collection: 'retailers',
       where: {
         user: { in: userIds },
       },
@@ -233,6 +233,7 @@ async function main() {
     await runWishlistTests(report, payload, otherUserToken, retailerUserToken)
     await runCartTests(report, payload, otherUserToken)
     await runCheckoutTests(report, payload, otherUserToken)
+    await runQuickCommerceTests(report, payload, adminUserToken, retailerUserToken, otherUserToken, retailerUserToken)
 
   } catch (err) {
     console.error('Test execution error occurred:', err)
@@ -296,7 +297,6 @@ async function main() {
     })
     await payload.delete({
       collection: 'retailers',
-
       where: {
         user: { in: finalUserIds },
       },

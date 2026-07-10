@@ -7,6 +7,15 @@ import { ecommercePlugin } from '@payloadcms/plugin-ecommerce'
 
 import { stripeAdapter } from '@payloadcms/plugin-ecommerce/payments/stripe'
 import { razorpayAdapter } from '@/plugins/payments/razorpay'
+import { 
+  RAZORPAY_KEY_ID, 
+  RAZORPAY_KEY_SECRET, 
+  RAZORPAY_WEBHOOK_SECRET, 
+  STRIPE_SECRET_KEY, 
+  STRIPE_PUBLISHABLE_KEY, 
+  STRIPE_WEBHOOK_SECRET 
+} from '@/constants/env'
+import { ORDER_STATUS_OPTIONS } from '@/constants/orderStatuses'
 
 import { Page, Product } from '@/payload-types'
 import { getServerSideURL } from '@/utilities/getURL'
@@ -30,6 +39,12 @@ import { codAdapter } from '@/plugins/payments/cod'
 import { orderUpdateAccess } from '@/access/orderUpdateAccess'
 import { restrictDeliveryPartnerFields } from '@/hooks/restrictDeliveryPartnerFields'
 import { confirmCodTransaction } from '@/hooks/confirmCodTransaction'
+import { validateSingleVendor } from '@/collections/Orders/hooks/validateSingleVendor'
+import { statusHistoryLogger } from '@/collections/Orders/hooks/statusHistoryLogger'
+import { triggerSideEffects } from '@/collections/Orders/hooks/triggerSideEffects'
+import { handoverOtpValidation } from '@/collections/Orders/hooks/handoverOtpValidation'
+import { retailerActionEndpoint, deliveryActionEndpoint } from '@/endpoints/orders/actions'
+import { statusUpdateEndpoint } from '@/endpoints/orders/statusUpdate'
 
 const generateTitle: GenerateTitle<Product | Page> = ({ doc }) => {
   return doc?.title ? `${doc.title} | Payload Ecommerce Template` : 'Payload Ecommerce Template'
@@ -218,18 +233,67 @@ export const plugins: Plugin[] = [
         },
         hooks: {
           ...defaultCollection.hooks,
+          beforeValidate: [
+            ...(defaultCollection.hooks?.beforeValidate || []),
+            validateSingleVendor,
+            handoverOtpValidation,
+          ],
           beforeChange: [
             ...(defaultCollection.hooks?.beforeChange || []),
+            statusHistoryLogger,
             deductInventory,
             restrictDeliveryPartnerFields,
           ],
           afterChange: [
             ...(defaultCollection.hooks?.afterChange || []),
+            triggerSideEffects,
             confirmCodTransaction,
           ],
         },
+        endpoints: [
+          ...(defaultCollection.endpoints || []),
+          retailerActionEndpoint,
+          deliveryActionEndpoint,
+          statusUpdateEndpoint,
+        ],
         fields: [
-          ...defaultCollection.fields,
+          ...defaultCollection.fields.filter((f) => !('name' in f && f.name === 'status')),
+          {
+            name: 'status',
+            type: 'select',
+            required: true,
+            defaultValue: 'placed',
+            options: [...ORDER_STATUS_OPTIONS],
+          },
+          {
+            name: 'retailer',
+            type: 'relationship',
+            relationTo: 'retailers',
+            required: true,
+            admin: { position: 'sidebar' },
+          },
+          {
+            name: 'statusHistory',
+            type: 'array',
+            admin: { position: 'sidebar' },
+            fields: [
+              { name: 'status', type: 'text', required: true },
+              { name: 'timestamp', type: 'date', required: true },
+              { name: 'changedBy', type: 'relationship', relationTo: 'users', required: false },
+              {
+                name: 'changeSource',
+                type: 'select',
+                required: true,
+                options: [
+                  { label: 'Retailer', value: 'retailer' },
+                  { label: 'Delivery Partner', value: 'delivery_partner' },
+                  { label: 'Customer', value: 'customer' },
+                  { label: 'Admin', value: 'admin' },
+                  { label: 'System', value: 'system' },
+                ],
+              },
+            ],
+          },
           {
             name: 'accessToken',
             type: 'text',
@@ -262,6 +326,55 @@ export const plugins: Plugin[] = [
               position: 'sidebar',
               description: 'The assigned delivery partner for this order',
             },
+          },
+          {
+            name: 'deliveryPartnerAcceptance',
+            type: 'select',
+            defaultValue: 'pending',
+            options: [
+              { label: 'Pending', value: 'pending' },
+              { label: 'Accepted', value: 'accepted' },
+              { label: 'Rejected', value: 'rejected' },
+              { label: 'Unassignable', value: 'unassignable' },
+            ],
+            admin: { position: 'sidebar' },
+          },
+          {
+            name: 'rejectedDeliveryPartners',
+            type: 'relationship',
+            relationTo: 'delivery-partners',
+            hasMany: true,
+            admin: { position: 'sidebar' },
+          },
+          {
+            name: 'currentOfferedPartner',
+            type: 'relationship',
+            relationTo: 'delivery-partners',
+            admin: { position: 'sidebar' },
+          },
+          {
+            name: 'offerExpiresAt',
+            type: 'date',
+            admin: { position: 'sidebar' },
+          },
+          {
+            name: 'pickupOTP',
+            type: 'text',
+            admin: { readOnly: true },
+          },
+          {
+            name: 'deliveryOTP',
+            type: 'text',
+            admin: { readOnly: true },
+          },
+          {
+            name: 'cancellationDetails',
+            type: 'group',
+            fields: [
+              { name: 'cancelledBy', type: 'relationship', relationTo: 'users' },
+              { name: 'cancelledAt', type: 'date' },
+              { name: 'cancellationReason', type: 'text' },
+            ],
           },
           {
             name: 'codCollectionRecord',
@@ -310,14 +423,14 @@ export const plugins: Plugin[] = [
     payments: {
       paymentMethods: [
         stripeAdapter({
-          secretKey: process.env.STRIPE_SECRET_KEY || 'sk_test_mock',
-          publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_mock',
-          webhookSecret: process.env.STRIPE_WEBHOOKS_SIGNING_SECRET || 'whsec_mock',
+          secretKey: STRIPE_SECRET_KEY,
+          publishableKey: STRIPE_PUBLISHABLE_KEY,
+          webhookSecret: STRIPE_WEBHOOK_SECRET,
         }),
         razorpayAdapter({
-          keyId: process.env.RAZORPAY_API_KEY || process.env.RAZORPAY_KEY_ID || 'rzp_test_mock',
-          keySecret: process.env.RAZORPAY_API_SECRET || process.env.RAZORPAY_KEY_SECRET || 'rzp_secret_mock',
-          webhookSecret: process.env.RAZORPAY_WEBHOOKS_SIGNING_SECRET,
+          keyId: RAZORPAY_KEY_ID,
+          keySecret: RAZORPAY_KEY_SECRET,
+          webhookSecret: RAZORPAY_WEBHOOK_SECRET,
         }),
         codAdapter(),
       ],
