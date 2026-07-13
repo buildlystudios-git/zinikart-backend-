@@ -4,16 +4,22 @@ import { Plugin } from 'payload'
 import { GenerateTitle, GenerateURL } from '@payloadcms/plugin-seo/types'
 import { FixedToolbarFeature, HeadingFeature, lexicalEditor } from '@payloadcms/richtext-lexical'
 import { ecommercePlugin } from '@payloadcms/plugin-ecommerce'
+import { s3Storage } from '@payloadcms/storage-s3'
 
 import { stripeAdapter } from '@payloadcms/plugin-ecommerce/payments/stripe'
 import { razorpayAdapter } from '@/plugins/payments/razorpay'
-import { 
-  RAZORPAY_KEY_ID, 
-  RAZORPAY_KEY_SECRET, 
-  RAZORPAY_WEBHOOK_SECRET, 
-  STRIPE_SECRET_KEY, 
-  STRIPE_PUBLISHABLE_KEY, 
-  STRIPE_WEBHOOK_SECRET 
+import {
+  RAZORPAY_KEY_ID,
+  RAZORPAY_KEY_SECRET,
+  RAZORPAY_WEBHOOK_SECRET,
+  STRIPE_SECRET_KEY,
+  STRIPE_PUBLISHABLE_KEY,
+  STRIPE_WEBHOOK_SECRET,
+  S3_BUCKET,
+  S3_REGION,
+  S3_ACCESS_KEY_ID,
+  S3_SECRET_ACCESS_KEY,
+  S3_ENDPOINT
 } from '@/constants/env'
 import { ORDER_STATUS_OPTIONS } from '@/constants/orderStatuses'
 
@@ -483,5 +489,22 @@ export const plugins: Plugin[] = [
     docsUrl: '/docs',
     specEndpoint: '/openapi.json',
   }),
+  s3Storage({
+    enabled: Boolean(S3_BUCKET),
+    bucket: S3_BUCKET,
+    useCompositePrefixes: true,
+    collections: {
+      media: {
+        prefix: "uploads",
+      },
+    },
+    config: {
+      region: S3_REGION,
+      credentials: {
+        accessKeyId: S3_ACCESS_KEY_ID,
+        secretAccessKey: S3_SECRET_ACCESS_KEY,
+      },
+    },
+  })
 ]
 

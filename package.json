@@ -4,6 +4,7 @@
   "description": "Ecommerce template for Payload",
   "license": "MIT",
   "type": "module",
+  "packageManager": "pnpm@10.28.0",
   "scripts": {
     "build": "cross-env NODE_OPTIONS=\"--no-deprecation --max-old-space-size=8000\" next build",
     "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev",
@@ -34,6 +35,7 @@
     "@payloadcms/plugin-form-builder": "3.84.1",
     "@payloadcms/plugin-seo": "3.84.1",
     "@payloadcms/richtext-lexical": "3.84.1",
+    "@payloadcms/storage-s3": "3.84.1",
     "@payloadcms/translations": "3.84.1",
     "@payloadcms/ui": "3.84.1",
     "@radix-ui/react-accordion": "1.2.11",
@@ -106,7 +108,10 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
-      "sharp"
+      "@vercel/git-hooks",
+      "esbuild",
+      "sharp",
+      "unrs-resolver"
     ]
   }
 }
