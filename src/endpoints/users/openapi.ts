@@ -123,4 +123,86 @@ export const usersAuthPaths = {
       },
     },
   },
+  '/api/users/fcm-token': {
+    post: {
+      summary: 'Register FCM Token',
+      description: 'Registers a Firebase Cloud Messaging token for the authenticated user to receive push notifications.',
+      tags: ['Users'],
+      security: [{ CookieAuth: [] }, { BearerAuth: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                token: { type: 'string', example: 'fcm_token_12345' },
+                platform: { type: 'string', enum: ['android', 'ios', 'web'], example: 'android' },
+                deviceLabel: { type: 'string', example: 'My Android Phone' },
+              },
+              required: ['token', 'platform'],
+            },
+          },
+        },
+      },
+      responses: {
+        200: {
+          description: 'Token registered successfully.',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  message: { type: 'string', example: 'Token registered successfully' },
+                },
+              },
+            },
+          },
+        },
+        400: { description: 'Bad Request - Missing token or platform' },
+        401: { description: 'Unauthorized' },
+        500: { description: 'Internal Server Error' },
+      },
+    },
+    delete: {
+      summary: 'Unregister FCM Token',
+      description: 'Unregisters a Firebase Cloud Messaging token from the authenticated user.',
+      tags: ['Users'],
+      security: [{ CookieAuth: [] }, { BearerAuth: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                token: { type: 'string', example: 'fcm_token_12345' },
+              },
+              required: ['token'],
+            },
+          },
+        },
+      },
+      responses: {
+        200: {
+          description: 'Token unregistered successfully.',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  message: { type: 'string', example: 'Token unregistered successfully' },
+                },
+              },
+            },
+          },
+        },
+        400: { description: 'Bad Request - Missing token' },
+        401: { description: 'Unauthorized' },
+        500: { description: 'Internal Server Error' },
+      },
+    },
+  },
 }

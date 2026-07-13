@@ -1,3 +1,4 @@
+import { isAuthenticated } from '@/access/isAuthenticated'
 import type { Endpoint } from 'payload'
 import { LOCATION_THROTTLE_MS } from '@/constants/env'
 
@@ -5,12 +6,12 @@ export const locationTrackingEndpoint: Endpoint = {
   path: '/location',
   method: 'patch',
   handler: async (req) => {
-    if (!req.user) return Response.json({ success: false, reason: 'Unauthorized' }, { status: 401 })
+    if (!isAuthenticated({ req } as any)) return Response.json({ success: false, reason: 'Unauthorized' }, { status: 401 })
     
     const payload = req.payload
     const partners = await payload.find({
       collection: 'delivery-partners',
-      where: { user: { equals: req.user.id } },
+      where: { user: { equals: req?.user?.id } },
       depth: 0,
       req,
     })

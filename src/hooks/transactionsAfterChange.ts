@@ -5,10 +5,17 @@ export const transactionsAfterChange: CollectionAfterChangeHook<Transaction> = a
   doc,
   previousDoc,
   operation,
-  req: { payload, user },
+  req,
 }) => {
+  const { payload } = req
   // If transaction is linked to an order, denormalize paymentMethod to the order
-  if (doc.order && doc.paymentMethod) {
+  const shouldDenormalize =
+    operation === 'create' ||
+    (operation === 'update' &&
+      (doc.paymentMethod !== previousDoc?.paymentMethod ||
+        doc.order !== previousDoc?.order))
+
+  if (doc.order && doc.paymentMethod && shouldDenormalize) {
     const orderId = typeof doc.order === 'object' ? doc.order.id : doc.order
     
     try {
@@ -16,6 +23,7 @@ export const transactionsAfterChange: CollectionAfterChangeHook<Transaction> = a
         collection: 'orders',
         id: orderId,
         depth: 0,
+        req, // Added to prevent deadlock
       })
 
       if (order && order.paymentMethod !== doc.paymentMethod) {
@@ -25,6 +33,7 @@ export const transactionsAfterChange: CollectionAfterChangeHook<Transaction> = a
           data: {
             paymentMethod: doc.paymentMethod,
           },
+          req, // Added to prevent deadlock
         })
       }
     } catch (error) {
@@ -52,6 +61,7 @@ export const transactionsAfterChange: CollectionAfterChangeHook<Transaction> = a
           amount: ((doc.amount || 0) / 100).toFixed(2), // assuming amount is in cents/paise
         },
       },
+      req, // Added to prevent deadlock
     })
   }
 

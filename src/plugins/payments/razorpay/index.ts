@@ -291,6 +291,7 @@ export const razorpayAdapter = (props: RazorpayAdapterArgs): PaymentAdapter => {
           transactions: [transaction.id],
         },
         overrideAccess: true,
+        req,
       })
 
       const timestamp = new Date().toISOString()
@@ -304,6 +305,7 @@ export const razorpayAdapter = (props: RazorpayAdapterArgs): PaymentAdapter => {
           items: [],
         },
         overrideAccess: true,
+        req,
       })
 
       // Update transaction status
@@ -320,6 +322,7 @@ export const razorpayAdapter = (props: RazorpayAdapterArgs): PaymentAdapter => {
           },
         },
         overrideAccess: true,
+        req,
       })
 
       return {

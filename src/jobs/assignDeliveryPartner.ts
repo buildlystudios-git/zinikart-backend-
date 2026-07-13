@@ -12,6 +12,7 @@ export const assignDeliveryPartnerTask: TaskHandler<'assignDeliveryPartner'> = a
       id: orderId,
       depth: 1, // need retailer to get location
       req,
+      overrideAccess: true,
     })
 
     if (!order || order.status !== ORDER_STATUS.ORDER_RECEIVED || order.deliveryPartner) {
@@ -29,6 +30,7 @@ export const assignDeliveryPartnerTask: TaskHandler<'assignDeliveryPartner'> = a
       },
       depth: 0,
       req,
+      overrideAccess: true,
     })
     
     const busyRiderIds = activeOrders.docs.map(o => 
@@ -55,6 +57,7 @@ export const assignDeliveryPartnerTask: TaskHandler<'assignDeliveryPartner'> = a
       },
       limit: 1,
       req,
+      overrideAccess: true,
     })
 
     if (candidates.docs.length === 0) {
@@ -64,6 +67,7 @@ export const assignDeliveryPartnerTask: TaskHandler<'assignDeliveryPartner'> = a
         id: orderId,
         data: { deliveryPartnerAcceptance: DELIVERY_ACCEPTANCE.UNASSIGNABLE },
         req,
+        overrideAccess: true,
       })
       
       const { opsAlerts } = await import('@/services/opsAlerts')
@@ -84,6 +88,7 @@ export const assignDeliveryPartnerTask: TaskHandler<'assignDeliveryPartner'> = a
         deliveryPartnerAcceptance: DELIVERY_ACCEPTANCE.PENDING,
       },
       req,
+      overrideAccess: true,
     })
 
     const candidateUserId = typeof candidate.user === 'object' ? candidate.user.id : candidate.user

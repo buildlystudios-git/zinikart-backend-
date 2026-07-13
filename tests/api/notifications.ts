@@ -86,15 +86,18 @@ export async function runNotificationTests(
   })
   const retailerDocId = retailerRes.docs[0]?.id
 
-  // Helper to check queued workflows
   const checkWorkflowQueued = async (templateKey: string, recipientId: string) => {
     const jobs = await payload.find({
       collection: 'payload-jobs',
       limit: 1000,
       overrideAccess: true,
     })
+    if (jobs.docs.length > 0) {
+      console.log('[DEBUG] First job full doc:', JSON.stringify(jobs.docs[0]))
+    }
+    console.log(`[DEBUG] checkWorkflowQueued searching for ${templateKey} for user ${recipientId}. Found ${jobs.docs.length} jobs:`, jobs.docs.map((j: any) => ({ workflow: j.workflow, workflowSlug: j.workflowSlug, taskSlug: j.taskSlug, task: j.task, templateKey: j.input?.templateKey, recipientUserId: j.input?.recipientUserId })))
     return jobs.docs.some((job: any) => 
-      job.workflow === 'dispatchPushNotification' && 
+      (job.workflowSlug === 'dispatchPushNotification' || job.workflow === 'dispatchPushNotification') && 
       job.input?.templateKey === templateKey && 
       job.input?.recipientUserId === recipientId
     )
@@ -106,7 +109,8 @@ export async function runNotificationTests(
       limit: 1000,
       overrideAccess: true,
     })
-    return jobs.docs.some((job: any) => job.task === taskSlug)
+    console.log(`[DEBUG] checkTaskQueued searching for ${taskSlug}. Found ${jobs.docs.length} jobs:`, jobs.docs.map((j: any) => ({ taskSlug: j.taskSlug })))
+    return jobs.docs.some((job: any) => job.taskSlug === taskSlug)
   }
 
   // --- Suite 1: FCM Token Registration & Unregistration ---
@@ -117,7 +121,7 @@ export async function runNotificationTests(
   let res = await apiRequest('/api/users/fcm-token', 'POST', {
     token: testToken1, platform: 'android', deviceLabel: 'Test Android'
   }, customerToken)
-  report.assert('Register token via POST', res.status === 200, 'Best Case')
+  report.assert('Register token via POST', res.status === 200, 'Best Case', `Status: ${res.status}, Body: ${JSON.stringify(res.body)}`)
 
   let updatedCustomer = await payload.findByID({ collection: 'users', id: customerId, overrideAccess: true })
   report.assert('Token added to array', updatedCustomer.fcmTokens?.some((t: any) => t.token === testToken1) || false, 'Best Case')
@@ -137,7 +141,7 @@ export async function runNotificationTests(
   report.assert('Register without token -> 400', res.status === 400, 'Worst Case')
 
   res = await apiRequest('/api/users/fcm-token', 'DELETE', { token: testToken1 }, customerToken)
-  report.assert('Unregister token via DELETE', res.status === 200, 'Best Case')
+  report.assert('Unregister token via DELETE', res.status === 200, 'Best Case', `Status: ${res.status}, Body: ${JSON.stringify(res.body)}`)
   
   updatedCustomer = await payload.findByID({ collection: 'users', id: customerId, overrideAccess: true })
   report.assert('Token removed from array', !updatedCustomer.fcmTokens?.some((t: any) => t.token === testToken1), 'Best Case')
@@ -234,8 +238,8 @@ export async function runNotificationTests(
     id: orderId,
     data: {
       status: ORDER_STATUS.CANCELLED,
-      statusHistory: [{ status: ORDER_STATUS.CANCELLED, changeSource: 'retailer', timestamp: new Date().toISOString() }],
     } as any,
+    context: { changeSource: 'retailer' },
     overrideAccess: true,
   })
   report.assert('ORDER_CANCELLED_REJECTED queued', await checkWorkflowQueued('ORDER_CANCELLED_REJECTED', customerId), 'Best Case')
@@ -250,8 +254,8 @@ export async function runNotificationTests(
     id: cancelOrderSys.id,
     data: {
       status: ORDER_STATUS.CANCELLED,
-      statusHistory: [{ status: ORDER_STATUS.CANCELLED, changeSource: 'system', timestamp: new Date().toISOString() }],
     } as any,
+    context: { changeSource: 'system' },
     overrideAccess: true,
   })
   report.assert('ORDER_CANCELLED_TIMEOUT queued', await checkWorkflowQueued('ORDER_CANCELLED_TIMEOUT', customerId), 'Possible Scenario')

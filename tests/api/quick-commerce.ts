@@ -143,6 +143,7 @@ export async function runQuickCommerceTests(
         lng: 77.5946,
         onlineStatus: true,
         approvalStatus: 'approved',
+        lastLocationUpdatedAt: new Date().toISOString(),
       } as any,
       overrideAccess: true,
     })
@@ -192,9 +193,10 @@ export async function runQuickCommerceTests(
           },
         ],
         lat: 12.9716,
-        lng: 77.5946,
-        onlineStatus: true,
+        lng: 77.6046,
+        onlineStatus: false,
         approvalStatus: 'approved',
+        lastLocationUpdatedAt: new Date().toISOString(),
       } as any,
       overrideAccess: true,
     })
@@ -287,7 +289,8 @@ export async function runQuickCommerceTests(
     report.assert(
       'Delivery Partner should be offered the order',
       typeof order.currentOfferedPartner === 'object' && order.currentOfferedPartner?.id === deliveryPartner.id && order.deliveryPartnerAcceptance === 'pending',
-      'Best Case'
+      'Best Case',
+      `currentOfferedPartner: ${JSON.stringify(order.currentOfferedPartner)}, status: ${order.deliveryPartnerAcceptance}`
     )
 
     // Delivery Partner Ownership Test
@@ -299,7 +302,8 @@ export async function runQuickCommerceTests(
     report.assert(
       'Delivery action endpoint rejects non-offered delivery partner',
       dp2Action.status === 409 || dp2Action.status === 403,
-      'Impossible Scenario'
+      'Impossible Scenario',
+      `Got status: ${dp2Action.status}, body: ${JSON.stringify(dp2Action.body)}`
     )
 
     // Test Atomic Accept (Race Condition)
@@ -313,7 +317,8 @@ export async function runQuickCommerceTests(
     report.assert(
       'Atomic accept prevents race conditions (only 1 succeeds)',
       successCount === 1,
-      'Best Case'
+      'Best Case',
+      `accept1 status: ${accept1.status}, body: ${JSON.stringify(accept1.body)}, accept2 status: ${accept2.status}, body: ${JSON.stringify(accept2.body)}`
     )
 
     // 5. Handover OTP Validations via REST (status-update)
@@ -327,7 +332,8 @@ export async function runQuickCommerceTests(
     report.assert(
       'Cannot pick up without OTP via REST',
       pickupNoOtp.status === 400 && (pickupNoOtp.body?.reason?.includes('OTP') || pickupNoOtp.body?.errors?.[0]?.message?.includes('OTP')),
-      'Impossible Scenario'
+      'Impossible Scenario',
+      `Got status: ${pickupNoOtp.status}, body: ${JSON.stringify(pickupNoOtp.body)}`
     )
     
     // First refresh order to get the OTP
@@ -350,10 +356,16 @@ export async function runQuickCommerceTests(
     // 6. Test Unassignable Fallback
     console.log('  Testing Unassignable Fallback...')
     const unassignableOrderRes = await apiRequest('/api/orders', 'POST', {
+      status: 'placed',
+      amount: 1000,
+      currency: 'INR',
+      retailer: retailerId,
+      customer: customerId,
+      shippingAddress: { line1: '1', city: 'A', state: 'B', postalCode: '111', country: 'IN' },
       items: [
-        { product: product1.id, quantity: 1 }
+        { product: product1.id, quantity: 1, price: 1000 }
       ]
-    }, customerToken)
+    }, adminToken)
     
     const unassignableOrderId = unassignableOrderRes.body?.doc?.id
     await payload.update({
@@ -385,22 +397,32 @@ export async function runQuickCommerceTests(
 
     // 7. Test Location Throttling
     console.log('  Testing Location Throttling...')
+    await payload.update({
+      collection: 'delivery-partners',
+      id: deliveryPartner2.id,
+      data: {
+        onlineStatus: true,
+        lastLocationUpdatedAt: new Date(Date.now() - 3600 * 1000).toISOString(),
+      },
+      overrideAccess: true,
+    })
     const loc1 = await apiRequest('/api/delivery-partners/location', 'PATCH', { lat: 12.0, lng: 77.0 }, dp2Token)
     const loc2 = await apiRequest('/api/delivery-partners/location', 'PATCH', { lat: 12.1, lng: 77.1 }, dp2Token)
     
     report.assert(
       'Second rapid location update should be throttled (429)',
       loc1.status === 200 && loc2.status === 429,
-      'Best Case'
+      'Best Case',
+      `loc1 status: ${loc1.status}, body: ${JSON.stringify(loc1.body)}, loc2 status: ${loc2.status}, body: ${JSON.stringify(loc2.body)}`
     )
 
     // Cleanup
-    await payload.delete({ collection: 'users', id: otherRetailerUser.id, overrideAccess: true })
-    await payload.delete({ collection: 'users', id: dp2User.id, overrideAccess: true })
-    await payload.delete({ collection: 'products', where: { id: { in: [product1.id, product2.id] } }, overrideAccess: true })
     await payload.delete({ collection: 'delivery-partners', id: deliveryPartner.id, overrideAccess: true })
     await payload.delete({ collection: 'delivery-partners', id: deliveryPartner2.id, overrideAccess: true })
     await payload.delete({ collection: 'retailers', id: otherRetailerProfile.id, overrideAccess: true })
+    await payload.delete({ collection: 'users', id: otherRetailerUser.id, overrideAccess: true })
+    await payload.delete({ collection: 'users', id: dp2User.id, overrideAccess: true })
+    await payload.delete({ collection: 'products', where: { id: { in: [product1.id, product2.id] } }, overrideAccess: true })
     await payload.delete({ collection: 'orders', id: orderId, overrideAccess: true })
     await payload.delete({ collection: 'orders', id: unassignableOrderId, overrideAccess: true })
 

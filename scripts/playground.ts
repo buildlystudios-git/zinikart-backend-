@@ -1,51 +1,38 @@
 import 'dotenv/config'
 import { getPayload } from 'payload'
-import configPromise from '../src/payload.config'
+import configPromise from '@payload-config'
 
 async function run() {
-    console.log("Initializing Payload CMS...")
-    const payload = await getPayload({ config: configPromise })
+  const payload = await getPayload({ config: configPromise })
+  
+  console.log('Deleting all stray orders...')
+  const orders = await payload.find({ collection: 'orders', overrideAccess: true })
+  for (const order of orders.docs) {
+    await payload.delete({ collection: 'orders', id: order.id, overrideAccess: true })
+    console.log(`Deleted order ${order.id}`)
+  }
+  
+  console.log('Deleting all retailers...')
+  const retailers = await payload.find({ collection: 'retailers', overrideAccess: true })
+  for (const retailer of retailers.docs) {
+    await payload.delete({ collection: 'retailers', id: retailer.id, overrideAccess: true })
+    console.log(`Deleted retailer ${retailer.id}`)
+  }
 
-    try {
-        const clonedProducts = await payload.find({
-          collection: 'products',
-          where: {
-            isMasterTemplate: { equals: false },
-            enableVariants: { not_equals: true },
-            priceInINR: { greater_than: 0 },
-          },
-          limit: 1,
-          overrideAccess: true,
-        })
-        const product = clonedProducts.docs[0]
-        console.log("Product ID:", product?.id)
-        console.log("Product retailer:", product?.retailer)
-
-        const testUser = await payload.find({ collection: 'users', limit: 1 })
-        
-        console.log("Attempting to create order...")
-        const order = await payload.create({
-            collection: 'orders',
-            data: {
-              amount: 100,
-              currency: 'INR',
-              customer: testUser.docs[0]?.id,
-              items: [{ product: product.id, quantity: 1, price: 100 }],
-              shippingAddress: { street: '123', city: 'A', state: 'B', zipCode: '111111', country: 'IN', phone: '123' },
-              status: 'placed',
-            },
-            overrideAccess: true,
-        })
-        console.log("Success! Order ID:", order.id)
-
-    } catch (err: any) {
-        console.error("Error creating order:", err.message)
-        if (err.data) {
-            console.error("Validation details:", JSON.stringify(err.data, null, 2))
-        }
-    }
-
-    process.exit(0)
+  console.log('Deleting all delivery partners...')
+  const dps = await payload.find({ collection: 'delivery-partners', overrideAccess: true })
+  for (const dp of dps.docs) {
+    await payload.delete({ collection: 'delivery-partners', id: dp.id, overrideAccess: true })
+    console.log(`Deleted delivery partner ${dp.id}`)
+  }
+  
+  console.log('Deleting all test users...')
+  const users = await payload.find({ collection: 'users', where: { email: { contains: 'testing.zinikart.local' } }, overrideAccess: true })
+  for (const user of users.docs) {
+    await payload.delete({ collection: 'users', id: user.id, overrideAccess: true })
+    console.log(`Deleted user ${user.id}`)
+  }
+  
+  process.exit(0)
 }
-
 run()

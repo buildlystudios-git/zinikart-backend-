@@ -38,7 +38,6 @@ import { sendFcmTaskHandler } from '@/jobs/tasks/sendFcm'
 import { pruneTokensTaskHandler } from '@/jobs/tasks/pruneTokens'
 import { writeNotificationLogTaskHandler } from '@/jobs/tasks/writeNotificationLog'
 import { dispatchPushNotificationWorkflow } from '@/jobs/workflows/dispatchPushNotification'
-import { registerFcmToken, unregisterFcmToken } from '@/endpoints/users/fcmToken'
 import { DATABASE_URL, PAYLOAD_SECRET } from '@/constants/env'
 
 const filename = fileURLToPath(import.meta.url)
@@ -103,8 +102,6 @@ export default buildConfig({
   endpoints: [
     productDetailsEndpoint,
     searchEndpoint,
-    registerFcmToken,
-    unregisterFcmToken,
   ],
   globals: [Header, Footer],
   plugins,

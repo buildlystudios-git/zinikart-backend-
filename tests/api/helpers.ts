@@ -23,6 +23,7 @@ export class ReportManager {
     scenario: AssertionResult['scenario'],
     messageOnFail?: string
   ) {
+    console.log(`Executing assertion: ${name} [${scenario}]`)
     this.results.push({
       name,
       suite: this.currentSuite,

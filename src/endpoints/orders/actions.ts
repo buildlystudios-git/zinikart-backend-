@@ -1,3 +1,4 @@
+import { isAuthenticated } from '@/access/isAuthenticated'
 import type { Endpoint } from 'payload'
 import { ORDER_STATUS, CHANGE_SOURCE, DELIVERY_ACCEPTANCE } from '@/constants/orderStatuses'
 import { getAssignmentStrategy } from '@/services/delivery-assignment/dispatcher'
@@ -6,7 +7,7 @@ export const retailerActionEndpoint: Endpoint = {
   path: '/:id/retailer-action',
   method: 'post',
   handler: async (req) => {
-    if (!req.user) return Response.json({ success: false, reason: 'Unauthorized' }, { status: 401 })
+    if (!isAuthenticated({ req } as any)) return Response.json({ success: false, reason: 'Unauthorized' }, { status: 401 })
     
     const { id } = req.routeParams as { id: string }
     const { action, reason } = typeof req.json === 'function' ? await req.json() : req.body
@@ -14,7 +15,7 @@ export const retailerActionEndpoint: Endpoint = {
 
     const retailers = await payload.find({
       collection: 'retailers',
-      where: { user: { equals: req.user.id } },
+      where: { user: { equals: req.user!.id } },
       depth: 0,
       req,
     })
@@ -52,7 +53,7 @@ export const retailerActionEndpoint: Endpoint = {
         data: { 
           status: ORDER_STATUS.CANCELLED,
           cancellationDetails: {
-            cancelledBy: req.user.id,
+            cancelledBy: req.user!.id,
             cancelledAt: new Date().toISOString(),
             cancellationReason: reason || 'Rejected by retailer',
           }
@@ -67,11 +68,17 @@ export const retailerActionEndpoint: Endpoint = {
   }
 }
 
+// In-memory lock to prevent race conditions during concurrent order accept requests.
+// NOTE: This works perfectly for a single Node.js instance (like local development).
+// For a multi-instance production environment (e.g., AWS load balancer with multiple servers),
+// you should replace this with a distributed lock (e.g., Redis or Postgres advisory lock).
+const lockedOrderAccepts = new Set<string>()
+
 export const deliveryActionEndpoint: Endpoint = {
   path: '/:id/delivery-action',
   method: 'post',
   handler: async (req) => {
-    if (!req.user) return Response.json({ success: false, reason: 'Unauthorized' }, { status: 401 })
+    if (!isAuthenticated({ req } as any)) return Response.json({ success: false, reason: 'Unauthorized' }, { status: 401 })
 
     const { id } = req.routeParams as { id: string }
     const { action } = typeof req.json === 'function' ? await req.json() : req.body
@@ -79,7 +86,7 @@ export const deliveryActionEndpoint: Endpoint = {
 
     const partners = await payload.find({
       collection: 'delivery-partners',
-      where: { user: { equals: req.user.id } },
+      where: { user: { equals: req.user!.id } },
       depth: 0,
       req,
     })
@@ -88,25 +95,36 @@ export const deliveryActionEndpoint: Endpoint = {
     const partnerId = partners.docs[0].id
 
     if (action === 'accept') {
-      const result = await payload.update({
-        collection: 'orders',
-        where: {
-          id: { equals: id },
-          deliveryPartnerAcceptance: { equals: DELIVERY_ACCEPTANCE.PENDING },
-          deliveryPartner: { exists: false },
-          currentOfferedPartner: { equals: partnerId },
-        },
-        data: {
-          deliveryPartner: partnerId,
-          deliveryPartnerAcceptance: DELIVERY_ACCEPTANCE.ACCEPTED,
-        },
-        req,
-      })
-
-      if (result.docs.length === 0) {
+      if (lockedOrderAccepts.has(id)) {
         return Response.json({ success: false, reason: 'Offer expired or already assigned' }, { status: 409 })
       }
-      return Response.json({ success: true, status: 'assigned' })
+      lockedOrderAccepts.add(id)
+
+      try {
+        const result = await payload.update({
+          collection: 'orders',
+          where: {
+            id: { equals: id },
+            deliveryPartnerAcceptance: { equals: DELIVERY_ACCEPTANCE.PENDING },
+            deliveryPartner: { exists: false },
+            currentOfferedPartner: { equals: partnerId },
+          },
+          data: {
+            deliveryPartner: partnerId,
+            deliveryPartnerAcceptance: DELIVERY_ACCEPTANCE.ACCEPTED,
+          },
+          req,
+        })
+
+        if (result.docs.length === 0) {
+          lockedOrderAccepts.delete(id)
+          return Response.json({ success: false, reason: 'Offer expired or already assigned' }, { status: 409 })
+        }
+        return Response.json({ success: true, status: 'assigned' })
+      } catch (err) {
+        lockedOrderAccepts.delete(id)
+        throw err
+      }
     }
     
     if (action === 'reject') {

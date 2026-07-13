@@ -13,12 +13,12 @@ export const triggerSideEffects: CollectionAfterChangeHook = async ({
   const customerId = typeof doc.customer === 'object' ? doc.customer.id : doc.customer
 
   const getRetailerUserId = async (retailerId: string) => {
-    const retailer = await payload.findByID({ collection: 'retailers', id: retailerId, depth: 0 })
+    const retailer = await payload.findByID({ collection: 'retailers', id: retailerId, depth: 0, req })
     return typeof retailer.user === 'object' ? retailer.user.id : retailer.user
   }
-  
+
   const getDpUserId = async (dpId: string) => {
-    const dp = await payload.findByID({ collection: 'delivery-partners', id: dpId, depth: 0 })
+    const dp = await payload.findByID({ collection: 'delivery-partners', id: dpId, depth: 0, req })
     return typeof dp.user === 'object' ? dp.user.id : dp.user
   }
 
@@ -29,12 +29,14 @@ export const triggerSideEffects: CollectionAfterChangeHook = async ({
         task: 'retailerActionTimeout',
         input: { orderId: doc.id },
         waitUntil: new Date(Date.now() + RETAILER_ACTION_TIMEOUT_MS),
+        req,
       })
 
       // Push to customer
       await payload.jobs.queue({
         workflow: 'dispatchPushNotification',
-        input: { recipientUserId: customerId, templateKey: 'ORDER_PLACED', templateData: { orderId: doc.id } }
+        input: { recipientUserId: customerId, templateKey: 'ORDER_PLACED', templateData: { orderId: doc.id } },
+        req,
       })
 
       // Push to retailer
@@ -44,7 +46,8 @@ export const triggerSideEffects: CollectionAfterChangeHook = async ({
         const timeoutMinutes = String(Math.floor(RETAILER_ACTION_TIMEOUT_MS / 60000))
         await payload.jobs.queue({
           workflow: 'dispatchPushNotification',
-          input: { recipientUserId: retailerUserId, templateKey: 'RETAILER_NEW_ORDER', templateData: { orderId: doc.id, amount: (((doc as any).total || (doc as any).subtotal || 0) / 100).toFixed(2), timeoutMinutes } }
+          input: { recipientUserId: retailerUserId, templateKey: 'RETAILER_NEW_ORDER', templateData: { orderId: doc.id, amount: (((doc as any).total || (doc as any).subtotal || 0) / 100).toFixed(2), timeoutMinutes } },
+          req,
         })
       }
 
@@ -57,7 +60,7 @@ export const triggerSideEffects: CollectionAfterChangeHook = async ({
   if (doc.status === ORDER_STATUS.ORDER_RECEIVED && previousDoc?.status !== ORDER_STATUS.ORDER_RECEIVED) {
     try {
       await getAssignmentStrategy().assign(doc.id, payload)
-      
+
       await payload.jobs.queue({
         workflow: 'dispatchPushNotification',
         input: { recipientUserId: customerId, templateKey: 'ORDER_RECEIVED', templateData: { orderId: doc.id } }
@@ -109,7 +112,7 @@ export const triggerSideEffects: CollectionAfterChangeHook = async ({
       let templateKey = 'ORDER_CANCELLED_ADMIN'
       const lastHistory = doc.statusHistory && doc.statusHistory.length > 0 ? doc.statusHistory[doc.statusHistory.length - 1] : null
       const changeSource = lastHistory?.changeSource || 'admin'
-      
+
       if (changeSource === 'system') {
         templateKey = 'ORDER_CANCELLED_TIMEOUT'
       } else if (changeSource === 'retailer') {

@@ -7,9 +7,14 @@ import { adminOrSelf } from '@/access/adminOrSelf'
 import { checkRole } from '@/access/utilities'
 
 import { ensureFirstUserIsAdmin } from './hooks/ensureFirstUserIsAdmin'
+import { registerFcmToken, unregisterFcmToken } from '../../endpoints/users/fcmToken'
 
 export const Users: CollectionConfig = {
   slug: 'users',
+  endpoints: [
+    registerFcmToken,
+    unregisterFcmToken,
+  ],
   access: {
     admin: ({ req: { user } }) => checkRole(['admin'], user),
     create: publicAccess,

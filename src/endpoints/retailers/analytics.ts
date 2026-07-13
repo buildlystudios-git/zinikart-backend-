@@ -1,21 +1,17 @@
 import type { Endpoint, PayloadRequest, Where } from 'payload'
 import { ORDER_STATUS } from '@/constants/orderStatuses'
+import { adminOrRetailer } from '@/access/adminOrRetailer'
 import { checkRole } from '@/access/utilities'
 
 export const analyticsEndpoint: Endpoint = {
   path: '/analytics',
   method: 'get',
   handler: async (req: PayloadRequest): Promise<Response> => {
-  if (!req.user) {
-    return Response.json({ error: 'Unauthorized. Login required.' }, { status: 401 })
-  }
-
-  const isRetailer = checkRole(['retailer'], req.user)
-  const isAdmin = checkRole(['admin'], req.user)
-
-  if (!isRetailer && !isAdmin) {
+  if (!adminOrRetailer({ req } as any) || !req.user) {
     return Response.json({ error: 'Forbidden. Retailer or Admin role required.' }, { status: 403 })
   }
+
+  const isAdmin = checkRole(['admin'], req.user)
 
   const url = new URL(req.url || '', 'http://localhost:3000')
   const dateParam = url.searchParams.get('date')

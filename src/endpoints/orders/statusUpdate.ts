@@ -1,3 +1,4 @@
+import { isAuthenticated } from '@/access/isAuthenticated'
 import type { Endpoint } from 'payload'
 import { extractOtpFromBody } from './otpMiddleware'
 
@@ -5,7 +6,7 @@ export const statusUpdateEndpoint: Endpoint = {
   path: '/:id/status-update',
   method: 'post',
   handler: async (req) => {
-    if (!req.user) return Response.json({ success: false, reason: 'Unauthorized' }, { status: 401 })
+    if (!isAuthenticated({ req } as any)) return Response.json({ success: false, reason: 'Unauthorized' }, { status: 401 })
 
     const { id } = req.routeParams as { id: string }
     const body = typeof req.json === 'function' ? await req.json() : req.body
@@ -22,7 +23,7 @@ export const statusUpdateEndpoint: Endpoint = {
 
       // Basic role-based access logic (could be more robust based on orderUpdateAccess)
       let changeSource = 'system'
-      if (req.user.roles?.includes('retailer')) {
+      if (req?.user?.roles?.includes('retailer')) {
         const orderRetailerId = typeof order.retailer === 'object' && order.retailer ? order.retailer.id : order.retailer
         const retailers = await payload.find({
           collection: 'retailers',
@@ -34,7 +35,7 @@ export const statusUpdateEndpoint: Endpoint = {
           return Response.json({ success: false, reason: 'Unauthorized' }, { status: 403 })
         }
         changeSource = 'retailer'
-      } else if (req.user.roles?.includes('delivery_partner')) {
+      } else if (req?.user?.roles?.includes('delivery_partner')) {
         const orderDeliveryPartnerId = typeof order.deliveryPartner === 'object' && order.deliveryPartner ? order.deliveryPartner.id : order.deliveryPartner
         const partners = await payload.find({
           collection: 'delivery-partners',

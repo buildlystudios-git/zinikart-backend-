@@ -1,13 +1,14 @@
 import { Endpoint } from 'payload'
+import { isAuthenticated } from '@/access/isAuthenticated'
 import { claimFcmToken } from '@/services/notifications/claimToken'
 
 export const registerFcmToken: Endpoint = {
-  path: '/users/fcm-token',
+  path: '/fcm-token',
   method: 'post',
   handler: async (req) => {
     const { user, payload } = req
     
-    if (!user) {
+    if (!isAuthenticated({ req } as any)) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 })
     }
     
@@ -23,7 +24,7 @@ export const registerFcmToken: Endpoint = {
     }
 
     try {
-      await claimFcmToken(token, platform, deviceLabel, user.id, payload)
+      await claimFcmToken(token, platform, deviceLabel, user!.id, payload)
       return Response.json({ success: true, message: 'Token registered successfully' })
     } catch (error) {
       payload.logger.error(`Error registering FCM token: ${error}`)
@@ -33,12 +34,12 @@ export const registerFcmToken: Endpoint = {
 }
 
 export const unregisterFcmToken: Endpoint = {
-  path: '/users/fcm-token',
+  path: '/fcm-token',
   method: 'delete',
   handler: async (req) => {
     const { user, payload } = req
     
-    if (!user) {
+    if (!isAuthenticated({ req } as any) || !user) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 })
     }
     

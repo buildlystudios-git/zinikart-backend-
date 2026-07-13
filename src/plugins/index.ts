@@ -42,6 +42,7 @@ import { orderUpdateAccess } from '@/access/orderUpdateAccess'
 import { restrictDeliveryPartnerFields } from '@/hooks/restrictDeliveryPartnerFields'
 import { confirmCodTransaction } from '@/hooks/confirmCodTransaction'
 import { validateSingleVendor } from '@/collections/Orders/hooks/validateSingleVendor'
+import { generateOtps } from '@/collections/Orders/hooks/generateOtps'
 import { statusHistoryLogger } from '@/collections/Orders/hooks/statusHistoryLogger'
 import { triggerSideEffects } from '@/collections/Orders/hooks/triggerSideEffects'
 import { handoverOtpValidation } from '@/collections/Orders/hooks/handoverOtpValidation'
@@ -245,6 +246,7 @@ export const plugins: Plugin[] = [
           ],
           beforeChange: [
             ...(defaultCollection.hooks?.beforeChange || []),
+            generateOtps,
             statusHistoryLogger,
             deductInventory,
             restrictDeliveryPartnerFields,

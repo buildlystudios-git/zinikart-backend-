@@ -26,6 +26,9 @@ async function main() {
   // 1. Boot Payload
   console.log('Initializing Payload CMS local API...')
   const payloadConfig = await configPromise
+  if (payloadConfig.jobs) {
+    payloadConfig.jobs.autoRun = []
+  }
   const payload = await getPayload({ config: payloadConfig })
 
   const testMobile = '+919999999999'
@@ -69,48 +72,24 @@ async function main() {
       },
       overrideAccess: true,
     })
-    await payload.delete({
-      collection: 'orders',
-      where: {
-        customer: { in: userIds },
-      },
-      overrideAccess: true,
-    })
-    await payload.delete({
-      collection: 'transactions',
-      where: {
-        customer: { in: userIds },
-      },
-      overrideAccess: true,
-    })
-    await payload.delete({
-      collection: 'addresses',
-      where: {
-        customer: { in: userIds },
-      },
-      overrideAccess: true,
-    })
-    await payload.delete({
-      collection: 'delivery-partners',
-      where: {
-        user: { in: userIds },
-      },
-      overrideAccess: true,
-    })
-    await payload.delete({
-      collection: 'retailers',
-      where: {
-        user: { in: userIds },
-      },
-      overrideAccess: true,
-    })
-    await payload.delete({
-      collection: 'users',
-      where: {
-        id: { in: userIds },
-      },
-      overrideAccess: true,
-    })
+    const deleteSafe = async (collection: string, where: any) => {
+      try {
+        await payload.delete({ collection: collection as any, where, overrideAccess: true })
+      } catch (e: any) {
+        console.warn(`Cleanup failed for ${collection}:`, e.message)
+      }
+    }
+    
+    await deleteSafe('orders', { customer: { in: userIds } })
+    await deleteSafe('carts', { customer: { in: userIds } })
+    await deleteSafe('push-notification-logs', { recipient: { in: userIds } })
+    await deleteSafe('ratings', { customer: { in: userIds } })
+    await deleteSafe('wishlists', { customer: { in: userIds } })
+    await deleteSafe('transactions', { customer: { in: userIds } })
+    await deleteSafe('addresses', { customer: { in: userIds } })
+    await deleteSafe('delivery-partners', { user: { in: userIds } })
+    await deleteSafe('retailers', { user: { in: userIds } })
+    await deleteSafe('users', { id: { in: userIds } })
   }
 
   // Clean up any mock media uploads from previous test runs.
@@ -363,6 +342,13 @@ async function main() {
       collection: 'delivery-partners',
       where: {
         user: { in: finalUserIds },
+      },
+      overrideAccess: true,
+    })
+    await payload.delete({
+      collection: 'push-notification-logs',
+      where: {
+        recipient: { in: finalUserIds },
       },
       overrideAccess: true,
     })
