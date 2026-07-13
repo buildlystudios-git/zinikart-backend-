@@ -1,6 +1,9 @@
-import type { PayloadRequest } from 'payload'
+import type { Endpoint, PayloadRequest } from 'payload'
 
-export const searchEndpoint = async (req: PayloadRequest): Promise<Response> => {
+export const searchEndpoint: Endpoint = {
+  path: '/mobile/search',
+  method: 'get',
+  handler: async (req: PayloadRequest): Promise<Response> => {
   // Retrieve the search query parameter 'q'
   const url = new URL(req.url || '', 'http://localhost:3000')
   const q = url.searchParams.get('q') || ''
@@ -175,4 +178,5 @@ export const searchEndpoint = async (req: PayloadRequest): Promise<Response> => 
     req.payload.logger.error(`Error in mobile search endpoint: ${err.message}`)
     return Response.json({ error: 'Internal Server Error' }, { status: 500 })
   }
+}
 }

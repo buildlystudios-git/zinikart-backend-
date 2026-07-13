@@ -1,7 +1,7 @@
 import 'dotenv/config'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { getPayload, jwtSign } from 'payload'
+import { getPayload } from 'payload'
 import configPromise from '../../src/payload.config'
 import { ReportManager, apiRequest } from './helpers'
 import { runAuthTests } from './auth'
@@ -13,6 +13,7 @@ import { runWishlistTests } from './wishlist'
 import { runCartTests } from './cart'
 import { runCheckoutTests } from './checkout'
 import { runQuickCommerceTests } from './quick-commerce'
+import { runNotificationTests } from './notifications'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -276,7 +277,20 @@ async function main() {
     await runWishlistTests(report, payload, otherUserToken, retailerUserToken)
     await runCartTests(report, payload, otherUserToken)
     await runCheckoutTests(report, payload, otherUserToken)
-    await runQuickCommerceTests(report, payload, adminUserToken, retailerUserToken, otherUserToken, retailerUserToken)
+    console.log('\n--- 10. Quick Commerce ---')
+    await runQuickCommerceTests(report, payload, adminUserToken, retailerUserToken, otherUserToken)
+
+    console.log('\n--- 11. Notifications ---')
+    await runNotificationTests(
+      payload,
+      report,
+      otherUserToken,
+      retailerUserToken,
+      adminUserToken,
+      otherUser.id,
+      retailerUser.id,
+      adminUser.id
+    )
 
   } catch (err) {
     console.error('Test execution error occurred:', err)

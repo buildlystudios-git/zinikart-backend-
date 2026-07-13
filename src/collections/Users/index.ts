@@ -94,5 +94,17 @@ export const Users: CollectionConfig = {
         defaultColumns: ['id'],
       },
     },
+    {
+      name: 'fcmTokens',
+      type: 'array',
+      admin: { readOnly: true, position: 'sidebar' },
+      fields: [
+        { name: 'token', type: 'text', required: true },
+        { name: 'platform', type: 'select', options: ['android', 'ios', 'web'], required: true },
+        { name: 'deviceLabel', type: 'text' },
+        { name: 'registeredAt', type: 'date', required: true },
+      ],
+    },
+
   ],
 }

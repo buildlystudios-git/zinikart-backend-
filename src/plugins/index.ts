@@ -47,6 +47,7 @@ import { triggerSideEffects } from '@/collections/Orders/hooks/triggerSideEffect
 import { handoverOtpValidation } from '@/collections/Orders/hooks/handoverOtpValidation'
 import { retailerActionEndpoint, deliveryActionEndpoint } from '@/endpoints/orders/actions'
 import { statusUpdateEndpoint } from '@/endpoints/orders/statusUpdate'
+import { transactionsAfterChange } from '@/hooks/transactionsAfterChange'
 
 const generateTitle: GenerateTitle<Product | Page> = ({ doc }) => {
   return doc?.title ? `${doc.title} | Payload Ecommerce Template` : 'Payload Ecommerce Template'
@@ -277,6 +278,11 @@ export const plugins: Plugin[] = [
             admin: { position: 'sidebar' },
           },
           {
+            name: 'paymentMethod',
+            type: 'text',
+            admin: { position: 'sidebar', readOnly: true },
+          },
+          {
             name: 'statusHistory',
             type: 'array',
             admin: { position: 'sidebar' },
@@ -422,6 +428,18 @@ export const plugins: Plugin[] = [
             ],
           },
         ],
+      }),
+    },
+    transactions: {
+      transactionsCollectionOverride: ({ defaultCollection }) => ({
+        ...defaultCollection,
+        hooks: {
+          ...defaultCollection.hooks,
+          afterChange: [
+            ...(defaultCollection.hooks?.afterChange || []),
+            transactionsAfterChange,
+          ],
+        },
       }),
     },
     payments: {

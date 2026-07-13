@@ -7,24 +7,45 @@ async function run() {
     const payload = await getPayload({ config: configPromise })
 
     try {
-        await payload.create({
-            collection: "transactions",
-            data: {
-                customerEmail: "917696499609@otp.zinikart.local",
-                amount: 3000,
-                billingAddress: {},
-                cart: '00000000-0000-0000-0000-000000000000',
-                currency: "INR",
-                items: [],
-                paymentMethod: 'cod',
-                status: 'pending',
-            }
+        const clonedProducts = await payload.find({
+          collection: 'products',
+          where: {
+            isMasterTemplate: { equals: false },
+            enableVariants: { not_equals: true },
+            priceInINR: { greater_than: 0 },
+          },
+          limit: 1,
+          overrideAccess: true,
         })
-        process.exit(0)
+        const product = clonedProducts.docs[0]
+        console.log("Product ID:", product?.id)
+        console.log("Product retailer:", product?.retailer)
+
+        const testUser = await payload.find({ collection: 'users', limit: 1 })
+        
+        console.log("Attempting to create order...")
+        const order = await payload.create({
+            collection: 'orders',
+            data: {
+              amount: 100,
+              currency: 'INR',
+              customer: testUser.docs[0]?.id,
+              items: [{ product: product.id, quantity: 1, price: 100 }],
+              shippingAddress: { street: '123', city: 'A', state: 'B', zipCode: '111111', country: 'IN', phone: '123' },
+              status: 'placed',
+            },
+            overrideAccess: true,
+        })
+        console.log("Success! Order ID:", order.id)
+
     } catch (err: any) {
-        console.error("Error:", err.message)
-        process.exit(1)
+        console.error("Error creating order:", err.message)
+        if (err.data) {
+            console.error("Validation details:", JSON.stringify(err.data, null, 2))
+        }
     }
+
+    process.exit(0)
 }
 
 run()

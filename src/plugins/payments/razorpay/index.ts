@@ -328,7 +328,11 @@ export const razorpayAdapter = (props: RazorpayAdapterArgs): PaymentAdapter => {
         transactionID: transaction.id,
         ...(order.accessToken ? { accessToken: order.accessToken } : {}),
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error("DEBUG: confirmOrder payload.create error!", error.message)
+      if (error.data) {
+         console.error("DEBUG validation errors:", JSON.stringify(error.data, null, 2))
+      }
       payload.logger.error({ err: error, msg: 'Error confirming order with Razorpay' })
       throw new Error(error instanceof Error ? error.message : 'Unknown error confirming payment')
     }

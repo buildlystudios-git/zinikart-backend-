@@ -67,6 +67,18 @@ export const processRazorpayRefundTask: TaskHandler<any> = async ({ req, input }
         req,
       })
       
+      const orderIdStr = typeof tx.order === 'object' && tx.order ? tx.order.id : String(tx.order)
+      const { opsAlerts } = await import('@/services/opsAlerts')
+      await opsAlerts.refundFailed(orderIdStr, tx.id, data.error?.description || 'Unknown error').catch(() => {})
+
+      if (tx.customer) {
+        const customerId = typeof tx.customer === 'object' ? tx.customer.id : tx.customer
+        await payload.jobs.queue({
+          workflow: 'dispatchPushNotification',
+          input: { recipientUserId: customerId, templateKey: 'REFUND_DELAYED', templateData: { orderId: orderIdStr } }
+        })
+      }
+      
       throw new Error(`Refund failed: ${data.error?.description || 'Unknown error'}`)
     }
 
@@ -84,6 +96,15 @@ export const processRazorpayRefundTask: TaskHandler<any> = async ({ req, input }
       },
       req,
     })
+
+    if (tx.customer) {
+      const orderIdStr = typeof tx.order === 'object' && tx.order ? tx.order.id : String(tx.order)
+      const customerId = typeof tx.customer === 'object' ? tx.customer.id : tx.customer
+      await payload.jobs.queue({
+        workflow: 'dispatchPushNotification',
+        input: { recipientUserId: customerId, templateKey: 'REFUND_PROCESSED', templateData: { orderId: orderIdStr, amount: (data.amount / 100).toFixed(2) } }
+      })
+    }
 
     return { output: { success: true, refundId: data.id } }
   } catch (error) {

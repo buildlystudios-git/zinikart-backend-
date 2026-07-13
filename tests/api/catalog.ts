@@ -452,58 +452,100 @@ export async function runCatalogTests(
 
     let activeRetailerProfile: any = null
     if (activeRetailerUserId) {
-      activeRetailerProfile = await payload.create({
+      const existingRetailers = await payload.find({
         collection: 'retailers',
-        data: {
-          shopName: 'Active Retailer Gadgets',
-          ownerName: 'Active Seller',
-          mobileNumber: '+916666666666',
-          emailId: 'retailer.user@testing.zinikart.local',
-          gstNumber: 'GST99ABCDE6666',
-          images: [mediaId],
-          shopAddress: {
-            street: '123 Active St',
-            city: 'Delhi',
-            state: 'Delhi',
-            zipCode: '110001',
-          },
-          businessHours: {
-            startTime: '09:00',
-            endTime: '21:00',
-            openEveryday: true,
-          },
-          paymentMethods: [
-            {
-              methodType: 'bank_account',
-              isDefault: true,
-              accountHolderName: 'Active Seller',
-              accountNumber: '444455556666',
-              ifscCode: 'IFSC0006666',
-              bankName: 'Delhi Bank',
-            },
-          ],
-          approvalStatus: 'approved',
-          user: activeRetailerUserId,
-        },
+        where: { user: { equals: activeRetailerUserId } },
         overrideAccess: true,
       })
+      
+      if (existingRetailers.docs.length > 0) {
+        activeRetailerProfile = existingRetailers.docs[0]
+      } else {
+        try {
+          activeRetailerProfile = await payload.create({
+            collection: 'retailers',
+            data: {
+              user: activeRetailerUserId,
+              shopName: 'Active Retailer Gadgets',
+              ownerName: 'Active Seller',
+              mobileNumber: '+916666666666',
+              emailId: 'retailer.user@testing.zinikart.local',
+              gstNumber: 'GST99ABCDE6666',
+              images: [mediaId],
+              shopAddress: {
+                street: '123 Active St',
+                city: 'Delhi',
+                state: 'Delhi',
+                zipCode: '110001',
+              },
+              businessHours: {
+                startTime: '09:00',
+                endTime: '21:00',
+                openEveryday: true,
+              },
+              paymentMethods: [
+                {
+                  methodType: 'bank_account',
+                  isDefault: true,
+                  accountHolderName: 'Active Seller',
+                  accountNumber: '444455556666',
+                  ifscCode: 'IFSC9999',
+                  bankName: 'Active Bank',
+                },
+              ],
+              approvalStatus: 'approved',
+            } as any,
+            overrideAccess: true,
+          })
+        } catch (e: any) {
+          console.warn(`Could not create active retailer profile (might already exist by another key): ${e.message}`)
+        }
+      }
     }
 
     // Create a competitor retailer user
-    const competitorUser = await payload.create({
+    let competitorUserId = null
+    const existingCompetitorUsers = await payload.find({
       collection: 'users',
-      data: {
-        email: 'competitor.retailer@testing.zinikart.local',
-        mobileNumber: '+915555555555',
-        mobileVerified: true,
-        password: 'compPassword123',
-        roles: ['retailer'],
-      } as any,
+      where: { email: { equals: 'competitor.retailer@testing.zinikart.local' } },
       overrideAccess: true,
     })
+    
+    if (existingCompetitorUsers.docs.length > 0) {
+      competitorUserId = existingCompetitorUsers.docs[0].id
+    } else {
+      try {
+        const competitorUser = await payload.create({
+          collection: 'users',
+          data: {
+            email: 'competitor.retailer@testing.zinikart.local',
+            mobileNumber: '+915555555555',
+            mobileVerified: true,
+            password: 'compPassword123',
+            roles: ['retailer'],
+          } as any,
+          overrideAccess: true,
+        })
+        competitorUserId = competitorUser.id
+      } catch (e: any) {
+        console.warn(`Competitor user could not be created: ${e.message}`)
+      }
+    }
 
     // Create a retailer profile for the competitor
-    const competitorProfile = await payload.create({
+    let competitorProfile: any = null
+    if (competitorUserId) {
+      const existingCompetitorProfiles = await payload.find({
+        collection: 'retailers',
+        where: { user: { equals: competitorUserId } },
+        overrideAccess: true,
+      })
+      
+      if (existingCompetitorProfiles.docs.length > 0) {
+        competitorProfile = existingCompetitorProfiles.docs[0]
+      } else if (existingCompetitorProfiles.docs.length === 0) {
+        try {
+          competitorProfile = await payload.create({
       collection: 'retailers',
       data: {
         shopName: 'Competitor Gadgets',
@@ -534,10 +576,15 @@ export async function runCatalogTests(
           },
         ],
         approvalStatus: 'approved',
-        user: competitorUser.id,
-      },
+        user: competitorUserId,
+      } as any,
       overrideAccess: true,
     })
+        } catch (e: any) {
+          console.warn(`Competitor profile could not be created: ${e.message}`)
+        }
+      }
+    }
 
     // Create a competitor cloned product
     const competitorProduct = await payload.create({
@@ -553,7 +600,7 @@ export async function runCatalogTests(
         warranty: '1 Year Warranty',
         isMasterTemplate: false,
         parentTemplate: productId,
-        retailer: competitorUser.id,
+        retailer: competitorUserId,
         specifications: [
           { key: 'RAM', value: '12', type: 'number' },
         ],
@@ -671,21 +718,24 @@ export async function runCatalogTests(
       },
       overrideAccess: true,
     })
-    const profilesToCleanup = [competitorProfile.id]
-    if (activeRetailerProfile) {
-      profilesToCleanup.push(activeRetailerProfile.id)
+    const profilesToCleanup = []
+    if (competitorProfile) {
+      profilesToCleanup.push(competitorProfile.id)
     }
-    await payload.delete({
-      collection: 'retailers',
-      where: {
-        id: { in: profilesToCleanup },
-      },
-      overrideAccess: true,
-    })
+    
+    if (profilesToCleanup.length > 0) {
+      await payload.delete({
+        collection: 'retailers',
+        where: {
+          id: { in: profilesToCleanup },
+        },
+        overrideAccess: true,
+      })
+    }
     await payload.delete({
       collection: 'users',
       where: {
-        id: { equals: competitorUser.id },
+        id: { equals: competitorUserId },
       },
       overrideAccess: true,
     })

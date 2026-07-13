@@ -5,15 +5,12 @@ import { isAuthenticated } from '@/access/isAuthenticated'
 import { adminOrFieldOwner } from '@/access/adminOrFieldOwner'
 import { analyticsEndpoint } from '@/endpoints/retailers/analytics'
 import { enforceDefaultPaymentMethod } from '@/hooks/enforceDefaultPaymentMethod'
+import { notifyApprovalStatus } from '@/hooks/notifyApprovalStatus'
 
 export const Retailers: CollectionConfig = {
   slug: 'retailers',
   endpoints: [
-    {
-      path: '/analytics',
-      method: 'get',
-      handler: analyticsEndpoint,
-    },
+    analyticsEndpoint,
   ],
   access: {
     create: isAuthenticated,
@@ -27,6 +24,7 @@ export const Retailers: CollectionConfig = {
     group: 'Profiles',
   },
   hooks: {
+    afterChange: [notifyApprovalStatus('retailer')],
     beforeChange: [
       ({ req, operation, data }) => {
         if (operation === 'create' && req.user && !data.user) {

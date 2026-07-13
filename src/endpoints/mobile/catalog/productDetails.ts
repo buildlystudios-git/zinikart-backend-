@@ -1,6 +1,9 @@
-import type { PayloadRequest } from 'payload'
+import type { Endpoint, PayloadRequest } from 'payload'
 
-export const productDetailsEndpoint = async (req: PayloadRequest): Promise<Response> => {
+export const productDetailsEndpoint: Endpoint = {
+  path: '/mobile/product/:id',
+  method: 'get',
+  handler: async (req: PayloadRequest): Promise<Response> => {
   const id = req.routeParams?.id as string
 
   if (!id) {
@@ -126,4 +129,5 @@ export const productDetailsEndpoint = async (req: PayloadRequest): Promise<Respo
     retailer: activeRetailer,
     otherOffers,
   })
+}
 }

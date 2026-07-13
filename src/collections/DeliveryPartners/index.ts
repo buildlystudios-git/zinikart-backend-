@@ -6,6 +6,7 @@ import { adminOrFieldOwner } from '@/access/adminOrFieldOwner'
 import { associateUser } from './hooks/associateUser'
 import { locationTrackingEndpoint } from '@/endpoints/delivery-partners/location'
 import { enforceDefaultPaymentMethod } from '@/hooks/enforceDefaultPaymentMethod'
+import { notifyApprovalStatus } from '@/hooks/notifyApprovalStatus'
 
 export const DeliveryPartners: CollectionConfig = {
   slug: 'delivery-partners',
@@ -21,6 +22,7 @@ export const DeliveryPartners: CollectionConfig = {
     group: 'Profiles',
   },
   hooks: {
+    afterChange: [notifyApprovalStatus('delivery partner')],
     beforeChange: [associateUser, enforceDefaultPaymentMethod],
   },
   endpoints: [locationTrackingEndpoint],

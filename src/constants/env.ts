@@ -23,3 +23,9 @@ export const ASSIGNMENT_STRATEGY = process.env.ASSIGNMENT_STRATEGY || 'backgroun
 export const RIDER_OFFER_TIMEOUT_MS = parseInt(process.env.RIDER_OFFER_TIMEOUT_MS || '60000', 10)
 export const RETAILER_ACTION_TIMEOUT_MS = parseInt(process.env.RETAILER_ACTION_TIMEOUT_MS || '300000', 10)
 export const LOCATION_THROTTLE_MS = parseInt(process.env.LOCATION_THROTTLE_MS || '10000', 10)
+
+// Firebase & Notifications
+export const FIREBASE_PROJECT_ID = process.env.FIREBASE_PROJECT_ID || ''
+export const FIREBASE_CLIENT_EMAIL = process.env.FIREBASE_CLIENT_EMAIL || ''
+export const FIREBASE_PRIVATE_KEY = process.env.FIREBASE_PRIVATE_KEY || ''
+export const SLACK_OPS_WEBHOOK_URL = process.env.SLACK_OPS_WEBHOOK_URL || ''

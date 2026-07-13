@@ -13,6 +13,7 @@ import {
 import path from 'path'
 import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
+import { initFirebase } from '@/lib/firebase'
 
 import { Categories } from '@/collections/Categories'
 import { Media } from '@/collections/Media'
@@ -25,6 +26,7 @@ import { Footer } from '@/globals/Footer'
 import { Header } from '@/globals/Header'
 import { Ratings } from '@/collections/Ratings'
 import { Wishlists } from '@/collections/Wishlists'
+import { PushNotificationLogs } from '@/collections/PushNotificationLogs'
 import { plugins } from './plugins'
 import { productDetailsEndpoint } from '@/endpoints/mobile/catalog/productDetails'
 import { searchEndpoint } from '@/endpoints/mobile/search/index'
@@ -32,6 +34,11 @@ import { assignDeliveryPartnerTask } from '@/jobs/assignDeliveryPartner'
 import { checkOfferTimeoutTask } from '@/jobs/checkOfferTimeout'
 import { retailerActionTimeoutTask } from '@/jobs/retailerActionTimeout'
 import { processRazorpayRefundTask } from '@/jobs/processRazorpayRefund'
+import { sendFcmTaskHandler } from '@/jobs/tasks/sendFcm'
+import { pruneTokensTaskHandler } from '@/jobs/tasks/pruneTokens'
+import { writeNotificationLogTaskHandler } from '@/jobs/tasks/writeNotificationLog'
+import { dispatchPushNotificationWorkflow } from '@/jobs/workflows/dispatchPushNotification'
+import { registerFcmToken, unregisterFcmToken } from '@/endpoints/users/fcmToken'
 import { DATABASE_URL, PAYLOAD_SECRET } from '@/constants/env'
 
 const filename = fileURLToPath(import.meta.url)
@@ -49,7 +56,7 @@ export default buildConfig({
     },
     user: Users.slug,
   },
-  collections: [Users, Pages, Categories, Media, Retailers, DeliveryPartners, Brands, Ratings, Wishlists],
+  collections: [Users, Pages, Categories, Media, Retailers, DeliveryPartners, Brands, Ratings, Wishlists, PushNotificationLogs],
   db: postgresAdapter({
     idType: 'uuid',
     pool: {
@@ -94,24 +101,26 @@ export default buildConfig({
   }),
   //email: nodemailerAdapter(),
   endpoints: [
-    {
-      method: 'get',
-      path: '/mobile/product/:id',
-      handler: productDetailsEndpoint,
-    },
-    {
-      method: 'get',
-      path: '/mobile/search',
-      handler: searchEndpoint,
-    },
+    productDetailsEndpoint,
+    searchEndpoint,
+    registerFcmToken,
+    unregisterFcmToken,
   ],
   globals: [Header, Footer],
   plugins,
   secret: PAYLOAD_SECRET,
+  onInit: async (payload) => {
+    initFirebase()
+  },
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },
   jobs: {
+    autoRun: [
+      {
+        cron: '* * * * * *', // Run every second for local development
+      },
+    ],
     enableConcurrencyControl: true,
     access: {
       run: () => true,
@@ -145,6 +154,70 @@ export default buildConfig({
           { name: 'transactionId', type: 'text', required: true }
         ],
         handler: processRazorpayRefundTask,
+      },
+      {
+        slug: 'sendFcm',
+        inputSchema: [
+          { name: 'recipientUserId', type: 'text', required: true },
+          { name: 'templateKey', type: 'text', required: true },
+          { name: 'templateData', type: 'json' },
+        ],
+        outputSchema: [
+          { name: 'success', type: 'checkbox' },
+          { name: 'successCount', type: 'number' },
+          { name: 'failureCount', type: 'number' },
+          { name: 'invalidTokens', type: 'json' },
+          { name: 'notificationTitle', type: 'text' },
+          { name: 'notificationBody', type: 'text' },
+        ],
+        retries: {
+          attempts: 3,
+          backoff: {
+            type: 'exponential',
+            delay: 2000,
+          },
+        },
+        handler: sendFcmTaskHandler,
+      },
+      {
+        slug: 'pruneTokens',
+        inputSchema: [
+          { name: 'recipientUserId', type: 'text', required: true },
+          { name: 'invalidTokens', type: 'json', required: true },
+        ],
+        outputSchema: [
+          { name: 'success', type: 'checkbox' },
+          { name: 'prunedCount', type: 'number' },
+        ],
+        handler: pruneTokensTaskHandler,
+      },
+      {
+        slug: 'writeNotificationLog',
+        inputSchema: [
+          { name: 'recipientUserId', type: 'text', required: true },
+          { name: 'templateKey', type: 'text', required: true },
+          { name: 'notificationTitle', type: 'text' },
+          { name: 'notificationBody', type: 'text' },
+          { name: 'successCount', type: 'number' },
+          { name: 'failureCount', type: 'number' },
+        ],
+        outputSchema: [
+          { name: 'success', type: 'checkbox' },
+          { name: 'logCreated', type: 'checkbox' },
+          { name: 'error', type: 'text' },
+        ],
+        handler: writeNotificationLogTaskHandler,
+      },
+    ],
+    workflows: [
+      {
+        slug: 'dispatchPushNotification',
+        inputSchema: [
+          { name: 'recipientUserId', type: 'text', required: true },
+          { name: 'templateKey', type: 'text', required: true },
+          { name: 'templateData', type: 'json' },
+        ],
+        handler: dispatchPushNotificationWorkflow,
       },
     ],
   },

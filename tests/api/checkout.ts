@@ -74,7 +74,7 @@ export async function runCheckoutTests(
   const address = {
     firstName: 'John',
     lastName: 'Doe',
-    addressLine1: '123 Test St',
+    line1: '123 Test St',
     city: 'Mumbai',
     state: 'Maharashtra',
     postalCode: '400001',

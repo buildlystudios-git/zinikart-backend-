@@ -1,8 +1,11 @@
-import type { PayloadRequest, Where } from 'payload'
+import type { Endpoint, PayloadRequest, Where } from 'payload'
 import { ORDER_STATUS } from '@/constants/orderStatuses'
 import { checkRole } from '@/access/utilities'
 
-export const analyticsEndpoint = async (req: PayloadRequest): Promise<Response> => {
+export const analyticsEndpoint: Endpoint = {
+  path: '/analytics',
+  method: 'get',
+  handler: async (req: PayloadRequest): Promise<Response> => {
   if (!req.user) {
     return Response.json({ error: 'Unauthorized. Login required.' }, { status: 401 })
   }
@@ -379,4 +382,5 @@ export const analyticsEndpoint = async (req: PayloadRequest): Promise<Response> 
     req.payload.logger.error(`Error in retailer analytics endpoint: ${err.message}`)
     return Response.json({ error: 'Internal Server Error' }, { status: 500 })
   }
+}
 }

@@ -9,8 +9,7 @@ export async function runQuickCommerceTests(
   payload: Payload,
   adminToken: string,
   retailerToken: string,
-  customerToken: string,
-  deliveryPartnerToken: string
+  customerToken: string
 ) {
   report.setSuite('Quick Commerce Backend')
   console.log('\nRunning Quick Commerce Backend tests...')
@@ -103,6 +102,13 @@ export async function runQuickCommerceTests(
     const product2 = await payload.create({
       collection: 'products',
       data: { title: 'Product 2', retailer: otherRetailerUser.id, slug: `product-2-${timestamp}`, _status: 'published', inventory: 100 } as any,
+      overrideAccess: true,
+    })
+
+    // Delete any existing delivery-partners profile for the retailer user to avoid unique constraint errors
+    await payload.delete({
+      collection: 'delivery-partners',
+      where: { user: { equals: retailerUserRes.body?.user?.id } },
       overrideAccess: true,
     })
 
@@ -204,7 +210,7 @@ export async function runQuickCommerceTests(
       currency: 'INR',
       retailer: retailerId,
       customer: customerId,
-      shippingAddress: { street: '1', city: 'A', state: 'B', zipCode: '111', country: 'IN', phone: '1' },
+      shippingAddress: { line1: '1', city: 'A', state: 'B', postalCode: '111', country: 'IN' },
       items: [
         { product: product1.id, quantity: 1, price: 1000 },
         { product: product2.id, quantity: 1, price: 1000 }
@@ -223,7 +229,7 @@ export async function runQuickCommerceTests(
       currency: 'INR',
       retailer: retailerId,
       customer: customerId,
-      shippingAddress: { street: '1', city: 'A', state: 'B', zipCode: '111', country: 'IN', phone: '1' },
+      shippingAddress: { line1: '1', city: 'A', state: 'B', postalCode: '111', country: 'IN' },
       items: [
         { product: product1.id, quantity: 1, price: 1000 }
       ]

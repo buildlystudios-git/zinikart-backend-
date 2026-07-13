@@ -42,6 +42,16 @@ export const checkOfferTimeoutTask: TaskHandler<any> = async ({ req, input }) =>
         input: { orderId },
       })
       
+      const dp = await payload.findByID({ collection: 'delivery-partners', id: candidateId, depth: 0, req })
+      const dpUserId = typeof dp.user === 'object' ? dp.user.id : dp.user
+
+      if (dpUserId) {
+        await payload.jobs.queue({
+          workflow: 'dispatchPushNotification',
+          input: { recipientUserId: dpUserId, templateKey: 'DELIVERY_OFFER_EXPIRED', templateData: { orderId } }
+        })
+      }
+
       return { output: { success: true, action: 'rejected_and_requeued' } }
     }
     

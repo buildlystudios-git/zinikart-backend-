@@ -65,6 +65,10 @@ export const assignDeliveryPartnerTask: TaskHandler<'assignDeliveryPartner'> = a
         data: { deliveryPartnerAcceptance: DELIVERY_ACCEPTANCE.UNASSIGNABLE },
         req,
       })
+      
+      const { opsAlerts } = await import('@/services/opsAlerts')
+      await opsAlerts.orderUnassignable(orderId).catch(err => payload.logger.error(`Failed to send ops alert: ${err}`))
+
       return { output: { success: false, reason: 'No available riders' } }
     }
 
@@ -81,6 +85,22 @@ export const assignDeliveryPartnerTask: TaskHandler<'assignDeliveryPartner'> = a
       },
       req,
     })
+
+    const candidateUserId = typeof candidate.user === 'object' ? candidate.user.id : candidate.user
+    if (candidateUserId) {
+      await payload.jobs.queue({
+        workflow: 'dispatchPushNotification',
+        input: {
+          recipientUserId: candidateUserId,
+          templateKey: 'DELIVERY_OFFER',
+          templateData: {
+            orderId,
+            amount: (((order as any).total || 0) / 100).toFixed(2),
+            timeoutSeconds: String(Math.floor(RIDER_OFFER_TIMEOUT_MS / 1000))
+          }
+        }
+      })
+    }
 
     // Queue timeout check
     await payload.jobs.queue({
