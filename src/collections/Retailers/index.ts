@@ -5,6 +5,7 @@ import { isAuthenticated } from '@/access/isAuthenticated'
 import { adminOrFieldOwner } from '@/access/adminOrFieldOwner'
 import { analyticsEndpoint } from '@/endpoints/retailers/analytics'
 import { enforceDefaultPaymentMethod } from '@/hooks/enforceDefaultPaymentMethod'
+import { assignUserId } from './hooks/assignUserId'
 
 export const Retailers: CollectionConfig = {
   slug: 'retailers',
@@ -28,12 +29,7 @@ export const Retailers: CollectionConfig = {
   },
   hooks: {
     beforeChange: [
-      ({ req, operation, data }) => {
-        if (operation === 'create' && req.user && !data.user) {
-          data.user = req.user.id
-        }
-        return data
-      },
+      assignUserId,
       enforceDefaultPaymentMethod,
     ],
   },

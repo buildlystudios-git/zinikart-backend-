@@ -31,7 +31,7 @@ export const productCameraData = ({
     },
     specifications: [
       { key: 'Megapixels', value: '24', type: 'number' },
-      { key: 'Sensor Type', value: 'Full Frame', type: 'text' },
+      { key: 'Sensor Size', value: 'Full Frame', type: 'text' },
     ],
     relatedProducts,
   }

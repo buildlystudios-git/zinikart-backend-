@@ -18,6 +18,8 @@ export const PAYLOAD_SECRET = process.env.PAYLOAD_SECRET || ''
 // App
 export const PREVIEW_SECRET = process.env.PREVIEW_SECRET || ''
 export const ASSIGNMENT_STRATEGY = process.env.ASSIGNMENT_STRATEGY || 'background_job'
+export const NODE_ENV = process.env.NODE_ENV || 'development'
+export const SEED_PRODUCT_COUNT = process.env.SEED_PRODUCT_COUNT || '0'
 
 // Timeouts (configurable)
 export const RIDER_OFFER_TIMEOUT_MS = parseInt(process.env.RIDER_OFFER_TIMEOUT_MS || '60000', 10)
