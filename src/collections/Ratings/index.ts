@@ -16,7 +16,7 @@ export const Ratings: CollectionConfig = {
   admin: {
     useAsTitle: 'id',
     defaultColumns: ['rating', 'product', 'retailer', 'customer', 'createdAt'],
-    group: 'Profiles',
+    group: 'Reviews',
   },
   hooks: {
     beforeValidate: [checkUniqueRating],

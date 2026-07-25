@@ -14,7 +14,7 @@ export const Brands: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'name',
-    group: 'Content',
+    group: 'Products',
   },
   fields: [
     {

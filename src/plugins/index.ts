@@ -150,7 +150,7 @@ export const plugins: Plugin[] = [
         update: isAdmin,
       },
       admin: {
-        group: 'Content',
+        hidden: true,
       },
     },
     formOverrides: {
@@ -161,7 +161,7 @@ export const plugins: Plugin[] = [
         create: isAdmin,
       },
       admin: {
-        group: 'Content',
+        hidden: true,
       },
       fields: ({ defaultFields }) => {
         return defaultFields.map((field) => {
@@ -227,7 +227,7 @@ export const plugins: Plugin[] = [
         ...defaultCollection,
         admin: {
           ...defaultCollection.admin,
-          hidden: false,
+          hidden: true,
         },
       }),
     },
@@ -237,6 +237,10 @@ export const plugins: Plugin[] = [
     orders: {
       ordersCollectionOverride: ({ defaultCollection }) => ({
         ...defaultCollection,
+        admin: {
+          ...defaultCollection.admin,
+          group: 'Orders',
+        },
         access: {
           ...defaultCollection.access,
           update: orderUpdateAccess,
@@ -430,6 +434,24 @@ export const plugins: Plugin[] = [
         ],
       }),
     },
+    carts: {
+      cartsCollectionOverride: ({ defaultCollection }) => ({
+        ...defaultCollection,
+        admin: {
+          ...defaultCollection.admin,
+          hidden: true,
+        },
+      }),
+    },
+    transactions: {
+      transactionsCollectionOverride: ({ defaultCollection }) => ({
+        ...defaultCollection,
+        admin: {
+          ...defaultCollection.admin,
+          group: 'Finance',
+        },
+      }),
+    },
     payments: {
       paymentMethods: [
         stripeAdapter({
@@ -452,24 +474,21 @@ export const plugins: Plugin[] = [
           ...defaultCollection,
           admin: {
             ...defaultCollection.admin,
-            group: 'Ecommerce',
-            hidden: false,
+            hidden: true,
           },
         }),
         variantOptionsCollectionOverride: ({ defaultCollection }) => ({
           ...defaultCollection,
           admin: {
             ...defaultCollection.admin,
-            group: 'Ecommerce',
-            hidden: false,
+            hidden: true,
           },
         }),
         variantTypesCollectionOverride: ({ defaultCollection }) => ({
           ...defaultCollection,
           admin: {
             ...defaultCollection.admin,
-            group: 'Ecommerce',
-            hidden: false,
+            hidden: true,
           },
         }),
       },

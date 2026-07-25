@@ -18,7 +18,7 @@ export const DeliveryPartners: CollectionConfig = {
   admin: {
     useAsTitle: 'fullName',
     defaultColumns: ['fullName', 'mobileNumber', 'vehicleType', 'approvalStatus', 'onlineStatus', 'createdAt'],
-    group: 'Profiles',
+    group: 'Users',
   },
   hooks: {
     beforeChange: [associateUser, enforceDefaultPaymentMethod],

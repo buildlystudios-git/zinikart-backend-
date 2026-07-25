@@ -25,7 +25,7 @@ export const Retailers: CollectionConfig = {
   admin: {
     useAsTitle: 'shopName',
     defaultColumns: ['shopName', 'ownerName', 'approvalStatus', 'createdAt'],
-    group: 'Profiles',
+    group: 'Users',
   },
   hooks: {
     beforeChange: [
