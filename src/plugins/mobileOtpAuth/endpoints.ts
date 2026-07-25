@@ -86,7 +86,7 @@ export const verifyOtpEndpoint = (usersSlug: string): Endpoint => ({
 
       user = await markUserOtpLogin(req, usersSlug, user.id, name)
 
-      let status: 'approved' | 'registration_required' | 'pending_approval' | 'rejected' | 'suspended' = 'approved'
+      let status: 'approved' | 'approved_no_products' | 'registration_required' | 'pending_approval' | 'rejected' | 'suspended' = 'approved'
 
       if (role === 'retailer') {
         const retailerDocs = await req.payload.find({
@@ -102,7 +102,19 @@ export const verifyOtpEndpoint = (usersSlug: string): Endpoint => ({
           status = 'registration_required'
         } else {
           const appStatus = retailer.approvalStatus as string
-          if (appStatus === 'approved') status = 'approved'
+          if (appStatus === 'approved') {
+            const productDocs = await req.payload.find({
+              collection: 'products',
+              where: { retailer: { equals: user.id } },
+              limit: 1,
+              overrideAccess: true,
+            })
+            if (productDocs.totalDocs > 0) {
+              status = 'approved'
+            } else {
+              status = 'approved_no_products'
+            }
+          }
           else if (appStatus === 'pending') status = 'pending_approval'
           else if (appStatus === 'rejected') status = 'rejected'
           else if (appStatus === 'suspended') status = 'suspended'
@@ -132,7 +144,7 @@ export const verifyOtpEndpoint = (usersSlug: string): Endpoint => ({
       let exp: number | null = null
       const headers = new Headers()
 
-      if (status === 'approved' || status === 'registration_required') {
+      if (status === 'approved' || status === 'approved_no_products' || status === 'registration_required') {
         const session = await createSessionToken({
           req,
           user,

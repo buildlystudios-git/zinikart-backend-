@@ -91,7 +91,7 @@ export const mobileOtpAuthPaths = {
                   success: { type: 'boolean' },
                   status: {
                     type: 'string',
-                    enum: ['approved', 'registration_required', 'pending_approval', 'rejected', 'suspended'],
+                    enum: ['approved', 'approved_no_products', 'registration_required', 'pending_approval', 'rejected', 'suspended'],
                   },
                   token: { type: 'string', nullable: true },
                   exp: { type: 'number', nullable: true },
