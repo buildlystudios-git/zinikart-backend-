@@ -362,7 +362,6 @@ export default function AgentPage() {
               </p>
               <div className="flex flex-col gap-2 mt-4 w-full max-w-sm">
                 {[
-                  'How do I authenticate via mobile OTP?',
                   'What fields does the Retailers collection have?',
                   'How do I filter products by brand?',
                 ].map((q) => (
