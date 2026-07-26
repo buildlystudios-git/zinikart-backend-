@@ -138,10 +138,12 @@ export interface Config {
   globals: {
     header: Header;
     footer: Footer;
+    'agent-settings': AgentSetting;
   };
   globalsSelect: {
     header: HeaderSelect<false> | HeaderSelect<true>;
     footer: FooterSelect<false> | FooterSelect<true>;
+    'agent-settings': AgentSettingsSelect<false> | AgentSettingsSelect<true>;
   };
   locale: null;
   widgets: {
@@ -2498,6 +2500,24 @@ export interface Footer {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "agent-settings".
+ */
+export interface AgentSetting {
+  id: string;
+  provider: 'openai' | 'google' | 'anthropic' | 'vercel';
+  /**
+   * The API Key for the selected provider.
+   */
+  apiKey: string;
+  /**
+   * Admins automatically have access. Add any other specific users you want to grant access to the Agent here.
+   */
+  allowedUsers?: (string | User)[] | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "header_select".
  */
 export interface HeaderSelect<T extends boolean = true> {
@@ -2538,6 +2558,18 @@ export interface FooterSelect<T extends boolean = true> {
             };
         id?: T;
       };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "agent-settings_select".
+ */
+export interface AgentSettingsSelect<T extends boolean = true> {
+  provider?: T;
+  apiKey?: T;
+  allowedUsers?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

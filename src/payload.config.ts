@@ -23,6 +23,7 @@ import { DeliveryPartners } from '@/collections/DeliveryPartners'
 import { Brands } from '@/collections/Brands'
 import { Footer } from '@/globals/Footer'
 import { Header } from '@/globals/Header'
+import { AgentSettings } from '@/globals/AgentSettings'
 import { Ratings } from '@/collections/Ratings'
 import { Wishlists } from '@/collections/Wishlists'
 import { plugins } from './plugins'
@@ -98,7 +99,7 @@ export default buildConfig({
       handler: searchEndpoint,
     },
   ],
-  globals: [Header, Footer],
+  globals: [Header, Footer, AgentSettings],
   plugins,
   secret: PAYLOAD_SECRET,
   typescript: {

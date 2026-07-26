@@ -26,6 +26,11 @@
     "playground": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/playground.ts"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.21",
+    "@ai-sdk/google": "^4.0.24",
+    "@ai-sdk/openai": "^4.0.20",
+    "@ai-sdk/react": "^4.0.40",
+    "@ai-sdk/vercel": "^3.0.14",
     "@payloadcms/admin-bar": "3.84.1",
     "@payloadcms/db-postgres": "3.84.1",
     "@payloadcms/email-nodemailer": "3.84.1",
@@ -46,6 +51,7 @@
     "@radix-ui/react-slot": "^1.1.2",
     "@stripe/react-stripe-js": "^3",
     "@stripe/stripe-js": "^4.0.0",
+    "ai": "^7.0.37",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
     "cross-env": "^7.0.3",
@@ -67,10 +73,14 @@
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "react-hook-form": "7.71.1",
+    "react-markdown": "^10.1.0",
+    "react-syntax-highlighter": "^16.1.1",
+    "remark-gfm": "^4.0.1",
     "sharp": "0.34.2",
     "sonner": "^1.7.2",
     "stripe": "18.5.0",
-    "tailwind-merge": "^3.4.0"
+    "tailwind-merge": "^3.4.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
@@ -84,6 +94,7 @@
     "@types/pg": "^8.20.0",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
+    "@types/react-syntax-highlighter": "^15.5.13",
     "@vercel/git-hooks": "^1.0.0",
     "@vitejs/plugin-react": "4.5.2",
     "eslint": "^9.16.0",
