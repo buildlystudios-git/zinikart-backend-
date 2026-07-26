@@ -3,12 +3,13 @@ import { createAnthropic } from '@ai-sdk/anthropic'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { createOpenAI } from '@ai-sdk/openai'
 import { convertToModelMessages, createGateway, streamText, tool, type UIMessage } from 'ai'
+import { systemPrompt } from './systemPrompt'
 import fs from 'fs/promises'
 import path from 'path'
 import { getPayload } from 'payload'
 import { z } from 'zod/v4'
 
-export const maxDuration = 60
+export const maxDuration = 120
 
 // Extracts a single named export (interface/type) instead of returning the whole file.
 // Falls back to null if the name isn't found, so the caller can decide what to do.
@@ -34,6 +35,35 @@ function extractNamedExport(source: string, typeName: string): string | null {
     }
   }
   return null
+}
+
+async function searchFilesRecursively(dir: string, query: string, rootDir: string, results: string[] = []): Promise<string[]> {
+  if (results.length >= 50) return results
+  const entries = await fs.readdir(dir, { withFileTypes: true })
+  for (const entry of entries) {
+    if (results.length >= 50) break
+    const fullPath = path.join(dir, entry.name)
+    if (entry.isDirectory()) {
+      if (!['node_modules', '.git', '.next', 'dist', 'build', 'app'].includes(entry.name)) {
+        await searchFilesRecursively(fullPath, query, rootDir, results)
+      }
+    } else if (entry.isFile() && (entry.name.endsWith('.ts') || entry.name.endsWith('.tsx'))) {
+      try {
+        const content = await fs.readFile(fullPath, 'utf8')
+        const lines = content.split('\n')
+        for (let i = 0; i < lines.length; i++) {
+          if (lines[i].includes(query)) {
+            const relativePath = path.relative(rootDir, fullPath).replace(/\\/g, '/')
+            results.push(`${relativePath}:${i + 1}: ${lines[i].trim()}`)
+            if (results.length >= 50) break
+          }
+        }
+      } catch {
+        // ignore unreadable files
+      }
+    }
+  }
+  return results
 }
 
 export async function POST(req: Request) {
@@ -94,50 +124,15 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model,
-    system: `You are an expert backend integration assistant for React Native frontend developers working with a Payload CMS ecommerce backend.
-
-## Ground rules
-- NEVER answer from generic Payload CMS knowledge alone. This project may override default behavior (custom access control, hooks, endpoints, validation). Always verify against the actual source before answering, even when you're confident about Payload's normal behavior.
-- NEVER guess API shapes, field names, or endpoint paths. Use your tools to confirm first.
-- You are read-only against the codebase. Never suggest code changes to this repo. If the user's request would require a backend change, or you can't find something after checking, say so plainly instead of guessing.
-- If sources conflict or something is ambiguous, say what's ambiguous — don't silently pick one interpretation.
-
-## Mobile client context (React Native)
-- The consuming client is React Native, not a browser. Do not assume cookie-based sessions — RN does not manage cookies automatically. Assume auth is a bearer token attached manually per request, and check the actual mobile auth implementation (e.g. the OTP auth plugin) rather than defaulting to Payload's standard email/password + cookie flow.
-- For file/image uploads, use React Native's FormData shape: { uri, name, type } per field — not a browser File/Blob. Never set the multipart Content-Type boundary manually.
-- Never suggest browser-only APIs (localStorage, document.cookie, window.*, navigator.*).
-- If source shows retry logic, idempotency handling, or polling/websocket patterns for a given endpoint, mention it — mobile clients deal with connectivity drops and backgrounding that web clients don't.
-
-## Tool-use strategy (you have a limited number of steps per answer)
-- If you don't know the exact file path, use listDirectory once to locate it — don't guess paths.
-- Read a file only once per answer; reuse what you already fetched instead of re-reading.
-- For schema/type questions, call getPayloadTypes with the specific typeName you need — never request the whole file unless you genuinely need to browse for a name you don't know yet.
-- Quote only the relevant fields/exports, never a whole interface or file.
-
-## Formatting
-- Respond ONLY in Markdown. Never use raw HTML tags.
-- All code goes in fenced blocks with a language tag (\`\`\`tsx, \`\`\`ts, \`\`\`json, \`\`\`bash).
-- Use a table only when comparing 3+ fields/params — not for simple lists.
-- Use the numbered headers below only for endpoint questions. Don't invent headers for a one-line answer.
-- Never wrap an entire response in a single outer code block.
-
-## Response style
-- Lead with the answer: HTTP method + path, or the code example, comes first — explanation after, not before.
-- No filler ("As an AI...", "Great question!", "I hope this helps"). No restating the user's question back to them.
-- Keep prose minimal. Prefer short bullets over paragraphs.
-- Code examples in TypeScript, using axios (not fetch), written for React Native.
-- Cite sources inline as (path/to/file.ts), or (path/to/file.ts - exportName) when citing a specific function/handler, so the answer is traceable.
-
-## For endpoint/API questions specifically, structure the answer as:
-1. Method + path
-2. Auth requirements (from actual access control / middleware, not assumed)
-3. Request example (axios, TypeScript, React Native)
-4. Response shape (from payload-types, only the relevant fields)
-5. Any gotchas found in source (e.g. hooks that mutate the payload, non-obvious validation, retry/idempotency needs)
-
-Skip sections that don't apply — don't pad a simple answer to fit the template.`,
+    system: systemPrompt,
     messages: await convertToModelMessages(messages),
-    stopWhen: (state) => state.steps.length >= 10,
+    stopWhen: (state) => {
+      const last = state.steps[state.steps.length - 1]
+      const hitCap = state.steps.length >= 8
+      const lastWasToolCall = last?.content?.some((c) => c.type === 'tool-call')
+      // never stop exactly on a tool-call step — give it one more turn to answer
+      return hitCap && !lastWasToolCall
+    }, 
     onFinish: ({ usage }) => {
       console.log(`[agent-usage] user=${user.id} provider=${provider}`, usage)
     },
@@ -170,48 +165,100 @@ Skip sections that don't apply — don't pad a simple answer to fit the template
       }),
       readSourceFile: tool({
         description:
-          'Read a specific TypeScript/JavaScript source file from the src/ directory. Use this to check endpoint implementations, hooks, access controls, or any other implementation detail.',
+          'Read a specific TypeScript/JavaScript source file from the src/ directory. Use this to check endpoint implementations, hooks, access controls, or any other implementation detail. You can optionally provide startLine and endLine to read a specific chunk of the file.',
         inputSchema: z.object({
           filepath: z
             .string()
             .describe(
               'Path relative to src/, e.g. "collections/Retailers/index.ts" or "plugins/mobileOtpAuth/endpoints.ts"',
             ),
+          startLine: z.number().optional().describe('1-indexed start line number to read.'),
+          endLine: z.number().optional().describe('1-indexed end line number to read.'),
         }),
-        execute: async ({ filepath }) => {
+        execute: async ({ filepath, startLine, endLine }) => {
           try {
             const normalized = filepath.replace(/\.\./g, '').replace(/^\/+/, '')
             const fullPath = path.join(SAFE_SRC_ROOT, normalized)
             if (fullPath !== SAFE_SRC_ROOT && !fullPath.startsWith(SAFE_SRC_ROOT + path.sep)) {
               return 'Error: Access denied — path outside src/ directory.'
             }
-            const content = await fs.readFile(fullPath, 'utf8')
+            let content = await fs.readFile(fullPath, 'utf8')
+            if (typeof startLine === 'number' && typeof endLine === 'number') {
+              const lines = content.split('\n')
+              content = lines.slice(Math.max(0, startLine - 1), endLine).join('\n')
+            }
             return content.length > 30000 ? content.slice(0, 30000) + '\n\n... [truncated]' : content
           } catch {
             return `Error: Could not read file "${filepath}". Make sure the path is relative to src/.`
           }
         },
       }),
-      listDirectory: tool({
-        description: 'List files and folders within a directory inside src/.',
+      exploreDirectory: tool({
+        description: 'Explore a directory inside src/ up to 2 levels deep. Returns immediate children AND their children in one call. Use this only when searchCode returns no results and you need to navigate the folder structure.',
         inputSchema: z.object({
           dirpath: z
             .string()
-            .describe('Path relative to src/, e.g. "collections" or "endpoints"'),
+            .describe('Path relative to src/, e.g. "collections" or "endpoints/retailers"'),
+          depth: z.number().min(1).max(2).optional().default(2).describe('How many levels deep to list. Defaults to 2.'),
         }),
-        execute: async ({ dirpath }) => {
+        execute: async ({ dirpath, depth = 2 }) => {
+          const renderDir = async (fullPath: string, currentDepth: number, prefix = ''): Promise<string> => {
+            let out = ''
+            let entries: import('fs').Dirent[]
+            try {
+              entries = await fs.readdir(fullPath, { withFileTypes: true })
+            } catch {
+              return `Error: Could not read directory.`
+            }
+            const dirs = entries.filter(e => e.isDirectory()).sort((a, b) => a.name.localeCompare(b.name))
+            const files = entries.filter(e => e.isFile()).sort((a, b) => a.name.localeCompare(b.name))
+            if (files.length) out += `${prefix}[files]: ${files.map(f => f.name).join(', ')}\n`
+            for (const d of dirs) {
+              out += `${prefix}[dir] ${d.name}/\n`
+              if (currentDepth > 1) {
+                out += await renderDir(path.join(fullPath, d.name), currentDepth - 1, prefix + '  ')
+              }
+            }
+            return out
+          }
           try {
             const normalized = dirpath.replace(/\.\./g, '').replace(/^\/+/, '')
             const fullPath = path.join(SAFE_SRC_ROOT, normalized)
             if (fullPath !== SAFE_SRC_ROOT && !fullPath.startsWith(SAFE_SRC_ROOT + path.sep)) {
               return 'Error: Access denied.'
             }
-            const entries = await fs.readdir(fullPath, { withFileTypes: true })
-            return entries
-              .map((e) => `${e.isDirectory() ? '[DIR] ' : '[FILE]'} ${e.name}`)
-              .join('\n')
+            return await renderDir(fullPath, depth)
           } catch {
-            return `Error: Could not list directory "${dirpath}".`
+            return `Error: Could not explore directory "${dirpath}".`
+          }
+        },
+      }),
+      getPayloadConfig: tool({
+        description: 'Read the payload.config.ts file to see which collections and globals are registered in this project. Call this before searching for collection-specific files so you know what exists.',
+        inputSchema: z.object({}),
+        execute: async () => {
+          try {
+            const configPath = path.join(SAFE_SRC_ROOT, 'payload.config.ts')
+            const content = await fs.readFile(configPath, 'utf8')
+            return content.length > 15000 ? content.slice(0, 15000) + '\n\n... [truncated]' : content
+          } catch {
+            return 'Error: Could not read payload.config.ts'
+          }
+        },
+      }),
+      searchCode: tool({
+        description: 'Search for a string or keyword across all TypeScript files in the src/ directory. Use this to find where specific functions, schemas, or variables are defined.',
+        inputSchema: z.object({
+          query: z.string().describe('The text to search for, e.g. "export const Retailers"'),
+        }),
+        execute: async ({ query }) => {
+          try {
+            if (query.length < 3) return 'Error: Query must be at least 3 characters long.'
+            const results = await searchFilesRecursively(SAFE_SRC_ROOT, query, SAFE_SRC_ROOT)
+            if (results.length === 0) return 'No matches found.'
+            return results.join('\n') + (results.length >= 50 ? '\n\n... [truncated 50+ matches]' : '')
+          } catch {
+            return 'Error: Search failed.'
           }
         },
       }),
