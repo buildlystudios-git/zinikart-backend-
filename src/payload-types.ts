@@ -1027,6 +1027,7 @@ export interface Brand {
   logo?: (string | null) | Media;
   description?: string | null;
   featured?: boolean | null;
+  categories?: (string | Category)[] | null;
   /**
    * When enabled, the slug will auto-generate from the title field on save and autosave.
    */
@@ -1917,6 +1918,7 @@ export interface BrandsSelect<T extends boolean = true> {
   logo?: T;
   description?: T;
   featured?: T;
+  categories?: T;
   generateSlug?: T;
   slug?: T;
   updatedAt?: T;

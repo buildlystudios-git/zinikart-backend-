@@ -1,6 +1,10 @@
 import type { Payload } from 'payload'
 
-export async function seedBrands(payload: Payload, uniqueBrands: Set<string>): Promise<Record<string, any>> {
+export async function seedBrands(
+  payload: Payload, 
+  uniqueBrands: Set<string>,
+  categories: { mobile: any, camera: any, headphones: any }
+): Promise<Record<string, any>> {
   payload.logger.info(`— Seeding brands...`)
 
   // Pre-seed static camera/headphones brands to ensure they exist
@@ -16,6 +20,14 @@ export async function seedBrands(payload: Payload, uniqueBrands: Set<string>): P
     const key = brandName.toLowerCase()
     if (!brandDocMap[key]) {
       const slug = key.replace(/[^a-z0-9]+/g, '-')
+      
+      let assignedCategories = [categories.mobile.id]
+      if (['Fujifilm', 'Panasonic', 'Leica', 'GoPro', 'OM System', 'Canon', 'Nikon'].includes(brandName)) {
+        assignedCategories = [categories.camera.id]
+      } else if (['Sony', 'Apple', 'Samsung'].includes(brandName)) {
+        assignedCategories = [categories.mobile.id, categories.headphones.id]
+      }
+
       const existing = await payload.find({
         collection: 'brands',
         where: { slug: { equals: slug } },
@@ -31,6 +43,7 @@ export async function seedBrands(payload: Payload, uniqueBrands: Set<string>): P
               slug: slug,
               description: `${brandName} official brand.`,
               featured: staticBrands.includes(brandName) ? true : false,
+              categories: assignedCategories,
             }
           })
           brandDocMap[key] = newBrand

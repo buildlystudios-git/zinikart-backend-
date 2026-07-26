@@ -144,4 +144,33 @@ export const retailerAnalyticsPaths = {
       },
     },
   },
+  '/api/retailers/me': {
+    get: {
+      summary: 'Get current retailer profile',
+      description: 'Fetch the retailer profile associated with the currently authenticated user.',
+      tags: ['Retailers'],
+      security: [
+        { BearerAuth: [] },
+      ],
+      responses: {
+        200: {
+          description: 'Retailer profile successfully fetched',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean' },
+                  retailer: { type: 'object' },
+                },
+              },
+            },
+          },
+        },
+        401: { description: 'Unauthorized' },
+        404: { description: 'Retailer profile not found' },
+        500: { description: 'Internal server error' },
+      },
+    },
+  },
 }

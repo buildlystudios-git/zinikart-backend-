@@ -6,6 +6,9 @@ import { adminOrFieldOwner } from '@/access/adminOrFieldOwner'
 import { analyticsEndpoint } from '@/endpoints/retailers/analytics'
 import { enforceDefaultPaymentMethod } from '@/hooks/enforceDefaultPaymentMethod'
 import { assignUserId } from './hooks/assignUserId'
+import { retailerMeEndpoint } from '@/endpoints/retailers/me'
+import { normalizeMobileNumberFieldHook } from '@/hooks/normalizeMobileNumberFieldHook'
+import { syncUserName } from './hooks/syncUserName'
 
 export const Retailers: CollectionConfig = {
   slug: 'retailers',
@@ -15,6 +18,7 @@ export const Retailers: CollectionConfig = {
       method: 'get',
       handler: analyticsEndpoint,
     },
+    retailerMeEndpoint,
   ],
   access: {
     create: isAuthenticated,
@@ -32,6 +36,7 @@ export const Retailers: CollectionConfig = {
       assignUserId,
       enforceDefaultPaymentMethod,
     ],
+    afterChange: [syncUserName],
   },
   fields: [
     {
@@ -50,6 +55,9 @@ export const Retailers: CollectionConfig = {
       required: true,
       unique: true,
       index: true,
+      hooks: {
+        beforeValidate: [normalizeMobileNumberFieldHook],
+      },
     },
     {
       name: 'emailId',
@@ -266,6 +274,10 @@ export const Retailers: CollectionConfig = {
       name: 'averageRating',
       type: 'number',
       defaultValue: 0,
+      access: {
+        create: adminOnlyFieldAccess,
+        update: adminOnlyFieldAccess,
+      },
       admin: {
         readOnly: true,
         description: 'Pre-calculated average rating cached from the reviews',
@@ -275,6 +287,10 @@ export const Retailers: CollectionConfig = {
       name: 'ratingCount',
       type: 'number',
       defaultValue: 0,
+      access: {
+        create: adminOnlyFieldAccess,
+        update: adminOnlyFieldAccess,
+      },
       admin: {
         readOnly: true,
         description: 'Total number of ratings submitted for this retailer',

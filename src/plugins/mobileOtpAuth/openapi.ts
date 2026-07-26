@@ -93,6 +93,7 @@ export const mobileOtpAuthPaths = {
                     type: 'string',
                     enum: ['approved', 'approved_no_products', 'registration_required', 'pending_approval', 'rejected', 'suspended'],
                   },
+                  exists: { type: 'boolean' },
                   token: { type: 'string', nullable: true },
                   exp: { type: 'number', nullable: true },
                   user: {
@@ -146,6 +147,10 @@ export const mobileOtpAuthPaths = {
                         items: { type: 'string' },
                       },
                     },
+                  },
+                  status: {
+                    type: 'string',
+                    enum: ['approved', 'approved_no_products', 'registration_required', 'pending_approval', 'rejected', 'suspended'],
                   },
                 },
               },

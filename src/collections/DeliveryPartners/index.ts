@@ -6,6 +6,9 @@ import { adminOrFieldOwner } from '@/access/adminOrFieldOwner'
 import { associateUser } from './hooks/associateUser'
 import { locationTrackingEndpoint } from '@/endpoints/delivery-partners/location'
 import { enforceDefaultPaymentMethod } from '@/hooks/enforceDefaultPaymentMethod'
+import { deliveryPartnerMeEndpoint } from '@/endpoints/delivery-partners/me'
+import { normalizeMobileNumberFieldHook } from '@/hooks/normalizeMobileNumberFieldHook'
+import { syncUserName } from './hooks/syncUserName'
 
 export const DeliveryPartners: CollectionConfig = {
   slug: 'delivery-partners',
@@ -22,8 +25,9 @@ export const DeliveryPartners: CollectionConfig = {
   },
   hooks: {
     beforeChange: [associateUser, enforceDefaultPaymentMethod],
+    afterChange: [syncUserName],
   },
-  endpoints: [locationTrackingEndpoint],
+  endpoints: [locationTrackingEndpoint, deliveryPartnerMeEndpoint],
   fields: [
     {
       name: 'fullName',
@@ -36,6 +40,9 @@ export const DeliveryPartners: CollectionConfig = {
       required: true,
       unique: true,
       index: true,
+      hooks: {
+        beforeValidate: [normalizeMobileNumberFieldHook],
+      },
     },
     {
       name: 'email',

@@ -38,6 +38,15 @@ export const Brands: CollectionConfig = {
       type: 'checkbox',
       defaultValue: false,
     },
+    {
+      name: 'categories',
+      type: 'relationship',
+      relationTo: 'categories',
+      hasMany: true,
+      admin: {
+        position: 'sidebar',
+      },
+    },
     slugField({
       fieldToUse: 'name',
     }),

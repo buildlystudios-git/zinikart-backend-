@@ -97,7 +97,7 @@ export const seed = async ({ payload, req }: { payload: Payload; req?: any }): P
   
   const [mobileCategory, cameraCategory, headphonesCategory] = await seedCategories(payload, uniqueStorageOptions)
   
-  const brandDocMap = await seedBrands(payload, uniqueBrands)
+  const brandDocMap = await seedBrands(payload, uniqueBrands, { mobile: mobileCategory, camera: cameraCategory, headphones: headphonesCategory })
   
   await seedProducts(
     payload,

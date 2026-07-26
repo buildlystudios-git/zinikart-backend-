@@ -23,18 +23,24 @@ export async function seedUsers(payload: Payload) {
       email: 'customer@example.com',
       password: 'password',
       roles: ['customer'],
+      mobileNumber: "+911111111110",
+      mobileVerified: true
     }),
     createUserSafe(payload, {
       name: 'Retailer User',
       email: 'retailer@example.com',
       password: 'password',
       roles: ['retailer'],
+      mobileNumber: "+912222222220",
+      mobileVerified: true
     }),
     createUserSafe(payload, {
       name: 'Delivery Partner User',
       email: 'delivery@example.com',
       password: 'password',
       roles: ['customer'],
+      mobileNumber: "+913333333330",
+      mobileVerified: true
     }),
   ])
 }
