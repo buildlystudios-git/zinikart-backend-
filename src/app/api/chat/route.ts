@@ -137,8 +137,7 @@ export async function POST(req: Request) {
 
 Skip sections that don't apply — don't pad a simple answer to fit the template.`,
     messages: await convertToModelMessages(messages),
-    stopWhen: (state) => state.steps.length >= 8,
-    // Logs token usage per request so cost is visible instead of a surprise on the invoice.
+    stopWhen: (state) => state.steps.length >= 10,
     onFinish: ({ usage }) => {
       console.log(`[agent-usage] user=${user.id} provider=${provider}`, usage)
     },

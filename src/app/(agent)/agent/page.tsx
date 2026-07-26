@@ -17,7 +17,6 @@ interface AgentConfig {
 }
 
 // --- Markdown rendering for assistant messages ---
-// Defined at module scope so it isn't recreated on every render.
 const markdownComponents: Components = {
   p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
   h1: ({ children }) => <h3 className="font-semibold text-sm mb-2 mt-3 first:mt-0">{children}</h3>,
@@ -49,8 +48,6 @@ const markdownComponents: Components = {
     <th className="px-2 py-1.5 text-left font-medium border-b border-border">{children}</th>
   ),
   td: ({ children }) => <td className="px-2 py-1.5 border-b border-border/50">{children}</td>,
-  // Strip the default <pre> wrapper — the code component below fully owns block-level styling,
-  // so letting <pre> also wrap it would double up the box.
   pre: ({ children }) => <>{children}</>,
   code: ({ className, children, ...props }) => {
     const match = /language-(\w+)/.exec(className ?? '')
@@ -79,8 +76,6 @@ const markdownComponents: Components = {
   },
 }
 
-// Your API route returns `{ error: "message" }` JSON on non-2xx responses.
-// useChat's default error surfaces that as a raw string — try to unwrap it for display.
 function formatErrorMessage(error: Error): string {
   try {
     const parsed = JSON.parse(error.message) as { error?: string }
@@ -89,6 +84,19 @@ function formatErrorMessage(error: Error): string {
     // Not JSON — just show the raw message.
   }
   return error.message
+}
+
+// Shared between the tool badge and the "what's it doing" indicator, so both stay in sync.
+function getToolLabel(toolType: string, input: unknown): string {
+  const toolName = toolType.replace(/^tool-/, '')
+  const args = (input ?? {}) as Record<string, unknown>
+
+  if (toolName === 'readSourceFile') return `Reading: ${String(args.filepath ?? '…')}`
+  if (toolName === 'listDirectory') return `Listing: ${String(args.dirpath ?? '…')}`
+  if (toolName === 'getPayloadTypes') {
+    return args.typeName ? `Reading type: ${String(args.typeName)}` : 'Browsing Payload types…'
+  }
+  return `Running ${toolName}…`
 }
 
 // --- Settings Modal ---
@@ -209,33 +217,21 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
 }
 
 // --- Tool call badge shown while AI is calling a tool ---
-// In AI SDK v7, tool parts have type `tool-${toolName}` and fields: toolCallId, state, input
 function ToolCallBadge({ toolType, input }: { toolType: string; input: unknown }) {
-  const toolName = toolType.replace(/^tool-/, '')
-  const args = (input ?? {}) as Record<string, unknown>
-
-  const label =
-    toolName === 'readSourceFile'
-      ? `Reading: ${String(args.filepath ?? '…')}`
-      : toolName === 'listDirectory'
-        ? `Listing: ${String(args.dirpath ?? '…')}`
-        : toolName === 'getPayloadTypes'
-          ? args.typeName
-            ? `Reading type: ${String(args.typeName)}`
-            : 'Browsing Payload types…'
-          : `Running ${toolName}…`
-
   return (
     <span className="inline-flex items-center gap-1.5 text-xs bg-muted text-muted-foreground border border-border rounded-full px-3 py-1 my-1">
       <Loader2 size={10} className="animate-spin" />
-      {label}
+      {getToolLabel(toolType, input)}
     </span>
   )
 }
 
 // --- Message bubble ---
-function MessageBubble({ message }: { message: UIMessage }) {
+function MessageBubble({ message, showEmptyState }: { message: UIMessage; showEmptyState?: boolean }) {
   const isUser = message.role === 'user'
+  const hasVisibleText = (message.parts ?? []).some(
+    (p) => p.type === 'text' && p.text.trim().length > 0,
+  )
 
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}>
@@ -248,7 +244,7 @@ function MessageBubble({ message }: { message: UIMessage }) {
       >
         {(message.parts ?? []).map((part, i) => {
           if (part.type === 'text') {
-            // User input is plain text they typed — no reason to run it through a markdown parser.
+            if (!part.text.trim()) return null
             if (isUser) {
               return (
                 <p key={i} className="whitespace-pre-wrap">
@@ -264,22 +260,24 @@ function MessageBubble({ message }: { message: UIMessage }) {
               </div>
             )
           }
-          // In AI SDK v7, tool parts have type `tool-${name}` and carry input/state directly
           if (typeof part.type === 'string' && part.type.startsWith('tool-')) {
             const anyPart = part as any
             if (anyPart.state === 'input-streaming' || anyPart.state === 'input-available') {
-              return (
-                <ToolCallBadge
-                  key={i}
-                  toolType={part.type}
-                  input={anyPart.input}
-                />
-              )
+              return <ToolCallBadge key={i} toolType={part.type} input={anyPart.input} />
             }
             return null
           }
           return null
         })}
+
+        {/* The stream can end after a tool call without the model ever writing a final answer
+            (e.g. it ran out of its tool-call budget). Surface that instead of an empty bubble. */}
+        {!isUser && !hasVisibleText && showEmptyState && (
+          <p className="text-muted-foreground italic text-xs">
+            The agent gathered information but didn't return an answer — it may have hit its
+            tool-call limit. Try rephrasing, or asking a narrower question.
+          </p>
+        )}
       </div>
     </div>
   )
@@ -287,12 +285,32 @@ function MessageBubble({ message }: { message: UIMessage }) {
 
 // --- Main page ---
 export default function AgentPage() {
-  // AI SDK v7: useChat returns sendMessage, messages, status — not input/handleSubmit
   const { messages, sendMessage, status, error } = useChat()
   const [input, setInput] = useState('')
   const [showSettings, setShowSettings] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const isLoading = status === 'streaming' || status === 'submitted'
+
+  const lastMessage = messages.at(-1)
+  const lastMessageHasText = (lastMessage?.parts ?? []).some(
+    (p) => p.type === 'text' && p.text.trim().length > 0,
+  )
+
+  // Only show a "still working" indicator while the last assistant message genuinely
+  // has no visible content yet — not just because `status` says streaming.
+  const isThinking = isLoading && (!lastMessage || lastMessage.role !== 'assistant' || !lastMessageHasText)
+
+  const activeToolPart =
+    lastMessage?.role === 'assistant'
+      ? [...(lastMessage.parts ?? [])]
+          .reverse()
+          .find(
+            (p): p is any =>
+              typeof p.type === 'string' && p.type.startsWith('tool-') && (p as any).state !== 'output-available',
+          )
+      : undefined
+
+  const thinkingLabel = activeToolPart ? getToolLabel(activeToolPart.type, activeToolPart.input) : 'Thinking…'
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -316,7 +334,6 @@ export default function AgentPage() {
 
   return (
     <div className="flex flex-col h-screen bg-background font-sans">
-      {/* Header */}
       <header className="bg-card border-b border-border px-6 py-3 flex items-center justify-between shrink-0 shadow-sm">
         <div>
           <h1 className="text-sm font-semibold text-foreground">Developer Agent</h1>
@@ -331,7 +348,6 @@ export default function AgentPage() {
         </button>
       </header>
 
-      {/* Messages */}
       <main className="flex-1 overflow-y-auto px-4 py-6">
         <div className="max-w-2xl mx-auto">
           {messages.length === 0 && (
@@ -366,14 +382,19 @@ export default function AgentPage() {
             </div>
           )}
 
-          {messages.map((m) => (
-            <MessageBubble key={m.id} message={m} />
+          {messages.map((m, idx) => (
+            <MessageBubble
+              key={m.id}
+              message={m}
+              showEmptyState={!isLoading && idx === messages.length - 1}
+            />
           ))}
 
-          {isLoading && (
+          {isThinking && (
             <div className="flex justify-start mb-4">
-              <div className="bg-card border border-border shadow-sm rounded-2xl rounded-tl-sm px-4 py-3">
-                <Loader2 size={16} className="animate-spin text-muted-foreground" />
+              <div className="bg-card border border-border shadow-sm rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-2 text-xs text-muted-foreground">
+                <Loader2 size={14} className="animate-spin" />
+                {thinkingLabel}
               </div>
             </div>
           )}
@@ -396,7 +417,6 @@ export default function AgentPage() {
         </div>
       </main>
 
-      {/* Input */}
       <div className="bg-card border-t border-border p-4 shrink-0">
         <form onSubmit={handleSubmit} className="max-w-2xl mx-auto flex gap-2">
           <input
@@ -417,7 +437,6 @@ export default function AgentPage() {
         </form>
       </div>
 
-      {/* Settings Modal */}
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
     </div>
   )
