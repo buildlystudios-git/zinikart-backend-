@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Check, X, Loader2 } from 'lucide-react'
+import { Check, X, Loader2, List, LayoutGrid, Search } from 'lucide-react'
 
 import styles from './ApprovalManagementView.module.css'
 
@@ -37,7 +37,7 @@ type ApprovalManagementViewProps = {
 }
 
 const statusMeta = {
-  all: { label: 'All Requests', tone: 'violet' },
+  all: { label: 'All Records', tone: 'violet' },
   pending: { label: 'Pending', tone: 'amber' },
   approved: { label: 'Approved', tone: 'green' },
   rejected: { label: 'Rejected', tone: 'rose' },
@@ -71,18 +71,18 @@ const formatDate = (value?: string) => {
 
 const getTitle = (collectionSlug?: string) => {
   if (collectionSlug === 'delivery-partners') {
-    return 'Delivery Partner Approvals'
+    return 'Delivery Partners Directory'
   }
 
-  return 'Retailer Approvals'
+  return 'Retailers Directory'
 }
 
 const getDescription = (collectionSlug?: string) => {
   if (collectionSlug === 'delivery-partners') {
-    return 'Review delivery partner registrations, approvals, and rejections in one place.'
+    return 'Browse full list of registered delivery partners, filter by status, and review approvals.'
   }
 
-  return 'Review retailer applications, approvals, and rejections in one place.'
+  return 'Browse full list of registered retailers, filter by status, and review approvals.'
 }
 
 const getPrimaryField = (doc: ApprovalDoc, collectionSlug?: string) => {
@@ -109,8 +109,10 @@ export default function ApprovalManagementView(props: ApprovalManagementViewProp
   const rawStatus = searchParams?.get('where[approvalStatus][equals]') || searchParams?.get('approvalStatus')
   const initialFilter = (rawStatus && rawStatus in statusMeta) ? rawStatus : 'all'
 
-  // Local state for active filter tab to guarantee instant filtering
+  // Local state for active filter tab, view mode, and search
   const [currentFilter, setCurrentFilter] = useState<string>(initialFilter)
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table')
+  const [searchQuery, setSearchQuery] = useState<string>('')
   const [allDocs, setAllDocs] = useState<ApprovalDoc[]>(props.data?.docs ?? [])
   const [totalRequestsCount, setTotalRequestsCount] = useState<number>(props.data?.totalDocs ?? props.data?.docs?.length ?? 0)
   const [updatingId, setUpdatingId] = useState<string | number | null>(null)
@@ -212,17 +214,46 @@ export default function ApprovalManagementView(props: ApprovalManagementViewProp
     ? sourceDocs
     : sourceDocs.filter((doc) => (doc.approvalStatus ?? 'pending') === currentFilter)
 
+  // Real-time search filter
+  const displayedDocs = filteredDocs.filter((doc) => {
+    if (!searchQuery.trim()) return true
+    const query = searchQuery.toLowerCase().trim()
+    const primary = getPrimaryField(doc, collectionSlug).toLowerCase()
+    const secondary = getSecondaryField(doc, collectionSlug).toLowerCase()
+    const phone = String(doc.mobileNumber ?? '').toLowerCase()
+    const status = (doc.approvalStatus ?? '').toLowerCase()
+    return primary.includes(query) || secondary.includes(query) || phone.includes(query) || status.includes(query)
+  })
+
   return (
     <main className={styles.shell}>
       <header className={styles.header}>
         <div>
-          <p className={styles.eyebrow}>Admin approval workspace</p>
+          <p className={styles.eyebrow}>Admin management workspace</p>
           <h1>{getTitle(collectionSlug)}</h1>
           <p className={styles.description}>{getDescription(collectionSlug)}</p>
         </div>
-        <div className={styles.summaryCard}>
-          <span>{totalRequestsCount}</span>
-          <small>Total requests</small>
+        <div className={styles.headerRight}>
+          <div className={styles.summaryCard}>
+            <span>{totalRequestsCount}</span>
+            <small>Total records</small>
+          </div>
+          <div className={styles.viewModeGroup}>
+            <button
+              type="button"
+              className={`${styles.viewModeBtn} ${viewMode === 'table' ? styles.active : ''}`}
+              onClick={() => setViewMode('table')}
+            >
+              <List size={14} /> All Records (Table)
+            </button>
+            <button
+              type="button"
+              className={`${styles.viewModeBtn} ${viewMode === 'cards' ? styles.active : ''}`}
+              onClick={() => setViewMode('cards')}
+            >
+              <LayoutGrid size={14} /> Queue Cards
+            </button>
+          </div>
         </div>
       </header>
 
@@ -232,7 +263,7 @@ export default function ApprovalManagementView(props: ApprovalManagementViewProp
           className={`${styles.filterChip} ${currentFilter === 'all' ? styles.active : ''}`}
           onClick={() => setCurrentFilter('all')}
         >
-          All Requests <span>{totalRequestsCount}</span>
+          All Records <span>{totalRequestsCount}</span>
         </button>
         {(['pending', 'approved', 'rejected', 'suspended'] as const).map((status) => (
           <button
@@ -250,26 +281,112 @@ export default function ApprovalManagementView(props: ApprovalManagementViewProp
         <div className={styles.tableHeader}>
           <div>
             <h2>{labelForStatus(currentFilter === 'all' ? undefined : currentFilter)}</h2>
-            <p>{filteredDocs.length} request{filteredDocs.length === 1 ? '' : 's'} showing</p>
+            <p>{displayedDocs.length} record{displayedDocs.length === 1 ? '' : 's'} showing</p>
           </div>
-          <button
-            type="button"
-            className={styles.reviewLink}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-            onClick={() => setCurrentFilter('all')}
-          >
-            Reset filters
-          </button>
+          <div className={styles.searchWrap}>
+            <Search size={16} style={{ color: '#64748b' }} />
+            <input
+              type="text"
+              className={styles.searchInput}
+              placeholder={`Search ${collectionSlug}...`}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {currentFilter !== 'all' && (
+              <button
+                type="button"
+                className={styles.reviewLink}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginLeft: 8 }}
+                onClick={() => setCurrentFilter('all')}
+              >
+                Reset filter
+              </button>
+            )}
+          </div>
         </div>
 
-        {filteredDocs.length === 0 ? (
+        {displayedDocs.length === 0 ? (
           <div className={styles.emptyState}>
-            <h3>No requests found for this status.</h3>
-            <p>Switch to another queue to review the next approval batch.</p>
+            <h3>No records found.</h3>
+            <p>Try clearing your search or switching to another status queue.</p>
+          </div>
+        ) : viewMode === 'table' ? (
+          <div className={styles.tableWrapper}>
+            <table className={styles.dataTable}>
+              <thead>
+                <tr>
+                  <th>{collectionSlug === 'delivery-partners' ? 'Partner Name' : 'Shop / Store Name'}</th>
+                  <th>{collectionSlug === 'delivery-partners' ? 'Contact Email' : 'Owner Name'}</th>
+                  <th>Mobile Number</th>
+                  <th>{collectionSlug === 'delivery-partners' ? 'Vehicle Details' : 'GST Number'}</th>
+                  <th>Approval Status</th>
+                  <th>Joined Date</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {displayedDocs.map((doc) => {
+                  const status = (doc.approvalStatus ?? 'pending') as string
+                  const tone = toneForStatus(status)
+                  const isPending = status === 'pending'
+                  const isUpdating = updatingId === doc.id
+
+                  return (
+                    <tr key={doc.id}>
+                      <td>
+                        <b>{getPrimaryField(doc, collectionSlug)}</b>
+                      </td>
+                      <td>{getSecondaryField(doc, collectionSlug)}</td>
+                      <td>{String(doc.mobileNumber ?? '—')}</td>
+                      <td>
+                        {collectionSlug === 'delivery-partners'
+                          ? String(doc.vehicleBrand ?? doc.vehicleType ?? '—')
+                          : String(doc.gstNumber ?? '—')}
+                      </td>
+                      <td>
+                        <span className={`${styles.statusBadge} ${styles[tone]}`}>
+                          {labelForStatus(status)}
+                        </span>
+                      </td>
+                      <td>{formatDate(doc.createdAt as string | undefined)}</td>
+                      <td style={{ textAlign: 'right' }}>
+                        <div className={styles.actionGroup} style={{ justifyContent: 'flex-end' }}>
+                          {isPending && (
+                            <>
+                              <button
+                                type="button"
+                                className={styles.approveBtn}
+                                disabled={isUpdating}
+                                onClick={() => doc.id && handleStatusUpdate(doc.id, 'approved')}
+                              >
+                                {isUpdating ? <Loader2 size={12} className={styles.spin} /> : <Check size={12} />}
+                                Approve
+                              </button>
+                              <button
+                                type="button"
+                                className={styles.rejectBtn}
+                                disabled={isUpdating}
+                                onClick={() => doc.id && handleStatusUpdate(doc.id, 'rejected')}
+                              >
+                                {isUpdating ? <Loader2 size={12} className={styles.spin} /> : <X size={12} />}
+                                Reject
+                              </button>
+                            </>
+                          )}
+                          <Link className={styles.reviewLink} href={`/admin/collections/${collectionSlug}/${doc.id}`}>
+                            Edit details &rarr;
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
           </div>
         ) : (
           <div className={styles.requestList}>
-            {filteredDocs.map((doc) => {
+            {displayedDocs.map((doc) => {
               const status = (doc.approvalStatus ?? 'pending') as string
               const tone = toneForStatus(status)
               const isPending = status === 'pending'
@@ -313,7 +430,7 @@ export default function ApprovalManagementView(props: ApprovalManagementViewProp
                       </div>
                     )}
                     <Link className={styles.reviewLink} href={`/admin/collections/${collectionSlug}/${doc.id}`}>
-                      Review details
+                      Review details &rarr;
                     </Link>
                   </div>
                 </article>

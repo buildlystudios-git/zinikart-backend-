@@ -187,9 +187,9 @@ export default async function DashboardView({
               tone="green"
               href="/admin/collections/transactions"
             />
-            <MetricCard label="Total Users" value={formatNumber(dashboard.metrics.users.total)} subtext={`+${dashboard.metrics.users.today} Joined today`} icon={Users} tone="blue" />
-            <MetricCard label="Total Retailers" value={formatNumber(dashboard.metrics.retailers.total)} subtext={`+${dashboard.metrics.retailers.today} Joined today`} icon={Store} tone="violet" />
-            <MetricCard label="Total Delivery Partners" value={formatNumber(dashboard.metrics.deliveryPartners.total)} subtext={`+${dashboard.metrics.deliveryPartners.today} Joined today`} icon={Bike} tone="blue" />
+            <MetricCard label="Total Users" value={formatNumber(dashboard.metrics.users.total)} subtext={`+${dashboard.metrics.users.today} Joined today`} icon={Users} tone="blue" href="/admin/collections/users" />
+            <MetricCard label="Total Retailers" value={formatNumber(dashboard.metrics.retailers.total)} subtext={`+${dashboard.metrics.retailers.today} Joined today`} icon={Store} tone="violet" href="/admin/collections/retailers" />
+            <MetricCard label="Total Delivery Partners" value={formatNumber(dashboard.metrics.deliveryPartners.total)} subtext={`+${dashboard.metrics.deliveryPartners.today} Joined today`} icon={Bike} tone="blue" href="/admin/collections/delivery-partners" />
           </div>
 
           <section className={styles.actions}>
