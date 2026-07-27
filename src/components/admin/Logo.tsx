@@ -9,8 +9,8 @@ export const Logo: React.FC = () => {
         gap: '10px',
         fontWeight: 700,
         fontSize: '18px',
-        color: '#ffffff',
-        padding: '12px 16px',
+        color: 'inherit',
+        padding: '8px 12px',
         userSelect: 'none',
       }}
     >
@@ -26,14 +26,14 @@ export const Logo: React.FC = () => {
           color: '#ffffff',
           fontWeight: 800,
           fontSize: '16px',
-          boxShadow: '0 2px 8px rgba(19, 140, 49, 0.4)',
+          boxShadow: '0 2px 8px rgba(19, 140, 49, 0.3)',
           flexShrink: 0,
         }}
       >
         Z
       </div>
       <span>
-        ZiniKart <span style={{ color: '#86efac', fontWeight: 500, fontSize: '13px' }}>Admin</span>
+        ZiniKart <span style={{ color: '#138c31', fontWeight: 600, fontSize: '13px' }}>Admin</span>
       </span>
     </div>
   )

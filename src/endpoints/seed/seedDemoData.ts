@@ -286,11 +286,9 @@ export async function seedDemoData(payload: Payload) {
     }
   }
 
-  // 6. Update All Products with Inventory & Prices
-  const productsResult = await payload.find({ collection: 'products', limit: 50 })
-  let products = productsResult.docs
-
-  for (const prod of products) {
+  // 6. Update All Existing Products with Inventory & Prices
+  const allProductsResult = await payload.find({ collection: 'products', limit: 50 })
+  for (const prod of allProductsResult.docs) {
     try {
       await payload.update({
         collection: 'products',
@@ -307,29 +305,38 @@ export async function seedDemoData(payload: Payload) {
     }
   }
 
-  // Re-fetch updated products
-  const updatedProductsResult = await payload.find({ collection: 'products', limit: 50 })
-  products = updatedProductsResult.docs
+  // 7. ONLY fetch products that have inventory > 0 for creating orders
+  const inStockProductsResult = await payload.find({
+    collection: 'products',
+    where: {
+      inventory: { greater_than: 0 },
+    },
+    limit: 50,
+  })
+
+  const products = inStockProductsResult.docs
 
   if (products.length === 0 || retailerDocs.length === 0) {
-    payload.logger.warn('Skipping orders seed: products or retailers not available yet.')
+    payload.logger.warn('Skipping orders seed: in-stock products or retailers not available yet.')
     return
   }
 
-  // 7. Create Diverse Orders with Valid ORDER_STATUS Values
+  // 8. Create Diverse Orders with item prices and explicit total/subtotal/amount
   const ordersToCreate = [
     {
       customer: c1.id,
       retailer: retailerDocs[0]?.id,
       deliveryPartner: partnerDocs[0]?.id,
       status: ORDER_STATUS.DELIVERED,
+      subtotal: 134900,
       total: 134900,
+      amount: 134900,
       currency: 'INR',
       pickupOTP: '4821',
       deliveryOTP: '9153',
       deliveryPartnerAcceptance: 'accepted',
       codCollectionRecord: partnerDocs[0]?.id ? { status: 'collected', paymentType: 'cash', collectedBy: partnerDocs[0].id } : undefined,
-      items: [{ product: products[0]?.id, quantity: 1 }],
+      items: [{ product: products[0]?.id, quantity: 1, price: 134900 }],
       paymentMethod: 'stripe',
       paymentStatus: 'succeeded',
     },
@@ -338,12 +345,14 @@ export async function seedDemoData(payload: Payload) {
       retailer: retailerDocs[1]?.id,
       deliveryPartner: partnerDocs[1]?.id,
       status: ORDER_STATUS.OUT_FOR_DELIVERY,
+      subtotal: 29990,
       total: 29990,
+      amount: 29990,
       currency: 'INR',
       pickupOTP: '3104',
       deliveryOTP: '7429',
       deliveryPartnerAcceptance: 'accepted',
-      items: [{ product: products[1]?.id || products[0]?.id, quantity: 1 }],
+      items: [{ product: products[1]?.id || products[0]?.id, quantity: 1, price: 29990 }],
       paymentMethod: 'razorpay',
       paymentStatus: 'succeeded',
     },
@@ -352,13 +361,15 @@ export async function seedDemoData(payload: Payload) {
       retailer: retailerDocs[2]?.id || retailerDocs[0]?.id,
       deliveryPartner: partnerDocs[0]?.id,
       status: ORDER_STATUS.PICKED_UP,
+      subtotal: 14999,
       total: 14999,
+      amount: 14999,
       currency: 'INR',
       pickupOTP: '5512',
       deliveryOTP: '6821',
       deliveryPartnerAcceptance: 'accepted',
       codCollectionRecord: partnerDocs[0]?.id ? { status: 'collected', paymentType: 'qr', collectedBy: partnerDocs[0].id } : undefined,
-      items: [{ product: products[2]?.id || products[0]?.id, quantity: 1 }],
+      items: [{ product: products[2]?.id || products[0]?.id, quantity: 1, price: 14999 }],
       paymentMethod: 'cod',
       paymentStatus: 'succeeded',
     },
@@ -366,10 +377,12 @@ export async function seedDemoData(payload: Payload) {
       customer: c4.id,
       retailer: retailerDocs[0]?.id,
       status: ORDER_STATUS.READY_FOR_PICKUP,
+      subtotal: 64999,
       total: 64999,
+      amount: 64999,
       currency: 'INR',
       deliveryPartnerAcceptance: 'pending',
-      items: [{ product: products[3]?.id || products[0]?.id, quantity: 1 }],
+      items: [{ product: products[3]?.id || products[0]?.id, quantity: 1, price: 64999 }],
       paymentMethod: 'stripe',
       paymentStatus: 'succeeded',
     },
@@ -377,10 +390,12 @@ export async function seedDemoData(payload: Payload) {
       customer: c5.id,
       retailer: retailerDocs[1]?.id,
       status: ORDER_STATUS.PACKED,
+      subtotal: 129999,
       total: 129999,
+      amount: 129999,
       currency: 'INR',
       deliveryPartnerAcceptance: 'pending',
-      items: [{ product: products[0]?.id, quantity: 1 }],
+      items: [{ product: products[0]?.id, quantity: 1, price: 129999 }],
       paymentMethod: 'cod',
       paymentStatus: 'pending',
     },
@@ -388,10 +403,12 @@ export async function seedDemoData(payload: Payload) {
       customer: c6.id,
       retailer: retailerDocs[2]?.id || retailerDocs[0]?.id,
       status: ORDER_STATUS.PREPARING,
+      subtotal: 8499,
       total: 8499,
+      amount: 8499,
       currency: 'INR',
       deliveryPartnerAcceptance: 'pending',
-      items: [{ product: products[1]?.id || products[0]?.id, quantity: 1 }],
+      items: [{ product: products[1]?.id || products[0]?.id, quantity: 1, price: 8499 }],
       paymentMethod: 'razorpay',
       paymentStatus: 'succeeded',
     },
@@ -399,9 +416,11 @@ export async function seedDemoData(payload: Payload) {
       customer: c1.id,
       retailer: retailerDocs[0]?.id,
       status: ORDER_STATUS.PLACED,
+      subtotal: 49990,
       total: 49990,
+      amount: 49990,
       currency: 'INR',
-      items: [{ product: products[2]?.id || products[0]?.id, quantity: 1 }],
+      items: [{ product: products[2]?.id || products[0]?.id, quantity: 1, price: 49990 }],
       paymentMethod: 'stripe',
       paymentStatus: 'pending',
     },
@@ -409,10 +428,12 @@ export async function seedDemoData(payload: Payload) {
       customer: c2.id,
       retailer: retailerDocs[1]?.id,
       status: ORDER_STATUS.CANCELLED,
+      subtotal: 19990,
       total: 19990,
+      amount: 19990,
       currency: 'INR',
       cancellationDetails: { cancelledAt: new Date().toISOString(), cancellationReason: 'Customer requested cancellation before dispatch' },
-      items: [{ product: products[3]?.id || products[0]?.id, quantity: 1 }],
+      items: [{ product: products[3]?.id || products[0]?.id, quantity: 1, price: 19990 }],
       paymentMethod: 'razorpay',
       paymentStatus: 'failed',
     },
@@ -453,5 +474,5 @@ export async function seedDemoData(payload: Payload) {
     }
   }
 
-  payload.logger.info('Comprehensive demo data seeded successfully for all collections!')
+  payload.logger.info('Comprehensive demo data seeded successfully for all collections with amounts and inventory filter!')
 }
