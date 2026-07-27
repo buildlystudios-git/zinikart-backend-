@@ -95,7 +95,7 @@ export const verifyOtpEndpoint = (usersSlug: string): Endpoint => ({
       let exp: number | null = null
       const headers = new Headers()
 
-      if (status === 'approved' || status === 'approved_no_products' || status === 'registration_required') {
+      if (status === 'approved' || status === 'approved_no_products' || status === 'registration_required' || status === "pending_approval") {
         const session = await createSessionToken({
           req,
           user,
