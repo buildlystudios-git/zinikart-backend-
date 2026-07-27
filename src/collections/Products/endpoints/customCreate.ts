@@ -27,10 +27,18 @@ export const customCreateEndpoint: Endpoint = {
       const hasVariants = Array.isArray(variants) && variants.length > 0
       const enableVariants = hasVariants
 
+      // Generate a unique slug from the title to prevent unique constraint errors
+      const baseSlug = title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)+/g, '')
+      const uniqueSlug = `${baseSlug}-${Math.random().toString(36).substring(2, 8)}`
+
       // Prepare product payload
       // Other data can be passed, but the setTemplateFields hook will overwrite empty inherited fields.
       const productData = {
         title,
+        slug: uniqueSlug,
         parentTemplate: parentTemplate || null,
         enableVariants,
         priceInINR: !hasVariants ? priceInINR : undefined,
