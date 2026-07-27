@@ -127,8 +127,8 @@ export async function getDashboardData(payload: Payload, req: PayloadRequest) {
 
   return {
     metrics: {
-      orders: { total: orders.totalDocs, today: todayOrders.totalDocs },
-      revenue: { total: todayRevenue || dummyRevenue.at(-1)! },
+      orders: { total: orders.totalDocs, change: getPercentageChange(todayOrders.totalDocs, previousDayOrders) },
+      revenue: { total: todayRevenue || dummyRevenue.at(-1)!, change: getPercentageChange(todayRevenue || dummyRevenue.at(-1)!, yesterdayRevenue || dummyRevenue.at(-2)!) },
       users: { total: users.totalDocs, today: todayUsers.totalDocs },
       retailers: { total: retailers.totalDocs, today: todayRetailers.totalDocs },
       deliveryPartners: { total: deliveryPartners.totalDocs, today: todayPartners.totalDocs },

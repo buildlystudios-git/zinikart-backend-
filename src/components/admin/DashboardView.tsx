@@ -34,6 +34,7 @@ const ticketIcon = [Users, WalletCards, Boxes, Bike, PackageCheck]
 
 const formatNumber = (value: number) => new Intl.NumberFormat('en-IN').format(value)
 const formatCurrency = (value: number) => `Rs ${formatNumber(value)}`
+const formatChange = (value: number) => `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`
 const statusLabel = (status: string) => status.split('_').map((word) => word[0].toUpperCase() + word.slice(1)).join(' ')
 
 const timeAgo = (value: string) => {
@@ -53,15 +54,19 @@ const getChartPath = (values: number[]) => {
 function MetricCard({
   label,
   value,
+  change,
   subtext,
   icon: Icon,
   tone,
+  href,
 }: {
   label: string
   value: string
+  change?: string
   subtext?: string
   icon: typeof ShoppingBag
   tone: 'amber' | 'green' | 'blue' | 'violet'
+  href?: string
 }) {
   return (
     <section className={`${styles.metric} ${styles[`metric${tone}`]}`}>
@@ -70,7 +75,9 @@ function MetricCard({
       </div>
       <p>{label}</p>
       <strong>{value}</strong>
+      {change && <span className={styles.change}>↑ {change} <em>vs Yesterday</em></span>}
       {subtext && <span className={styles.change}>{subtext}</span>}
+      {href && <Link className={styles.metricLink} href={href}>View detailed report <ChevronRight size={17} /></Link>}
     </section>
   )
 }
@@ -100,8 +107,8 @@ export default async function DashboardView({
           </div>
 
           <div className={styles.metrics}>
-            <MetricCard label="Total Orders" value={formatNumber(dashboard.metrics.orders.total)} subtext={`+${dashboard.metrics.orders.today} Placed today`} icon={ShoppingBag} tone="amber" />
-            <MetricCard label="Today's Revenue" value={formatCurrency(dashboard.metrics.revenue.total)} subtext="Live revenue today" icon={WalletCards} tone="green" />
+            <MetricCard label="Total Orders" value={formatNumber(dashboard.metrics.orders.total)} change={formatChange(dashboard.metrics.orders.change)} icon={ShoppingBag} tone="amber" href="/admin/collections/orders" />
+            <MetricCard label="Today's Revenue" value={formatCurrency(dashboard.metrics.revenue.total)} change={formatChange(dashboard.metrics.revenue.change)} icon={WalletCards} tone="green" href="/admin/collections/transactions" />
             <MetricCard label="Total Users" value={formatNumber(dashboard.metrics.users.total)} subtext={`+${dashboard.metrics.users.today} Joined today`} icon={Users} tone="blue" />
             <MetricCard label="Total Retailers" value={formatNumber(dashboard.metrics.retailers.total)} subtext={`+${dashboard.metrics.retailers.today} Joined today`} icon={Store} tone="violet" />
             <MetricCard label="Total Delivery Partners" value={formatNumber(dashboard.metrics.deliveryPartners.total)} subtext={`+${dashboard.metrics.deliveryPartners.today} Joined today`} icon={Bike} tone="blue" />
