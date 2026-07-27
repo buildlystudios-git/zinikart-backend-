@@ -30,6 +30,13 @@ export const Retailers: CollectionConfig = {
     useAsTitle: 'shopName',
     defaultColumns: ['shopName', 'ownerName', 'approvalStatus', 'createdAt'],
     group: 'Users',
+    components: {
+      views: {
+        list: {
+          Component: '@/components/admin/ApprovalManagementView#default',
+        },
+      },
+    },
   },
   hooks: {
     beforeChange: [
@@ -42,16 +49,19 @@ export const Retailers: CollectionConfig = {
     {
       name: 'shopName',
       type: 'text',
+      label: 'Store / Shop Name',
       required: true,
     },
     {
       name: 'ownerName',
       type: 'text',
+      label: 'Owner Full Name',
       required: true,
     },
     {
       name: 'mobileNumber',
       type: 'text',
+      label: 'Mobile Number',
       required: true,
       unique: true,
       index: true,
@@ -62,16 +72,19 @@ export const Retailers: CollectionConfig = {
     {
       name: 'emailId',
       type: 'email',
+      label: 'Email Address',
       required: true,
     },
     {
       name: 'alternateContactNumber',
       type: 'text',
+      label: 'Alternate Contact Number',
       required: false,
     },
     {
       name: 'gstNumber',
       type: 'text',
+      label: 'GST Number',
       required: true,
     },
     {
@@ -231,8 +244,12 @@ export const Retailers: CollectionConfig = {
     {
       name: 'approvalStatus',
       type: 'select',
+      label: 'Approval Status',
       required: true,
       defaultValue: 'pending',
+      admin: {
+        position: 'sidebar',
+      },
       access: {
         create: adminOnlyFieldAccess,
         update: adminOnlyFieldAccess,

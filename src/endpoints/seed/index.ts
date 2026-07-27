@@ -11,6 +11,8 @@ import { seedPages } from './seedPages'
 import { fetchFileByURL } from './utils'
 import { SEED_PRODUCT_COUNT } from '@/constants/env'
 
+import { seedDemoData } from './seedDemoData'
+
 export const seed = async ({ payload, req }: { payload: Payload; req?: any }): Promise<void> => {
   payload.logger.info('Seeding database...')
 
@@ -112,6 +114,9 @@ export const seed = async ({ payload, req }: { payload: Payload; req?: any }): P
   await seedGlobals(payload)
   
   await seedPages(payload, imageHeroId as string, imageHatId as string)
+
+  // Seed Demo Data for Retailers, Delivery Partners, Orders, Transactions & Ratings
+  await seedDemoData(payload)
 
   payload.logger.info('Seeded database successfully!')
 }

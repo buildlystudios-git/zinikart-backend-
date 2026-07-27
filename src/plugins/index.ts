@@ -240,6 +240,7 @@ export const plugins: Plugin[] = [
         admin: {
           ...defaultCollection.admin,
           group: 'Orders',
+          defaultColumns: ['id', 'status', 'total', 'customer', 'retailer', 'createdAt'],
         },
         access: {
           ...defaultCollection.access,
@@ -275,6 +276,7 @@ export const plugins: Plugin[] = [
           {
             name: 'status',
             type: 'select',
+            label: 'Order Status',
             required: true,
             defaultValue: 'placed',
             options: [...ORDER_STATUS_OPTIONS],
@@ -282,6 +284,7 @@ export const plugins: Plugin[] = [
           {
             name: 'retailer',
             type: 'relationship',
+            label: 'Fulfilling Retailer',
             relationTo: 'retailers',
             required: true,
             admin: { position: 'sidebar' },
@@ -449,6 +452,7 @@ export const plugins: Plugin[] = [
         admin: {
           ...defaultCollection.admin,
           group: 'Finance',
+          defaultColumns: ['id', 'status', 'amount', 'currency', 'order', 'createdAt'],
         },
       }),
     },

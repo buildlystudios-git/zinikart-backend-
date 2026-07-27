@@ -40,8 +40,18 @@ const dirname = path.dirname(filename)
 
 export default buildConfig({
   admin: {
-
     user: Users.slug,
+    components: {
+      graphics: {
+        Logo: '@/components/admin/Logo#Logo',
+        Icon: '@/components/admin/Logo#Icon',
+      },
+      views: {
+        dashboard: {
+          Component: '@/components/admin/DashboardView',
+        },
+      },
+    },
   },
   collections: [Users, Pages, Categories, Media, Retailers, DeliveryPartners, Brands, Ratings, Wishlists],
   db: postgresAdapter({

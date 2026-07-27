@@ -70,7 +70,7 @@ export const ProductsCollection: CollectionOverride = ({ defaultCollection }) =>
     delete: deleteAccess,
   },
   fields: [
-    { name: 'title', type: 'text', required: true },
+    { name: 'title', type: 'text', label: 'Product Title', required: true },
     {
       type: 'tabs',
       tabs: [
@@ -181,6 +181,7 @@ export const ProductsCollection: CollectionOverride = ({ defaultCollection }) =>
             {
               name: 'brand',
               type: 'relationship',
+              label: 'Product Brand',
               relationTo: 'brands',
               required: false,
               admin: {
@@ -300,6 +301,7 @@ export const ProductsCollection: CollectionOverride = ({ defaultCollection }) =>
     {
       name: 'categories',
       type: 'relationship',
+      label: 'Product Categories',
       admin: {
         position: 'sidebar',
         sortOptions: 'title',
@@ -310,6 +312,7 @@ export const ProductsCollection: CollectionOverride = ({ defaultCollection }) =>
     {
       name: 'retailer',
       type: 'relationship',
+      label: 'Retailer Store',
       relationTo: 'users',
       required: false,
       admin: {

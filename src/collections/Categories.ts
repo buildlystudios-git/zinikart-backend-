@@ -14,17 +14,20 @@ export const Categories: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'title',
+    defaultColumns: ['title', 'brands'],
     group: 'Products',
   },
   fields: [
     {
       name: 'title',
       type: 'text',
+      label: 'Category Name',
       required: true,
     },
     {
       name: 'parentCategory',
       type: 'relationship',
+      label: 'Parent Category',
       relationTo: 'categories',
       required: false,
       admin: {
@@ -79,6 +82,17 @@ export const Categories: CollectionConfig = {
           label: 'Required',
         },
       ],
+    },
+    {
+      name: 'brands',
+      type: 'join',
+      label: 'Associated Brands',
+      collection: 'brands',
+      on: 'categories',
+      admin: {
+        allowCreate: false,
+        defaultColumns: ['name', 'featured'],
+      },
     },
     slugField({
       position: undefined,

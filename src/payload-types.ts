@@ -98,6 +98,9 @@ export interface Config {
       cart: 'carts';
       addresses: 'addresses';
     };
+    categories: {
+      brands: 'brands';
+    };
     variantTypes: {
       options: 'variantOptions';
     };
@@ -724,6 +727,30 @@ export interface Category {
         id?: string | null;
       }[]
     | null;
+  brands?: {
+    docs?: (string | Brand)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  slug: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "brands".
+ */
+export interface Brand {
+  id: string;
+  name: string;
+  logo?: (string | null) | Media;
+  description?: string | null;
+  featured?: boolean | null;
+  categories?: (string | Category)[] | null;
   /**
    * When enabled, the slug will auto-generate from the title field on save and autosave.
    */
@@ -1018,25 +1045,6 @@ export interface Variant {
   createdAt: string;
   deletedAt?: string | null;
   _status?: ('draft' | 'published') | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "brands".
- */
-export interface Brand {
-  id: string;
-  name: string;
-  logo?: (string | null) | Media;
-  description?: string | null;
-  featured?: boolean | null;
-  categories?: (string | Category)[] | null;
-  /**
-   * When enabled, the slug will auto-generate from the title field on save and autosave.
-   */
-  generateSlug?: boolean | null;
-  slug: string;
-  updatedAt: string;
-  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1797,6 +1805,7 @@ export interface CategoriesSelect<T extends boolean = true> {
         required?: T;
         id?: T;
       };
+  brands?: T;
   generateSlug?: T;
   slug?: T;
   updatedAt?: T;

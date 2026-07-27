@@ -22,6 +22,13 @@ export const DeliveryPartners: CollectionConfig = {
     useAsTitle: 'fullName',
     defaultColumns: ['fullName', 'mobileNumber', 'vehicleType', 'approvalStatus', 'onlineStatus', 'createdAt'],
     group: 'Users',
+    components: {
+      views: {
+        list: {
+          Component: '@/components/admin/ApprovalManagementView#default',
+        },
+      },
+    },
   },
   hooks: {
     beforeChange: [associateUser, enforceDefaultPaymentMethod],
@@ -32,11 +39,13 @@ export const DeliveryPartners: CollectionConfig = {
     {
       name: 'fullName',
       type: 'text',
+      label: 'Partner Full Name',
       required: true,
     },
     {
       name: 'mobileNumber',
       type: 'text',
+      label: 'Mobile Number',
       required: true,
       unique: true,
       index: true,
@@ -47,11 +56,13 @@ export const DeliveryPartners: CollectionConfig = {
     {
       name: 'email',
       type: 'email',
+      label: 'Email Address',
       required: true,
     },
     {
       name: 'gender',
       type: 'select',
+      label: 'Gender',
       required: true,
       options: [
         { label: 'Male', value: 'male' },
@@ -182,6 +193,7 @@ export const DeliveryPartners: CollectionConfig = {
     {
       name: 'vehicleType',
       type: 'select',
+      label: 'Vehicle Type',
       required: true,
       options: [
         {
@@ -205,7 +217,11 @@ export const DeliveryPartners: CollectionConfig = {
     {
       name: 'approvalStatus',
       type: 'select',
+      label: 'Approval Status',
       required: true,
+      admin: {
+        position: 'sidebar',
+      },
       defaultValue: 'pending',
       access: {
         create: adminOnlyFieldAccess,
@@ -233,6 +249,7 @@ export const DeliveryPartners: CollectionConfig = {
     {
       name: 'onlineStatus',
       type: 'checkbox',
+      label: 'Online Status',
       required: true,
       defaultValue: false,
     },
