@@ -3,6 +3,7 @@ import { Content } from '@/blocks/Content/config'
 import { MediaBlock } from '@/blocks/MediaBlock/config'
 import { slugField } from 'payload'
 import { generatePreviewPath } from '@/utilities/generatePreviewPath'
+import { customCreateEndpoint } from './endpoints/customCreate'
 import { CollectionOverride } from '@payloadcms/plugin-ecommerce/types'
 import {
   MetaDescriptionField,
@@ -69,6 +70,10 @@ export const ProductsCollection: CollectionOverride = ({ defaultCollection }) =>
     update: updateAccess,
     delete: deleteAccess,
   },
+  endpoints: [
+    ...(defaultCollection?.endpoints || []),
+    customCreateEndpoint,
+  ],
   fields: [
     { name: 'title', type: 'text', label: 'Product Title', required: true },
     {
