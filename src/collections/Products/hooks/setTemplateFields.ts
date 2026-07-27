@@ -7,7 +7,6 @@ const INHERITABLE_TEMPLATE_FIELDS = [
   'gallery',
   'layout',
   'specifications',
-  'relatedProducts',
   'variants',
   'variantTypes',
   'enableVariants',
