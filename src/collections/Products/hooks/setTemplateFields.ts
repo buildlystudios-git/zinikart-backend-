@@ -19,27 +19,74 @@ const INHERITABLE_TEMPLATE_FIELDS = [
   'priceInINREnabled',
 ] as const
 
+/**
+ * Detects whether a value is a populated Payload CMS document
+ * (relationship or upload field resolved to a full object).
+ * Payload documents always have `id` + at least one of `createdAt`/`updatedAt`.
+ */
+function isPopulatedDoc(value: any): boolean {
+  return (
+    value !== null &&
+    typeof value === 'object' &&
+    typeof value.id === 'string' &&
+    (value.createdAt !== undefined || value.updatedAt !== undefined)
+  )
+}
+
+/**
+ * Recursively sanitizes a value fetched from Payload with depth > 0 so it can
+ * be saved back into a new document. It:
+ *  - Extracts the ID string from populated relationship/upload documents
+ *  - Strips `id` from plain nested objects (array items, groups) — Payload
+ *    auto-generates new IDs for array rows on create
+ *  - Recurses into arrays and plain objects
+ *  - Passes through primitive values unchanged
+ */
+function sanitizeForPayload(value: any): any {
+  if (value === null || value === undefined) return value
+  if (typeof value !== 'object') return value
+
+  if (Array.isArray(value)) {
+    return value.map(sanitizeForPayload)
+  }
+
+  // Populated Payload document (relationship/upload) — return just the ID string
+  if (isPopulatedDoc(value)) {
+    return value.id
+  }
+
+  // Plain nested object (array item row, group field, block, etc.)
+  // Recurse into each property, but omit 'id' since Payload will auto-generate new row IDs
+  const result: Record<string, any> = {}
+  for (const key of Object.keys(value)) {
+    if (key === 'id') continue
+    result[key] = sanitizeForPayload(value[key])
+  }
+  return result
+}
+
 export const setTemplateFields: CollectionBeforeChangeHook = async ({ req, operation, data }) => {
   if (operation === 'create' && req.user) {
     const isAdmin = req.user.roles?.includes('admin')
     const isRetailer = req.user.roles?.includes('retailer')
 
+    req.payload.logger.info(
+      `[setTemplateFields] operation=${operation} userId=${req.user.id} isAdmin=${isAdmin} isRetailer=${isRetailer} parentTemplate=${data.parentTemplate ?? 'none'}`,
+    )
+
     if (isAdmin) {
-      // Admins: Default to a master template unless explicitly set otherwise
       if (data.isMasterTemplate === undefined) {
         data.isMasterTemplate = true
       }
-      // Admins don't list under a parent template
       data.parentTemplate = null
     } else if (isRetailer) {
-      // Retailers: Forced to false (retailers cannot create master templates)
       data.isMasterTemplate = false
 
-      // If the retailer is cloning from a master template, inherit missing catalog fields
       if (data.parentTemplate) {
-        const templateId = typeof data.parentTemplate === 'object'
-          ? data.parentTemplate?.id
-          : data.parentTemplate
+        const templateId =
+          typeof data.parentTemplate === 'object' ? data.parentTemplate?.id : data.parentTemplate
+
+        req.payload.logger.info(`[setTemplateFields] Fetching master template id=${templateId}`)
 
         if (templateId) {
           try {
@@ -50,45 +97,60 @@ export const setTemplateFields: CollectionBeforeChangeHook = async ({ req, opera
               req,
             })
 
-            if (template && template.isMasterTemplate === true) {
-              // Inherit each catalog field from the template only if the retailer hasn't already provided it
+            if (!template) {
+              req.payload.logger.error(
+                `[setTemplateFields] Template id=${templateId} not found — aborting inheritance`,
+              )
+            } else if (template.isMasterTemplate !== true) {
+              req.payload.logger.warn(
+                `[setTemplateFields] id=${templateId} exists but isMasterTemplate=false — skipping inheritance`,
+              )
+            } else {
+              req.payload.logger.info(
+                `[setTemplateFields] Template "${(template as any).title}" (id=${templateId}) found. Beginning field inheritance...`,
+              )
+
               for (const field of INHERITABLE_TEMPLATE_FIELDS) {
                 const templateValue = (template as any)[field]
                 const userValue = data[field]
 
-                // Inherit if:
-                // - User did not pass the field at all (undefined)
-                // - User passed an empty array/null (falsy) for array-type fields
                 const isEmpty =
                   userValue === undefined ||
                   userValue === null ||
                   (Array.isArray(userValue) && userValue.length === 0)
 
                 if (isEmpty && templateValue !== undefined && templateValue !== null) {
-                  // For relationship arrays with populated objects, extract IDs only
-                  if (Array.isArray(templateValue)) {
-                    data[field] = templateValue.map((item: any) =>
-                      typeof item === 'object' && item?.id ? item.id : item
-                    )
-                  } else if (typeof templateValue === 'object' && templateValue?.id) {
-                    // Single populated relationship — extract the ID
-                    data[field] = templateValue.id
-                  } else {
-                    data[field] = templateValue
-                  }
+                  const sanitized = sanitizeForPayload(templateValue)
+                  data[field] = sanitized
+                  req.payload.logger.info(
+                    `[setTemplateFields] Inherited field="${field}" value=${JSON.stringify(sanitized).slice(0, 120)}`,
+                  )
+                } else if (!isEmpty) {
+                  req.payload.logger.info(
+                    `[setTemplateFields] Skipped field="${field}" (user provided their own value)`,
+                  )
+                } else {
+                  req.payload.logger.info(
+                    `[setTemplateFields] Skipped field="${field}" (template has no value for this field)`,
+                  )
                 }
               }
-            } else {
-              req.payload.logger.warn(
-                `setTemplateFields: parentTemplate ${templateId} is not a master template — skipping field inheritance.`
+
+              req.payload.logger.info(
+                `[setTemplateFields] Inheritance complete for template id=${templateId}`,
               )
             }
-          } catch (err) {
-            req.payload.logger.error(`setTemplateFields: failed to fetch template ${templateId}: ${err}`)
+          } catch (err: any) {
+            req.payload.logger.error(
+              `[setTemplateFields] Error fetching template id=${templateId}: ${err?.message ?? err}`,
+            )
+            req.payload.logger.error(`[setTemplateFields] Stack: ${err?.stack ?? 'N/A'}`)
           }
         }
       } else {
-        // Creating a custom product from scratch without a template
+        req.payload.logger.info(
+          `[setTemplateFields] No parentTemplate — creating product from scratch`,
+        )
         data.parentTemplate = null
       }
     }
