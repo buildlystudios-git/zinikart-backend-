@@ -64,6 +64,215 @@ const generateURL: GenerateURL<Product | Page> = ({ doc }) => {
   return doc?.slug ? `${url}/${doc.slug}` : url
 }
 
+const NON_WRITABLE_INPUT_KEYS = new Set([
+  // Pagination and System Metadata
+  'hasNextPage',
+  'hasPrevPage',
+  'totalDocs',
+  'limit',
+  'totalPages',
+  'page',
+  'pagingCounter',
+  'prevPage',
+  'nextPage',
+  'createdAt',
+  'updatedAt',
+
+  // Versioning, Status & Soft Delete
+  '_status',
+  'deletedAt',
+
+  // Hook-Managed Auto-Assigned Relations (assigned via JWT token / hooks)
+  'user',
+
+  // Admin-Only / Access-Restricted Fields
+  'approvalStatus',
+
+  // Pre-Calculated Metrics (hook-calculated, never sent by user)
+  'discountedPrice',
+  'averageRating',
+  'ratingCount',
+  'soldCount',
+
+  // Server-Generated Verification & Order Flow Tokens
+  'orderNumber',
+  'placedAt',
+  'pickupOTP',
+  'deliveryOTP',
+  'resetPasswordToken',
+  'resetPasswordExpiration',
+
+  // Master Template Metadata
+  'isMasterTemplate',
+  'parentTemplate',
+  // NOTE: 'id', 'total', 'subtotal', 'taxTotal' intentionally NOT in the global set.
+  // - 'id' must be kept in nested array items (Payload uses it to track array row identity).
+  // - 'total'/'subtotal'/'taxTotal' are too generic; they are excluded via readOnly detection below.
+])
+
+// Fields to exclude ONLY at the top-level (root) schema, not inside nested objects/array items.
+const NON_WRITABLE_TOP_LEVEL_KEYS = new Set([
+  'id',    // Document root ID — never sent in POST body, but keep inside nested array items
+  'total',
+  'subtotal',
+  'taxTotal',
+])
+
+function isRelationshipUnion(unionArray: any[]): boolean {
+  if (!Array.isArray(unionArray)) return false
+  const hasString = unionArray.some((item: any) => item?.type === 'string')
+  const hasObjectOrRef = unionArray.some(
+    (item: any) => item?.$ref || item?.type === 'object' || (item?.properties && typeof item.properties === 'object'),
+  )
+  return hasString && hasObjectOrRef
+}
+
+// Check if a schema node is marked readOnly in the OpenAPI spec (set by payload-oapi or custom.openapi)
+function isReadOnly(schema: any): boolean {
+  return schema?.readOnly === true || schema?.['x-readOnly'] === true
+}
+
+function sanitizeRequestBodySchema(
+  schema: any,
+  schemasDict?: Record<string, any>,
+  visitedObj = new Set<any>(),
+  visitedRefs = new Set<string>(),
+  isTopLevel = true,
+): any {
+  if (!schema || typeof schema !== 'object' || visitedObj.has(schema)) {
+    return schema
+  }
+  visitedObj.add(schema)
+
+  // Resolve $ref references without circular loops
+  if (schema.$ref && typeof schema.$ref === 'string') {
+    const refName = schema.$ref.replace('#/components/schemas/', '').replace('#/components/requestBodies/', '')
+    if (visitedRefs.has(refName)) {
+      return { type: 'string', description: `ID or reference of ${refName}` }
+    }
+    if (schemasDict && schemasDict[refName]) {
+      const nextRefs = new Set(visitedRefs)
+      nextRefs.add(refName)
+      return sanitizeRequestBodySchema(JSON.parse(JSON.stringify(schemasDict[refName])), schemasDict, visitedObj, nextRefs, isTopLevel)
+    }
+  }
+
+  // Detect and simplify Lexical RichText AST nodes in input schemas
+  if (schema.properties?.root && schema.properties?.root?.properties?.children) {
+    return {
+      type: 'object',
+      description: schema.description || 'RichText content object',
+      example: { root: { type: 'root', children: [] } },
+      nullable: true,
+    }
+  }
+
+  // Detect and simplify single relationship unions (oneOf/anyOf containing string + object/$ref)
+  // Guard: only simplify if it's SOLELY a relationship union, not a top-level allOf combiner
+  // (allOf combiners are Payload versioning wrappers and must be traversed, not flattened)
+  if (isRelationshipUnion(schema.oneOf) && !schema.allOf) {
+    return { type: 'string', description: schema.description || 'ID of related document', nullable: true }
+  }
+  if (isRelationshipUnion(schema.anyOf) && !schema.allOf) {
+    return { type: 'string', description: schema.description || 'ID of related document', nullable: true }
+  }
+
+  const cloned = Array.isArray(schema) ? [...schema] : { ...schema }
+
+  // Filter out non-writable system & pagination properties from object schemas
+  if (cloned.properties && typeof cloned.properties === 'object') {
+    const newProps: Record<string, any> = {}
+    for (const key of Object.keys(cloned.properties)) {
+      const isGlobalNonWritable = NON_WRITABLE_INPUT_KEYS.has(key)
+      const isTopLevelNonWritable = isTopLevel && NON_WRITABLE_TOP_LEVEL_KEYS.has(key)
+      const propSchema = cloned.properties[key]
+
+      // Skip: globally non-writable fields
+      if (isGlobalNonWritable) continue
+
+      // Skip: top-level-only non-writable fields (id, total, subtotal, taxTotal at root only)
+      if (isTopLevelNonWritable) continue
+
+      // Skip: fields marked readOnly by payload-oapi or custom.openapi annotation
+      if (isReadOnly(propSchema)) continue
+
+      // Detect and simplify Lexical RichText AST property
+      if (propSchema?.properties?.root && propSchema?.properties?.root?.properties?.children) {
+        newProps[key] = {
+          type: 'object',
+          description: propSchema.description || `RichText ${key} object`,
+          example: { root: { type: 'root', children: [] } },
+          nullable: true,
+        }
+      }
+      // Detect and simplify single relationship union property
+      else if (isRelationshipUnion(propSchema?.oneOf) || isRelationshipUnion(propSchema?.anyOf)) {
+        newProps[key] = {
+          type: 'string',
+          description: propSchema.description || `ID of related ${key}`,
+          nullable: true,
+        }
+      }
+      // Detect and simplify array relationship union property (items has oneOf/anyOf)
+      else if (
+        propSchema?.type === 'array' &&
+        propSchema?.items &&
+        (isRelationshipUnion(propSchema.items.oneOf) || isRelationshipUnion(propSchema.items.anyOf))
+      ) {
+        newProps[key] = {
+          type: 'array',
+          items: { type: 'string' },
+          description: propSchema.description || `IDs of related ${key}`,
+          nullable: true,
+        }
+      }
+      // Detect and simplify virtual join object generated by Payload containing hasNextPage or totalDocs
+      else if (
+        propSchema &&
+        typeof propSchema === 'object' &&
+        propSchema.properties &&
+        ('hasNextPage' in propSchema.properties || 'totalDocs' in propSchema.properties)
+      ) {
+        newProps[key] = {
+          type: 'array',
+          items: { type: 'string' },
+          description: propSchema.description || `IDs or references of related ${key}`,
+          nullable: true,
+        }
+      } else {
+        // Recurse — nested objects/array items are NOT top-level
+        newProps[key] = sanitizeRequestBodySchema(propSchema, schemasDict, visitedObj, visitedRefs, false)
+      }
+    }
+    cloned.properties = newProps
+  }
+
+  // Filter required fields array — remove both global and top-level non-writable keys
+  if (Array.isArray(cloned.required)) {
+    cloned.required = cloned.required.filter((key: string) => {
+      if (NON_WRITABLE_INPUT_KEYS.has(key)) return false
+      if (isTopLevel && NON_WRITABLE_TOP_LEVEL_KEYS.has(key)) return false
+      return true
+    })
+  }
+
+  // Traverse nested schema structures (always propagate isTopLevel=false into combiners)
+  if (Array.isArray(cloned.allOf)) {
+    cloned.allOf = cloned.allOf.map((sub: any) => sanitizeRequestBodySchema(sub, schemasDict, visitedObj, visitedRefs, isTopLevel))
+  }
+  if (Array.isArray(cloned.anyOf)) {
+    cloned.anyOf = cloned.anyOf.map((sub: any) => sanitizeRequestBodySchema(sub, schemasDict, visitedObj, visitedRefs, false))
+  }
+  if (Array.isArray(cloned.oneOf)) {
+    cloned.oneOf = cloned.oneOf.map((sub: any) => sanitizeRequestBodySchema(sub, schemasDict, visitedObj, visitedRefs, false))
+  }
+  if (cloned.items) {
+    cloned.items = sanitizeRequestBodySchema(cloned.items, schemasDict, visitedObj, visitedRefs, false)
+  }
+
+  return cloned
+}
+
 const openapiEnhancerPlugin = (): Plugin => (config) => {
   const specEndpoint = config.endpoints?.find(
     (e) => e.path === '/openapi.json' && e.method === 'get',
@@ -91,6 +300,37 @@ const openapiEnhancerPlugin = (): Plugin => (config) => {
           ...retailerAnalyticsPaths,
           ...orderPaths,
           ...deliveryPartnerPaths,
+        }
+
+        // 1. Sanitize all reusable requestBodies generated by Payload CMS (e.g. CategoryRequestBody, BrandRequestBody, etc.)
+        if (spec.components?.requestBodies) {
+          for (const rbKey of Object.keys(spec.components.requestBodies)) {
+            const reqBody = spec.components.requestBodies[rbKey]
+            if (reqBody?.content) {
+              for (const mediaType of Object.keys(reqBody.content)) {
+                const mediaObj = reqBody.content[mediaType]
+                if (mediaObj?.schema) {
+                  mediaObj.schema = sanitizeRequestBodySchema(mediaObj.schema, spec.components?.schemas)
+                }
+              }
+            }
+          }
+        }
+
+        // 2. Sanitize requestBody schemas across all POST, PUT, and PATCH path operations
+        for (const pathKey of Object.keys(spec.paths)) {
+          const pathItem = spec.paths[pathKey]
+          for (const method of ['post', 'put', 'patch'] as const) {
+            const operation = pathItem?.[method]
+            if (operation?.requestBody?.content) {
+              for (const mediaType of Object.keys(operation.requestBody.content)) {
+                const mediaObj = operation.requestBody.content[mediaType]
+                if (mediaObj?.schema) {
+                  mediaObj.schema = sanitizeRequestBodySchema(mediaObj.schema, spec.components?.schemas)
+                }
+              }
+            }
+          }
         }
 
         if (!spec.components) {
