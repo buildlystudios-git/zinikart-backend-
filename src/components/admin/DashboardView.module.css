@@ -8,3 +8,154 @@
 @media (max-width: 1180px) { .content { grid-template-columns: 1fr; }.sidebar { display: grid; grid-template-columns: 1.25fr 1fr; gap: 18px; }.help { display: none; }.revenue { margin-top: 0; } }
 @media (max-width: 850px) { :global(:root) { --nav-width: 100vw; }.dashboard { padding: 15px; }.mobileHeader { display: flex; justify-content: space-between; gap: 14px; margin-bottom: 18px; }.search { display: flex; align-items: center; flex: 1; gap: 8px; padding: 9px 12px; border: 1px solid #dfe5e1; border-radius: 7px; background: #fff; }.search input { width: 100%; border: 0; outline: 0; background: transparent; }.greeting .profile { display: none; }.metrics { grid-template-columns: repeat(2, 1fr); }.metric:nth-child(n) { grid-column: span 1; }.actionGrid { grid-template-columns: repeat(2, 1fr); }.sidebar { grid-template-columns: 1fr; }.revenue { margin-top: 0; } }
 @media (max-width: 560px) { .greeting h1 { font-size: 22px; }.metrics,.actionGrid { grid-template-columns: 1fr; }.metric:nth-child(n) { min-height: 155px; }.recentOrders { padding: 13px; }.sectionHeading h2 { font-size: 15px; }.ticketCounts { gap: 6px; }.ticketCounts div { padding: 10px 7px; }.dashboard { min-height: auto; } }
+
+/* --- Special Metric Cards (Total Orders & Total Revenue) --- */
+.specialMetric {
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  border: 1px solid #e6eae6;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 2px 10px rgba(23, 32, 24, 0.03);
+  min-height: 200px;
+  justify-content: space-between;
+}
+
+.metrics > .specialMetric {
+  grid-column: span 3;
+}
+
+.specialHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.specialLeft {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.specialIconBadge {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.specialamber .specialIconBadge {
+  background: #fff4e5;
+  color: #ea580c;
+}
+
+.specialgreen .specialIconBadge {
+  background: #e8f7eb;
+  color: #138c31;
+}
+
+.specialTitleBox {
+  display: flex;
+  flex-direction: column;
+}
+
+.specialLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 2px;
+}
+
+.specialValue {
+  font-size: 26px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.1;
+}
+
+.specialDropdownWrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.timeDropdown {
+  appearance: none;
+  -webkit-appearance: none;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 6px 28px 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e293b;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.timeDropdown:hover {
+  border-color: #94a3b8;
+}
+
+.dropdownChevron {
+  position: absolute;
+  right: 8px;
+  pointer-events: none;
+  color: #64748b;
+}
+
+.specialChange {
+  font-size: 13px;
+  font-weight: 700;
+  color: #16a34a;
+  margin-top: 14px;
+  margin-bottom: 14px;
+}
+
+.specialChange em {
+  font-style: normal;
+  font-weight: 500;
+  color: #64748b;
+  margin-left: 4px;
+}
+
+.specialReportLink {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+
+.specialamber .specialReportLink {
+  background: #fff7ed;
+  color: #ea580c;
+}
+
+.specialamber .specialReportLink:hover {
+  background: #ffedd5;
+}
+
+.specialgreen .specialReportLink {
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+.specialgreen .specialReportLink:hover {
+  background: #dcfce7;
+}
+
+.specialReportLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

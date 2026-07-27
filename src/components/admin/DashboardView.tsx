@@ -2,17 +2,21 @@ import {
   Bell,
   Bike,
   Boxes,
+  Calendar,
   ChevronDown,
   ChevronRight,
   CircleHelp,
   ClipboardList,
   EllipsisVertical,
+  IndianRupee,
   LayoutGrid,
+  Package,
   PackageCheck,
   Search,
   ShoppingBag,
   Store,
   TicketCheck,
+  TrendingUp,
   Users,
   WalletCards,
 } from 'lucide-react'
@@ -49,6 +53,62 @@ const getChartPath = (values: number[]) => {
   const maximum = Math.max(...values, 1)
   const coordinates = values.map((value, index) => [4 + index * (283 / Math.max(values.length - 1, 1)), 135 - (value / maximum) * 90])
   return { line: coordinates.map(([x, y], index) => `${index === 0 ? 'M' : 'L'}${x} ${y}`).join(' '), coordinates }
+}
+
+function SpecialMetricCard({
+  label,
+  value,
+  change,
+  icon: Icon,
+  reportIcon: ReportIcon,
+  reportText,
+  tone,
+  href,
+}: {
+  label: string
+  value: string
+  change: string
+  icon: typeof ShoppingBag
+  reportIcon: typeof Calendar
+  reportText: string
+  tone: 'amber' | 'green'
+  href: string
+}) {
+  return (
+    <section className={`${styles.specialMetric} ${styles[`special${tone}`]}`}>
+      <div className={styles.specialHeader}>
+        <div className={styles.specialLeft}>
+          <span className={styles.specialIconBadge}>
+            <Icon size={25} strokeWidth={2.2} />
+          </span>
+          <div className={styles.specialTitleBox}>
+            <span className={styles.specialLabel}>{label}</span>
+            <strong className={styles.specialValue}>{value}</strong>
+          </div>
+        </div>
+        <div className={styles.specialDropdownWrap}>
+          <select className={styles.timeDropdown} defaultValue="today">
+            <option value="today">Today</option>
+            <option value="week">This Week</option>
+            <option value="month">This Month</option>
+          </select>
+          <ChevronDown size={14} className={styles.dropdownChevron} />
+        </div>
+      </div>
+
+      <div className={styles.specialChange}>
+        ↑ {change} <em>vs Yesterday</em>
+      </div>
+
+      <Link className={styles.specialReportLink} href={href}>
+        <div className={styles.specialReportLeft}>
+          <ReportIcon size={16} />
+          <span>{reportText}</span>
+        </div>
+        <ChevronRight size={16} />
+      </Link>
+    </section>
+  )
 }
 
 function MetricCard({
@@ -107,8 +167,26 @@ export default async function DashboardView({
           </div>
 
           <div className={styles.metrics}>
-            <MetricCard label="Total Orders" value={formatNumber(dashboard.metrics.orders.total)} change={formatChange(dashboard.metrics.orders.change)} icon={ShoppingBag} tone="amber" href="/admin/collections/orders" />
-            <MetricCard label="Today's Revenue" value={formatCurrency(dashboard.metrics.revenue.total)} change={formatChange(dashboard.metrics.revenue.change)} icon={WalletCards} tone="green" href="/admin/collections/transactions" />
+            <SpecialMetricCard
+              label="Total Orders"
+              value={formatNumber(dashboard.metrics.orders.total)}
+              change={formatChange(dashboard.metrics.orders.change)}
+              icon={Package}
+              reportIcon={Calendar}
+              reportText="View detailed orders report"
+              tone="amber"
+              href="/admin/collections/orders"
+            />
+            <SpecialMetricCard
+              label="Total Revenue"
+              value={formatCurrency(dashboard.metrics.revenue.total)}
+              change={formatChange(dashboard.metrics.revenue.change)}
+              icon={IndianRupee}
+              reportIcon={TrendingUp}
+              reportText="View detailed revenue report"
+              tone="green"
+              href="/admin/collections/transactions"
+            />
             <MetricCard label="Total Users" value={formatNumber(dashboard.metrics.users.total)} subtext={`+${dashboard.metrics.users.today} Joined today`} icon={Users} tone="blue" />
             <MetricCard label="Total Retailers" value={formatNumber(dashboard.metrics.retailers.total)} subtext={`+${dashboard.metrics.retailers.today} Joined today`} icon={Store} tone="violet" />
             <MetricCard label="Total Delivery Partners" value={formatNumber(dashboard.metrics.deliveryPartners.total)} subtext={`+${dashboard.metrics.deliveryPartners.today} Joined today`} icon={Bike} tone="blue" />
