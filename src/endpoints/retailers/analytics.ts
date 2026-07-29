@@ -66,7 +66,7 @@ export const analyticsEndpoint = async (req: PayloadRequest): Promise<Response> 
     const productIds = retailerProducts.docs.map((p) => p.id)
 
     // Calculate catalog listing statistics
-    const listedCategories = new Map<string | number, { data: any; productCount: number; activeProductCount: number }>()
+    const listedCategories = new Map<string | number, { data: any; retailerBrands: Map<string|number, any>; productCount: number; activeProductCount: number }>()
     const listedBrands = new Map<string | number, { data: any; productCount: number; activeProductCount: number }>()
 
     let totalCatProductCount = 0
@@ -81,7 +81,8 @@ export const analyticsEndpoint = async (req: PayloadRequest): Promise<Response> 
         for (const cat of p.categories) {
           if (typeof cat === 'object') {
             if (!listedCategories.has(cat.id)) {
-              listedCategories.set(cat.id, { data: cat, productCount: 0, activeProductCount: 0 })
+              const { brands, ...cleanCatData } = cat // Remove global brands array from payload response
+              listedCategories.set(cat.id, { data: cleanCatData, retailerBrands: new Map(), productCount: 0, activeProductCount: 0 })
             }
             const stat = listedCategories.get(cat.id)!
             stat.productCount++
@@ -89,6 +90,12 @@ export const analyticsEndpoint = async (req: PayloadRequest): Promise<Response> 
             if (isActive) {
               stat.activeProductCount++
               totalCatActiveProductCount++
+            }
+            // Add the product's brand to this category's retailer-specific brands
+            if (p.brand && typeof p.brand === 'object') {
+              if (!stat.retailerBrands.has(p.brand.id)) {
+                stat.retailerBrands.set(p.brand.id, p.brand)
+              }
             }
           }
         }
@@ -420,6 +427,7 @@ export const analyticsEndpoint = async (req: PayloadRequest): Promise<Response> 
         categories: {
           docs: Array.from(listedCategories.values()).map(item => ({
             ...item.data,
+            brands: Array.from(item.retailerBrands.values()), // Only the brands this retailer sells in this category
             productCount: item.productCount,
             activeProductCount: item.activeProductCount,
           })),
