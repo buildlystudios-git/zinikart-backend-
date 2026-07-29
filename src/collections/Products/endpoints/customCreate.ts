@@ -17,71 +17,85 @@ export const customCreateEndpoint: Endpoint = {
         body = (req as any).body || {}
       }
 
-      const { title, parentTemplate, variants, priceInINR, inventory, ...otherData } = body
+      const { id, title, parentTemplate, variants, priceInINR, inventory, ...otherData } = body
 
-      if (!title) {
-        return Response.json({ error: 'Missing required field: title' }, { status: 400 })
+      if (!id && !title) {
+        return Response.json({ error: 'Missing required field: title for creation' }, { status: 400 })
       }
 
       // Determine if variants are enabled
       const hasVariants = Array.isArray(variants) && variants.length > 0
       const enableVariants = hasVariants
 
-      // Generate a unique slug from the title to prevent unique constraint errors
-      const baseSlug = title
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/(^-|-$)+/g, '')
-      const uniqueSlug = `${baseSlug}-${Math.random().toString(36).substring(2, 8)}`
-
       // Prepare product payload
       // Other data can be passed, but the setTemplateFields hook will overwrite empty inherited fields.
-      const productData = {
-        title,
-        slug: uniqueSlug,
+      const productData: any = {
         parentTemplate: parentTemplate || null,
         enableVariants,
         priceInINR: !hasVariants ? priceInINR : undefined,
         inventory: !hasVariants ? inventory : undefined,
         ...otherData,
       }
+      
+      if (title) {
+        productData.title = title
+      }
 
-      // Create the product.
-      // We pass `req` so that `setTemplateFields` knows the user and can inherit master template fields.
-      const newProduct = await req.payload.create({
-        collection: 'products',
-        data: productData,
-        req,
-      })
+      // Create or Update the product.
+      let savedProduct
+      if (id) {
+        savedProduct = await req.payload.update({
+          collection: 'products',
+          id,
+          data: productData,
+          req,
+        })
+      } else {
+        savedProduct = await req.payload.create({
+          collection: 'products',
+          data: productData,
+          req,
+        })
+      }
 
-      const createdVariants = []
+      const savedVariants = []
 
-      // If variants are provided, create them linked to the new product.
+      // If variants are provided, update or create them linked to the product.
       if (hasVariants) {
         for (const variant of variants) {
           const variantData = {
-            product: newProduct.id,
+            product: savedProduct.id,
             options: variant.options,
             inventory: variant.inventory,
             priceInINR: variant.priceInINR,
             ...variant.otherData,
           }
 
-          const newVariant = await req.payload.create({
-            collection: 'variants',
-            data: variantData,
-            req,
-          })
+          let savedVariant
+          if (variant.id) {
+            savedVariant = await req.payload.update({
+              collection: 'variants',
+              id: variant.id,
+              data: variantData,
+              req,
+            })
+          } else {
+            savedVariant = await req.payload.create({
+              collection: 'variants',
+              data: variantData,
+              req,
+            })
+          }
 
-          createdVariants.push(newVariant)
+          savedVariants.push(savedVariant)
         }
       }
 
       return Response.json(
         {
-          message: 'Product created successfully',
-          product: newProduct,
-          variants: createdVariants,
+          message: id ? 'Product updated successfully' : 'Product created successfully',
+          product: savedProduct,
+          variants: savedVariants,
         },
         { status: 201 }
       )

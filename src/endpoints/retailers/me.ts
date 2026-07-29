@@ -27,11 +27,54 @@ export const retailerMeEndpoint: Endpoint = {
         limit: 100, // Fetch up to 100 products initially, or allow pagination later
         req,
       })
+      let finalProducts = productsQuery.docs
+
+      const url = new URL(req.url || '', 'http://localhost:3000')
+      const inventoryStatus = url.searchParams.get('inventoryStatus')
+
+      if (inventoryStatus) {
+        const productsWithVariants = finalProducts.filter((p) => p.enableVariants)
+        const variantProductIds = productsWithVariants.map((p) => p.id)
+        
+        let variantsRes = { docs: [] as any[] }
+        if (variantProductIds.length > 0) {
+          variantsRes = await req.payload.find({
+            collection: 'variants',
+            where: { product: { in: variantProductIds } },
+            limit: 10000,
+            depth: 0,
+            req,
+          })
+        }
+
+        const stockMap = new Map<string | number, number>()
+        for (const p of finalProducts) {
+          if (!p.enableVariants) {
+            stockMap.set(p.id, p.inventory || 0)
+          } else {
+            stockMap.set(p.id, 0)
+          }
+        }
+        for (const v of variantsRes.docs) {
+          const pid = typeof v.product === 'object' ? v.product.id : v.product
+          if (pid) {
+            stockMap.set(pid, (stockMap.get(pid) || 0) + (v.inventory || 0))
+          }
+        }
+
+        finalProducts = finalProducts.filter((p) => {
+          const stock = stockMap.get(p.id) || 0
+          if (inventoryStatus === 'in-stock') return stock > 0
+          if (inventoryStatus === 'out-of-stock') return stock === 0
+          if (inventoryStatus === 'low-stock') return stock > 0 && stock <= 5
+          return true
+        })
+      }
       
       return Response.json({ 
         success: true, 
         retailer: docs.docs[0],
-        products: productsQuery.docs 
+        products: finalProducts 
       })
     } catch (err: any) {
       req.payload.logger.error({ err }, 'Error fetching retailer me')

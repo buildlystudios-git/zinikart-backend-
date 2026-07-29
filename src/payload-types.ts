@@ -709,6 +709,7 @@ export interface ArchiveBlock {
 export interface Category {
   id: string;
   title: string;
+  media?: (string | null) | Media;
   parentCategory?: (string | null) | Category;
   /**
    * Define the standard specifications for products under this category.
@@ -1790,6 +1791,7 @@ export interface FormBlockSelect<T extends boolean = true> {
  */
 export interface CategoriesSelect<T extends boolean = true> {
   title?: T;
+  media?: T;
   parentCategory?: T;
   specificationTemplates?:
     | T

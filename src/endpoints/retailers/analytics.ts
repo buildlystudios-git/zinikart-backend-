@@ -65,6 +65,48 @@ export const analyticsEndpoint = async (req: PayloadRequest): Promise<Response> 
 
     const productIds = retailerProducts.docs.map((p) => p.id)
 
+    // Calculate catalog listing statistics
+    const listedCategories = new Map<string | number, { data: any; productCount: number; activeProductCount: number }>()
+    const listedBrands = new Map<string | number, { data: any; productCount: number; activeProductCount: number }>()
+
+    let totalCatProductCount = 0
+    let totalCatActiveProductCount = 0
+    let totalBrandProductCount = 0
+    let totalBrandActiveProductCount = 0
+
+    for (const p of retailerProducts.docs) {
+      const isActive = p._status !== 'draft'
+
+      if (p.categories) {
+        for (const cat of p.categories) {
+          if (typeof cat === 'object') {
+            if (!listedCategories.has(cat.id)) {
+              listedCategories.set(cat.id, { data: cat, productCount: 0, activeProductCount: 0 })
+            }
+            const stat = listedCategories.get(cat.id)!
+            stat.productCount++
+            totalCatProductCount++
+            if (isActive) {
+              stat.activeProductCount++
+              totalCatActiveProductCount++
+            }
+          }
+        }
+      }
+      if (p.brand && typeof p.brand === 'object') {
+        if (!listedBrands.has(p.brand.id)) {
+          listedBrands.set(p.brand.id, { data: p.brand, productCount: 0, activeProductCount: 0 })
+        }
+        const stat = listedBrands.get(p.brand.id)!
+        stat.productCount++
+        totalBrandProductCount++
+        if (isActive) {
+          stat.activeProductCount++
+          totalBrandActiveProductCount++
+        }
+      }
+    }
+
     // Calculate inventory statistics
     let totalStock = 0
     let lowStockCount = 0
@@ -374,6 +416,26 @@ export const analyticsEndpoint = async (req: PayloadRequest): Promise<Response> 
       topCategories,
       topBrands,
       historicalData,
+      catalogStats: {
+        categories: {
+          docs: Array.from(listedCategories.values()).map(item => ({
+            ...item.data,
+            productCount: item.productCount,
+            activeProductCount: item.activeProductCount,
+          })),
+          totalProductCount: totalCatProductCount,
+          totalActiveProductCount: totalCatActiveProductCount,
+        },
+        brands: {
+          docs: Array.from(listedBrands.values()).map(item => ({
+            ...item.data,
+            productCount: item.productCount,
+            activeProductCount: item.activeProductCount,
+          })),
+          totalProductCount: totalBrandProductCount,
+          totalActiveProductCount: totalBrandActiveProductCount,
+        },
+      },
     })
   } catch (err: any) {
     req.payload.logger.error(`Error in retailer analytics endpoint: ${err.message}`)
