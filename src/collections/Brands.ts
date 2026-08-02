@@ -16,6 +16,13 @@ export const Brands: CollectionConfig = {
     useAsTitle: 'name',
     defaultColumns: ['name', 'featured', 'categories', 'createdAt'],
     group: 'Products',
+    components: {
+      views: {
+        list: {
+          Component: '@/components/admin/BrandSplitView#default',
+        },
+      },
+    },
   },
   fields: [
     {

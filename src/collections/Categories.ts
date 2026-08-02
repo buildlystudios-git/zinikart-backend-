@@ -16,6 +16,18 @@ export const Categories: CollectionConfig = {
     useAsTitle: 'title',
     defaultColumns: ['title', 'brands'],
     group: 'Products',
+    components: {
+      views: {
+        list: {
+          Component: '@/components/admin/CategoryCardView#default',
+        },
+        edit: {
+          default: {
+            Component: '@/components/admin/views/CategoryEditView#CategoryEditView',
+          },
+        },
+      },
+    },
   },
   fields: [
     {

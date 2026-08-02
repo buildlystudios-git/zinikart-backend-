@@ -35,6 +35,15 @@ export const ProductsCollection: CollectionOverride = ({ defaultCollection }) =>
   admin: {
     ...defaultCollection?.admin,
     defaultColumns: ['title', '_status', 'inventory', 'categories', 'brand', 'retailer'],
+    components: {
+      views: {
+        edit: {
+          default: {
+            Component: '@/components/admin/views/ProductEditView',
+          },
+        },
+      },
+    },
     livePreview: {
       url: ({ data, req }) =>
         generatePreviewPath({

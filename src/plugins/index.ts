@@ -481,6 +481,19 @@ export const plugins: Plugin[] = [
           ...defaultCollection.admin,
           group: 'Orders',
           defaultColumns: ['id', 'status', 'total', 'customer', 'retailer', 'createdAt'],
+          components: {
+            ...defaultCollection.admin?.components,
+            views: {
+              ...defaultCollection.admin?.components?.views,
+              edit: {
+                ...(defaultCollection.admin?.components?.views?.edit as any),
+                default: {
+                  ...(defaultCollection.admin?.components?.views?.edit as any)?.default,
+                  Component: '@/components/admin/views/OrderEditView',
+                },
+              },
+            },
+          },
         },
         access: {
           ...defaultCollection.access,

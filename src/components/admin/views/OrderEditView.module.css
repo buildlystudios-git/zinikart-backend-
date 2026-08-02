@@ -1,0 +1,306 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px 0 64px 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  color: #111827;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.statusBadge {
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.statusGreen {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.statusYellow {
+  background: #fef9c3;
+  color: #854d0e;
+}
+
+.statusBlue {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.statusRed {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.statusGray {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.headerActions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.saveBtn {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.saveBtn:hover:not(:disabled) {
+  background: #1d4ed8 !important;
+}
+
+.saveBtn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.cancelBtn {
+  background: white;
+  border: 1px solid #d1d5db;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  font-size: 14px;
+  color: #374151;
+}
+
+.cancelBtn:hover {
+  background: #f3f4f6;
+}
+
+.content {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 24px;
+}
+
+.bentoSummary {
+  grid-column: span 8;
+}
+
+.bentoCustomer {
+  grid-column: span 4;
+}
+
+.bentoFulfillment {
+  grid-column: span 8;
+}
+
+.bentoPayments {
+  grid-column: span 4;
+}
+
+.bentoTimeline {
+  grid-column: span 12;
+}
+
+/* Table Styles for Order Items */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+}
+
+.table th {
+  text-align: left;
+  padding: 12px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 600;
+  text-transform: uppercase;
+  background: #f9fafb;
+}
+
+.table td {
+  padding: 16px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: top;
+}
+
+.itemInfo {
+  display: flex;
+  gap: 12px;
+}
+
+.itemImage {
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  object-fit: cover;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.itemDetails {
+  display: flex;
+  flex-direction: column;
+}
+
+.itemName {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 4px;
+}
+
+.itemVariant {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.summaryTotal {
+  font-weight: 700;
+  color: #111827;
+  font-size: 16px;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 16px;
+}
+
+/* Data List Styles (Customer, Fulfillment, Payments) */
+.dataList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dataGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dataLabel {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.dataValue {
+  font-size: 14px;
+  color: #111827;
+  font-weight: 500;
+}
+
+.dataSubValue {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* Timeline Styles */
+.timeline {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  padding-left: 12px;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 17px;
+  top: 12px;
+  bottom: 24px;
+  width: 2px;
+  background: #e5e7eb;
+}
+
+.timelineItem {
+  display: flex;
+  gap: 16px;
+  position: relative;
+  padding-bottom: 24px;
+}
+
+.timelineItem:last-child {
+  padding-bottom: 0;
+}
+
+.timelineDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #3b82f6;
+  border: 2px solid white;
+  z-index: 1;
+  margin-top: 4px;
+}
+
+.timelineContent {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.timelineStatus {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.timelineMeta {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.loadingWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Check, X, Loader2, List, LayoutGrid, Search } from 'lucide-react'
+import { Store, Truck, Users, Clock, Ban, ArrowUpRight, Search, ChevronRight, ChevronLeft, Check, X } from 'lucide-react'
+import { useStepNav, toast } from '@payloadcms/ui'
 
 import styles from './ApprovalManagementView.module.css'
 
@@ -18,6 +19,12 @@ type ApprovalDoc = {
   mobileNumber?: string
   createdAt?: string
   updatedAt?: string
+  shopAddress?: {
+    city?: string
+    state?: string
+  }
+  vehicleType?: string
+  vehicleBrand?: string
   [key: string]: unknown
 }
 
@@ -36,103 +43,76 @@ type ApprovalManagementViewProps = {
   query?: Record<string, unknown>
 }
 
-const statusMeta = {
-  all: { label: 'All Records', tone: 'violet' },
-  pending: { label: 'Pending', tone: 'amber' },
-  approved: { label: 'Approved', tone: 'green' },
-  rejected: { label: 'Rejected', tone: 'rose' },
-  suspended: { label: 'Suspended', tone: 'blue' },
-} as const
-
-const labelForStatus = (status?: string) => {
-  if (!status) return 'Pending Review'
-  const matched = statusMeta[status as keyof typeof statusMeta]
-  return matched?.label ?? status
+const formatDateTime = (value?: string) => {
+  if (!value) return { date: '—', time: '' }
+  const dateObj = new Date(value)
+  if (Number.isNaN(dateObj.getTime())) return { date: '—', time: '' }
+  
+  const date = new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }).format(dateObj)
+  const time = new Intl.DateTimeFormat('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }).format(dateObj)
+  return { date, time }
 }
 
-const toneForStatus = (status?: string) => {
-  if (!status) return 'amber'
-  const matched = statusMeta[status as keyof typeof statusMeta]
-  return matched?.tone ?? 'violet'
-}
-
-const formatDate = (value?: string) => {
-  if (!value) return '—'
-
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '—'
-
-  return new Intl.DateTimeFormat('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  }).format(date)
-}
-
-const getTitle = (collectionSlug?: string) => {
-  if (collectionSlug === 'delivery-partners') {
-    return 'Delivery Partners Directory'
-  }
-
-  return 'Retailers Directory'
-}
-
-const getDescription = (collectionSlug?: string) => {
-  if (collectionSlug === 'delivery-partners') {
-    return 'Browse full list of registered delivery partners, filter by status, and review approvals.'
-  }
-
-  return 'Browse full list of registered retailers, filter by status, and review approvals.'
+const getInitials = (name: string) => {
+  const parts = name.trim().split(' ').filter(Boolean)
+  if (parts.length === 0) return '?'
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase()
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase()
 }
 
 const getPrimaryField = (doc: ApprovalDoc, collectionSlug?: string) => {
-  if (collectionSlug === 'delivery-partners') {
-    return doc.fullName ?? 'Unnamed delivery partner'
-  }
-
-  return doc.shopName ?? doc.ownerName ?? 'Unnamed retailer'
+  if (collectionSlug === 'delivery-partners') return doc.fullName ?? 'Unnamed Partner'
+  return doc.shopName ?? doc.ownerName ?? 'Unnamed Retailer'
 }
 
 const getSecondaryField = (doc: ApprovalDoc, collectionSlug?: string) => {
-  if (collectionSlug === 'delivery-partners') {
-    return doc.email ?? doc.mobileNumber ?? 'No contact details'
-  }
-
-  return doc.ownerName ?? doc.emailId ?? doc.mobileNumber ?? 'No contact details'
+  if (collectionSlug === 'delivery-partners') return doc.email ?? doc.mobileNumber ?? '—'
+  return doc.ownerName ?? doc.emailId ?? '—'
 }
 
 export default function ApprovalManagementView(props: ApprovalManagementViewProps) {
   const searchParams = useSearchParams()
   const collectionSlug = props.collectionSlug ?? props.collectionConfig?.slug ?? 'retailers'
+  const isDelivery = collectionSlug === 'delivery-partners'
 
-  // Extract search param filter
   const rawStatus = searchParams?.get('where[approvalStatus][equals]') || searchParams?.get('approvalStatus')
-  const initialFilter = (rawStatus && rawStatus in statusMeta) ? rawStatus : 'all'
+  const initialFilter = rawStatus ? rawStatus : 'all'
 
-  // Local state for active filter tab, view mode, and search
+  const { setStepNav } = useStepNav()
+
   const [currentFilter, setCurrentFilter] = useState<string>(initialFilter)
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table')
   const [searchQuery, setSearchQuery] = useState<string>('')
+  const [sortOption, setSortOption] = useState<string>('newest')
+  const [currentPage, setCurrentPage] = useState<number>(1)
   const [allDocs, setAllDocs] = useState<ApprovalDoc[]>(props.data?.docs ?? [])
-  const [totalRequestsCount, setTotalRequestsCount] = useState<number>(props.data?.totalDocs ?? props.data?.docs?.length ?? 0)
-  const [updatingId, setUpdatingId] = useState<string | number | null>(null)
-  const [statusCounts, setStatusCounts] = useState<{ pending: number; approved: number; rejected: number; suspended: number }>({
-    pending: 0,
-    approved: 0,
-    rejected: 0,
-    suspended: 0,
-  })
+  const [totalCount, setTotalCount] = useState<number>(props.data?.totalDocs ?? props.data?.docs?.length ?? 0)
+  const [statusCounts, setStatusCounts] = useState({ pending: 0, approved: 0, rejected: 0, suspended: 0 })
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
 
-  // Sync initial filter if URL changes
+  const itemsPerPage = 10
+
+  // Set Payload CMS native breadcrumb (StepNav)
   useEffect(() => {
-    if (rawStatus && rawStatus in statusMeta) {
+    setStepNav([
+      {
+        label: isDelivery ? 'Delivery Partners' : 'Retailers',
+      },
+    ])
+  }, [setStepNav, isDelivery])
+
+  // Reset to first page when filters/search change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [currentFilter, searchQuery, sortOption])
+
+  useEffect(() => {
+    if (rawStatus) {
       setCurrentFilter(rawStatus)
     } else {
       setCurrentFilter('all')
     }
   }, [rawStatus])
 
-  // Fetch full collection documents once to calculate global counts & enable instant client filtering
   useEffect(() => {
     if (!collectionSlug) return
     let isSubscribed = true
@@ -143,7 +123,7 @@ export default function ApprovalManagementView(props: ApprovalManagementViewProp
         if (!isSubscribed || !data?.docs) return
         const docsList: ApprovalDoc[] = data.docs
         setAllDocs(docsList)
-        setTotalRequestsCount(data.totalDocs ?? docsList.length)
+        setTotalCount(data.totalDocs ?? docsList.length)
 
         const counts = docsList.reduce<{ pending: number; approved: number; rejected: number; suspended: number }>(
           (acc, doc) => {
@@ -166,278 +146,315 @@ export default function ApprovalManagementView(props: ApprovalManagementViewProp
     }
   }, [collectionSlug])
 
-  // Handler to approve or reject a request card directly
-  const handleStatusUpdate = async (docId: string | number, newStatus: 'approved' | 'rejected') => {
-    setUpdatingId(docId)
-    try {
-      const res = await fetch(`/api/${collectionSlug}/${docId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          approvalStatus: newStatus,
-        }),
-      })
-
-      if (res.ok) {
-        // Update local item status in allDocs
-        const currentDoc = allDocs.find((d) => d.id === docId)
-        const oldStatus = (currentDoc?.approvalStatus ?? 'pending') as keyof typeof statusCounts
-
-        setAllDocs((prevDocs) =>
-          prevDocs.map((doc) =>
-            doc.id === docId ? { ...doc, approvalStatus: newStatus } : doc,
-          ),
-        )
-
-        // Update counts
-        setStatusCounts((prev) => ({
-          ...prev,
-          [oldStatus]: Math.max(0, (prev[oldStatus] || 1) - 1),
-          [newStatus]: (prev[newStatus] || 0) + 1,
-        }))
-      } else {
-        const errData = await res.json().catch(() => ({}))
-        alert(`Failed to update status: ${errData?.errors?.[0]?.message || 'Unknown error'}`)
-      }
-    } catch (e: any) {
-      alert(`Error updating status: ${e?.message || e}`)
-    } finally {
-      setUpdatingId(null)
-    }
-  }
-
-  // Use allDocs if loaded, otherwise fall back to props docs
   const sourceDocs = allDocs.length > 0 ? allDocs : (props.data?.docs ?? [])
   const filteredDocs = currentFilter === 'all'
     ? sourceDocs
-    : sourceDocs.filter((doc) => (doc.approvalStatus ?? 'pending') === currentFilter)
+    : currentFilter === 'suspended' // treat suspended as "blocked" which could include rejected
+      ? sourceDocs.filter(doc => doc.approvalStatus === 'suspended' || doc.approvalStatus === 'rejected')
+      : sourceDocs.filter((doc) => (doc.approvalStatus ?? 'pending') === currentFilter)
 
-  // Real-time search filter
-  const displayedDocs = filteredDocs.filter((doc) => {
-    if (!searchQuery.trim()) return true
-    const query = searchQuery.toLowerCase().trim()
-    const primary = getPrimaryField(doc, collectionSlug).toLowerCase()
-    const secondary = getSecondaryField(doc, collectionSlug).toLowerCase()
-    const phone = String(doc.mobileNumber ?? '').toLowerCase()
-    const status = (doc.approvalStatus ?? '').toLowerCase()
-    return primary.includes(query) || secondary.includes(query) || phone.includes(query) || status.includes(query)
-  })
+  const displayedDocs = useMemo(() => {
+    let result = filteredDocs.filter((doc) => {
+      if (!searchQuery.trim()) return true
+      const query = searchQuery.toLowerCase().trim()
+      const primary = getPrimaryField(doc, collectionSlug).toLowerCase()
+      const secondary = getSecondaryField(doc, collectionSlug).toLowerCase()
+      const phone = String(doc.mobileNumber ?? '').toLowerCase()
+      return primary.includes(query) || secondary.includes(query) || phone.includes(query)
+    })
+
+    result.sort((a, b) => {
+      const dateA = new Date(a.createdAt ?? 0).getTime()
+      const dateB = new Date(b.createdAt ?? 0).getTime()
+      return sortOption === 'newest' ? dateB - dateA : dateA - dateB
+    })
+
+    return result
+  }, [filteredDocs, searchQuery, sortOption, collectionSlug])
+
+  const paginatedDocs = displayedDocs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+  const totalPages = Math.ceil(displayedDocs.length / itemsPerPage)
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+  }
+
+  const handleStatusChange = async (id: string | number, newStatus: string) => {
+    setActionLoading(String(id))
+    try {
+      const res = await fetch(`/api/${collectionSlug}/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ approvalStatus: newStatus })
+      })
+      if (res.ok) {
+        toast.success(`Status updated to ${newStatus}`)
+        setAllDocs(prev => prev.map(doc => doc.id === id ? { ...doc, approvalStatus: newStatus } : doc))
+        setStatusCounts(prev => {
+          const oldStatus = allDocs.find(d => d.id === id)?.approvalStatus || 'pending'
+          return {
+            ...prev,
+            [oldStatus]: Math.max(0, prev[oldStatus as keyof typeof prev] - 1),
+            [newStatus]: prev[newStatus as keyof typeof prev] + 1
+          }
+        })
+      } else {
+        toast.error('Failed to update status')
+      }
+    } catch (err) {
+      toast.error('Error updating status')
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'pending': return <span className={`${styles.statusBadge} ${styles.pendingReview}`}>Pending Review</span>
+      case 'approved': return <span className={`${styles.statusBadge} ${styles.new}`}>Approved</span>
+      case 'rejected': return <span className={`${styles.statusBadge} ${styles.rejected}`}>Rejected</span>
+      case 'suspended': return <span className={`${styles.statusBadge} ${styles.suspended}`}>Blocked</span>
+      default: return <span className={`${styles.statusBadge} ${styles.new}`}>New</span>
+    }
+  }
+
+  const getSectionTitle = () => {
+    if (currentFilter === 'pending') return 'New Requests'
+    if (currentFilter === 'approved') return 'Active'
+    if (currentFilter === 'suspended') return 'Blocked'
+    return 'All Records'
+  }
 
   return (
     <main className={styles.shell}>
       <header className={styles.header}>
         <div>
-          <p className={styles.eyebrow}>Admin management workspace</p>
-          <h1>{getTitle(collectionSlug)}</h1>
-          <p className={styles.description}>{getDescription(collectionSlug)}</p>
-        </div>
-        <div className={styles.headerRight}>
-          <div className={styles.summaryCard}>
-            <span>{totalRequestsCount}</span>
-            <small>Total records</small>
-          </div>
-          <div className={styles.viewModeGroup}>
-            <button
-              type="button"
-              className={`${styles.viewModeBtn} ${viewMode === 'table' ? styles.active : ''}`}
-              onClick={() => setViewMode('table')}
-            >
-              <List size={14} /> All Records (Table)
-            </button>
-            <button
-              type="button"
-              className={`${styles.viewModeBtn} ${viewMode === 'cards' ? styles.active : ''}`}
-              onClick={() => setViewMode('cards')}
-            >
-              <LayoutGrid size={14} /> Queue Cards
-            </button>
-          </div>
+          <h1>{isDelivery ? 'Delivery Partner Management' : 'Retailer Management'}</h1>
+          <p className={styles.description}>Manage {isDelivery ? 'delivery partner' : 'retailer'} registrations, approvals and account status.</p>
         </div>
       </header>
 
-      <section className={styles.filters} aria-label="Approval status filters">
-        <button
-          type="button"
-          className={`${styles.filterChip} ${currentFilter === 'all' ? styles.active : ''}`}
-          onClick={() => setCurrentFilter('all')}
-        >
-          All Records <span>{totalRequestsCount}</span>
-        </button>
-        {(['pending', 'approved', 'rejected', 'suspended'] as const).map((status) => (
-          <button
-            type="button"
-            key={status}
-            className={`${styles.filterChip} ${currentFilter === status ? styles.active : ''}`}
-            onClick={() => setCurrentFilter(status)}
-          >
-            {labelForStatus(status)} <span>{statusCounts[status] ?? 0}</span>
-          </button>
-        ))}
-      </section>
-
-      <section className={styles.tableCard}>
-        <div className={styles.tableHeader}>
-          <div>
-            <h2>{labelForStatus(currentFilter === 'all' ? undefined : currentFilter)}</h2>
-            <p>{displayedDocs.length} record{displayedDocs.length === 1 ? '' : 's'} showing</p>
+      <section className={styles.kpiGrid}>
+        <div className={`${styles.kpiCard} ${currentFilter === 'all' ? styles.active : ''}`} onClick={() => setCurrentFilter('all')}>
+          <div className={`${styles.kpiIconWrapper} ${styles.green}`}>
+            {isDelivery ? <Truck size={24} /> : <Store size={24} />}
           </div>
-          <div className={styles.searchWrap}>
-            <Search size={16} style={{ color: '#64748b' }} />
-            <input
-              type="text"
-              className={styles.searchInput}
-              placeholder={`Search ${collectionSlug}...`}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            {currentFilter !== 'all' && (
-              <button
-                type="button"
-                className={styles.reviewLink}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginLeft: 8 }}
-                onClick={() => setCurrentFilter('all')}
-              >
-                Reset filter
-              </button>
-            )}
+          <div className={styles.kpiContent}>
+            <span className={styles.kpiLabel}>Total {isDelivery ? 'Partners' : 'Retailers'}</span>
+            <span className={styles.kpiValue}>{totalCount.toLocaleString()}</span>
           </div>
         </div>
 
-        {displayedDocs.length === 0 ? (
-          <div className={styles.emptyState}>
-            <h3>No records found.</h3>
-            <p>Try clearing your search or switching to another status queue.</p>
+        <div className={`${styles.kpiCard} ${currentFilter === 'approved' ? styles.active : ''}`} onClick={() => setCurrentFilter('approved')}>
+          <div className={`${styles.kpiIconWrapper} ${styles.blue}`}>
+            <Users size={24} />
           </div>
-        ) : viewMode === 'table' ? (
+          <div className={styles.kpiContent}>
+            <span className={styles.kpiLabel}>Active {isDelivery ? 'Partners' : 'Retailers'}</span>
+            <span className={styles.kpiValue}>{statusCounts.approved.toLocaleString()}</span>
+          </div>
+        </div>
+
+        <div className={`${styles.kpiCard} ${currentFilter === 'pending' ? styles.active : ''}`} onClick={() => setCurrentFilter('pending')}>
+          <div className={`${styles.kpiIconWrapper} ${styles.orange}`}>
+            <Clock size={24} />
+          </div>
+          <div className={styles.kpiContent}>
+            <span className={styles.kpiLabel}>New Requests</span>
+            <span className={styles.kpiValue}>{statusCounts.pending.toLocaleString()}</span>
+          </div>
+        </div>
+
+        <div className={`${styles.kpiCard} ${currentFilter === 'suspended' ? styles.active : ''}`} onClick={() => setCurrentFilter('suspended')}>
+          <div className={`${styles.kpiIconWrapper} ${styles.red}`}>
+            <Ban size={24} />
+          </div>
+          <div className={styles.kpiContent}>
+            <span className={styles.kpiLabel}>Blocked {isDelivery ? 'Partners' : 'Retailers'}</span>
+            <span className={styles.kpiValue}>{(statusCounts.suspended + statusCounts.rejected).toLocaleString()}</span>
+          </div>
+        </div>
+      </section>
+
+      <section className={styles.tableSection}>
+        <div className={styles.tableSectionHeader}>
+          <div>
+            <h2>{getSectionTitle()}</h2>
+            <p>Review and take action on {isDelivery ? 'partner' : 'retailer'} registration requests.</p>
+          </div>
+        </div>
+
+        <div className={styles.tableCard}>
+          <div className={styles.tableControls}>
+            <div className={styles.searchWrap}>
+              <Search size={16} color="#9ca3af" />
+              <input
+                type="text"
+                className={styles.searchInput}
+                placeholder={`Search ${isDelivery ? 'partner' : 'retailer'} by name, owner or city...`}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            
+            <div className={styles.controlsRight}>
+              <div className={styles.sortWrap}>
+                Sort by
+                <select className={styles.sortSelect} value={sortOption} onChange={(e) => setSortOption(e.target.value)}>
+                  <option value="newest">Newest First</option>
+                  <option value="oldest">Oldest First</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
           <div className={styles.tableWrapper}>
-            <table className={styles.dataTable}>
-              <thead>
-                <tr>
-                  <th>{collectionSlug === 'delivery-partners' ? 'Partner Name' : 'Shop / Store Name'}</th>
-                  <th>{collectionSlug === 'delivery-partners' ? 'Contact Email' : 'Owner Name'}</th>
-                  <th>Mobile Number</th>
-                  <th>{collectionSlug === 'delivery-partners' ? 'Vehicle Details' : 'GST Number'}</th>
-                  <th>Approval Status</th>
-                  <th>Joined Date</th>
-                  <th style={{ textAlign: 'right' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {displayedDocs.map((doc) => {
-                  const status = (doc.approvalStatus ?? 'pending') as string
-                  const tone = toneForStatus(status)
-                  const isPending = status === 'pending'
-                  const isUpdating = updatingId === doc.id
+            {paginatedDocs.length === 0 ? (
+              <div className={styles.emptyState}>
+                <h3>No records found</h3>
+                <p>Try adjusting your search or filters to find what you're looking for.</p>
+              </div>
+            ) : (
+              <table className={styles.dataTable}>
+                <thead>
+                  <tr>
+                    <th>{isDelivery ? 'PARTNER NAME' : 'RETAILER NAME'}</th>
+                    <th>{isDelivery ? 'CONTACT EMAIL' : 'OWNER NAME'}</th>
+                    <th>DATE OF JOINING</th>
+                    <th>{isDelivery ? 'VEHICLE' : 'CITY'}</th>
+                    <th>STATUS</th>
+                    <th>ACTION</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedDocs.map((doc, idx) => {
+                    const primaryName = getPrimaryField(doc, collectionSlug)
+                    const { date, time } = formatDateTime(doc.createdAt)
+                    const avatarColors = ['green', 'blue', 'orange', 'yellow', 'red']
+                    const avatarColor = avatarColors[idx % avatarColors.length]
+                    
+                    const docIdStr = String(doc.id || '')
+                    const displayId = docIdStr.length > 8 ? docIdStr.substring(0, 8) : docIdStr
 
-                  return (
-                    <tr key={doc.id}>
-                      <td>
-                        <b>{getPrimaryField(doc, collectionSlug)}</b>
-                      </td>
-                      <td>{getSecondaryField(doc, collectionSlug)}</td>
-                      <td>{String(doc.mobileNumber ?? '—')}</td>
-                      <td>
-                        {collectionSlug === 'delivery-partners'
-                          ? String(doc.vehicleBrand ?? doc.vehicleType ?? '—')
-                          : String(doc.gstNumber ?? '—')}
-                      </td>
-                      <td>
-                        <span className={`${styles.statusBadge} ${styles[tone]}`}>
-                          {labelForStatus(status)}
-                        </span>
-                      </td>
-                      <td>{formatDate(doc.createdAt as string | undefined)}</td>
-                      <td style={{ textAlign: 'right' }}>
-                        <div className={styles.actionGroup} style={{ justifyContent: 'flex-end' }}>
-                          {isPending && (
-                            <>
-                              <button
-                                type="button"
-                                className={styles.approveBtn}
-                                disabled={isUpdating}
-                                onClick={() => doc.id && handleStatusUpdate(doc.id, 'approved')}
-                              >
-                                {isUpdating ? <Loader2 size={12} className={styles.spin} /> : <Check size={12} />}
-                                Approve
-                              </button>
-                              <button
-                                type="button"
-                                className={styles.rejectBtn}
-                                disabled={isUpdating}
-                                onClick={() => doc.id && handleStatusUpdate(doc.id, 'rejected')}
-                              >
-                                {isUpdating ? <Loader2 size={12} className={styles.spin} /> : <X size={12} />}
-                                Reject
-                              </button>
-                            </>
+                    return (
+                      <tr key={doc.id}>
+                        <td>
+                          <div className={styles.avatarCell}>
+                            <div className={`${styles.avatar} ${styles[avatarColor]}`}>
+                              {getInitials(primaryName)}
+                            </div>
+                            <div className={styles.stackedText}>
+                              <span className={styles.primaryText}>{primaryName}</span>
+                              {displayId && <span className={styles.secondaryText}>#{displayId}</span>}
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <span className={styles.primaryText}>{getSecondaryField(doc, collectionSlug)}</span>
+                        </td>
+                        <td>
+                          <div className={styles.stackedText}>
+                            <span className={styles.primaryText}>{date}</span>
+                            <span className={styles.secondaryText}>{time}</span>
+                          </div>
+                        </td>
+                        <td>
+                          {isDelivery ? (
+                            <div className={styles.stackedText}>
+                              <span className={styles.primaryText}>{doc.vehicleBrand || 'Unknown'}</span>
+                              <span className={styles.secondaryText}>{doc.vehicleType || '—'}</span>
+                            </div>
+                          ) : (
+                            <div className={styles.stackedText}>
+                              <span className={styles.primaryText}>{doc.shopAddress?.city || '—'},</span>
+                              <span className={styles.secondaryText}>{doc.shopAddress?.state || '—'}</span>
+                            </div>
                           )}
-                          <Link className={styles.reviewLink} href={`/admin/collections/${collectionSlug}/${doc.id}`}>
-                            Edit details &rarr;
-                          </Link>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {getStatusBadge(doc.approvalStatus || 'pending')}
+                            {isDelivery && doc.onlineStatus && (
+                              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} title="Online"></span>
+                            )}
+                          </div>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            {doc.approvalStatus === 'pending' && (
+                              <>
+                                <button 
+                                  onClick={() => handleStatusChange(doc.id!, 'approved')}
+                                  disabled={actionLoading === String(doc.id)}
+                                  style={{ background: '#10b981', color: 'white', border: 'none', padding: '6px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', opacity: actionLoading === String(doc.id) ? 0.5 : 1 }}
+                                  title="Approve"
+                                >
+                                  <Check size={16} />
+                                </button>
+                                <button 
+                                  onClick={() => handleStatusChange(doc.id!, 'rejected')}
+                                  disabled={actionLoading === String(doc.id)}
+                                  style={{ background: '#ef4444', color: 'white', border: 'none', padding: '6px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', opacity: actionLoading === String(doc.id) ? 0.5 : 1 }}
+                                  title="Reject"
+                                >
+                                  <X size={16} />
+                                </button>
+                              </>
+                            )}
+                            <Link href={`/admin/collections/${collectionSlug}/${doc.id}`} className={styles.viewDetailsBtn}>
+                              View Details
+                            </Link>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            )}
           </div>
-        ) : (
-          <div className={styles.requestList}>
-            {displayedDocs.map((doc) => {
-              const status = (doc.approvalStatus ?? 'pending') as string
-              const tone = toneForStatus(status)
-              const isPending = status === 'pending'
-              const isUpdating = updatingId === doc.id
 
-              return (
-                <article key={doc.id} className={styles.requestItem}>
-                  <div className={styles.requestMain}>
-                    <div>
-                      <h3>{getPrimaryField(doc, collectionSlug)}</h3>
-                      <p>{getSecondaryField(doc, collectionSlug)}</p>
-                    </div>
-                    <span className={`${styles.statusBadge} ${styles[tone]}`}>{labelForStatus(status)}</span>
-                  </div>
-                  <div className={styles.requestMeta}>
-                    <span>Created {formatDate(doc.createdAt as string | undefined)}</span>
-                    <span>Updated {formatDate(doc.updatedAt as string | undefined)}</span>
-                    <span>Phone {String(doc.mobileNumber ?? '—')}</span>
-                  </div>
-                  <div className={styles.requestActions}>
-                    {isPending && (
-                      <div className={styles.actionGroup}>
-                        <button
-                          type="button"
-                          className={styles.approveBtn}
-                          disabled={isUpdating}
-                          onClick={() => doc.id && handleStatusUpdate(doc.id, 'approved')}
-                        >
-                          {isUpdating ? <Loader2 size={14} className={styles.spin} /> : <Check size={14} />}
-                          Approve
-                        </button>
-                        <button
-                          type="button"
-                          className={styles.rejectBtn}
-                          disabled={isUpdating}
-                          onClick={() => doc.id && handleStatusUpdate(doc.id, 'rejected')}
-                        >
-                          {isUpdating ? <Loader2 size={14} className={styles.spin} /> : <X size={14} />}
-                          Reject
-                        </button>
-                      </div>
-                    )}
-                    <Link className={styles.reviewLink} href={`/admin/collections/${collectionSlug}/${doc.id}`}>
-                      Review details &rarr;
-                    </Link>
-                  </div>
-                </article>
-              )
-            })}
-          </div>
-        )}
+          {displayedDocs.length > itemsPerPage && (
+            <div className={styles.pagination}>
+              <span>Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, displayedDocs.length)} of {displayedDocs.length} requests</span>
+              <div className={styles.pageControls}>
+                <button 
+                  className={styles.pageBtn} 
+                  disabled={currentPage === 1}
+                  onClick={() => handlePageChange(currentPage - 1)}
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                {Array.from({ length: totalPages }).map((_, idx) => {
+                  const page = idx + 1;
+                  // Simple pagination: show first, last, current, and adjacent
+                  if (page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)) {
+                    return (
+                      <button 
+                        key={page}
+                        className={`${styles.pageBtn} ${currentPage === page ? styles.active : ''}`}
+                        onClick={() => handlePageChange(page)}
+                      >
+                        {page}
+                      </button>
+                    )
+                  }
+                  if (page === currentPage - 2 || page === currentPage + 2) {
+                    return <span key={page}>...</span>
+                  }
+                  return null;
+                })}
+                <button 
+                  className={styles.pageBtn} 
+                  disabled={currentPage === totalPages}
+                  onClick={() => handlePageChange(currentPage + 1)}
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </section>
     </main>
   )
