@@ -3,7 +3,7 @@ import styles from './SectionCard.module.css'
 
 export type SectionCardProps = {
   title: string
-  description?: string
+  description?: React.ReactNode
   children: React.ReactNode
   className?: string
 }

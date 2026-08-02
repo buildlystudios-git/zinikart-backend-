@@ -206,6 +206,7 @@ export const VariantsConfigurator: React.FC<VariantsConfiguratorProps> = ({
           <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>Configure up to 2 variant types for a matrix layout.</p>
         </div>
         <ToggleSwitch 
+          label="Enable Variants"
           checked={formData.enableVariants}
           onChange={(val) => setFormData({ ...formData, enableVariants: val })}
         />

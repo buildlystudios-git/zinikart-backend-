@@ -11,10 +11,11 @@ export type TextInputProps = {
   required?: boolean
   description?: string
   placeholder?: string
+  type?: string
 }
 
 export const TextInput: React.FC<TextInputProps> = ({ 
-  label, name, value, onChange, required, description, placeholder 
+  label, name, value, onChange, required, description, placeholder, type 
 }) => {
   return (
     <div className={styles.field}>
@@ -25,7 +26,7 @@ export const TextInput: React.FC<TextInputProps> = ({
       <input
         id={name}
         name={name}
-        type="text"
+        type={type || "text"}
         value={value || ''}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}

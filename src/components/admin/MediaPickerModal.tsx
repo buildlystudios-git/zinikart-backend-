@@ -94,7 +94,7 @@ export function MediaPickerModal({ isOpen, onClose, onSelect, collectionSlug = '
     setIsUploading(true)
     
     try {
-      const newDocs = []
+      const newDocs: any[] = []
       for (const file of files) {
         const formData = new FormData()
         formData.append('file', file)

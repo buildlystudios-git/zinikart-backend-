@@ -374,9 +374,9 @@ export default function ApprovalManagementView(props: ApprovalManagementViewProp
                         <td>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             {getStatusBadge(doc.approvalStatus || 'pending')}
-                            {isDelivery && doc.onlineStatus && (
+                            {(isDelivery && doc.onlineStatus) ? (
                               <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} title="Online"></span>
-                            )}
+                            ) : null}
                           </div>
                         </td>
                         <td>
