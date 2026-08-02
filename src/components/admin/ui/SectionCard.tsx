@@ -13,7 +13,7 @@ export const SectionCard: React.FC<SectionCardProps> = ({ title, description, ch
     <div className={`${styles.card} ${className || ''}`}>
       <div className={styles.header}>
         <h2 className={styles.title}>{title}</h2>
-        {description && <p className={styles.description}>{description}</p>}
+        {description && <div className={styles.description}>{description}</div>}
       </div>
       <div className={styles.content}>
         {children}

@@ -490,8 +490,10 @@ export default function ProductEditView() {
               <span style={{ fontSize: '14px', fontWeight: 500, color: '#374151' }}>Final Price</span>
               <div style={{ padding: '8px 12px', background: '#f3f4f6', borderRadius: '6px', fontWeight: 600 }}>
                 ₹ {formData.priceInINR - (formData.priceInINR * (formData.discountPercent / 100))}
-                {isEditing && formData.discountedPrice > 0 && (
-                  <span style={{ fontSize: '12px', color: '#6b7280', marginLeft: '8px', fontWeight: 400 }}>(Saved: ₹{formData.discountedPrice})</span>
+                {formData.discountPercent > 0 && (
+                  <span style={{ fontSize: '12px', color: '#6b7280', marginLeft: '8px', fontWeight: 400 }}>
+                    (Saved: ₹{formData.priceInINR * (formData.discountPercent / 100)})
+                  </span>
                 )}
               </div>
             </div>
