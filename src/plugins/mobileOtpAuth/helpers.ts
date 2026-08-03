@@ -49,11 +49,15 @@ export const getCodeFromBody = (body: OtpVerifyBody): string => {
 }
 
 export const isTestOtp = (mobileNumber: string, code?: string): boolean => {
+  // TODO: Remove this test account pattern for prod
+  const isTestAccount =
+    mobileNumber === OTP_TEST_MOBILE_NUMBER || /^\+?(91)?998877\d{4}$/.test(mobileNumber)
+
   if (code) {
-    return mobileNumber === OTP_TEST_MOBILE_NUMBER && code === OTP_TEST_CODE
+    return isTestAccount && code === OTP_TEST_CODE
   }
 
-  return mobileNumber === OTP_TEST_MOBILE_NUMBER
+  return isTestAccount
 }
 
 export const sanitizeMobileUser = (user: any) => {
