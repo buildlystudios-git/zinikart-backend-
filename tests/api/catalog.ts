@@ -452,41 +452,46 @@ export async function runCatalogTests(
 
     let activeRetailerProfile: any = null
     if (activeRetailerUserId) {
-      activeRetailerProfile = await payload.create({
+      const existingProfile = await payload.find({
         collection: 'retailers',
-        data: {
-          shopName: 'Active Retailer Gadgets',
-          ownerName: 'Active Seller',
-          mobileNumber: '+916666666666',
-          emailId: 'retailer.user@testing.zinikart.local',
-          gstNumber: 'GST99ABCDE6666',
-          images: [mediaId],
-          shopAddress: {
-            street: '123 Active St',
-            city: 'Delhi',
-            state: 'Delhi',
-            zipCode: '110001',
-          },
-          businessHours: {
-            startTime: '09:00',
-            endTime: '21:00',
-            openEveryday: true,
-          },
-          paymentMethods: [
-            {
-              methodType: 'bank_account',
-              isDefault: true,
-              accountHolderName: 'Active Seller',
-              accountNumber: '444455556666',
-              ifscCode: 'IFSC0006666',
-              bankName: 'Delhi Bank',
-            },
-          ],
-          approvalStatus: 'approved',
-          user: activeRetailerUserId,
-        },
+        where: { user: { equals: activeRetailerUserId } },
         overrideAccess: true,
       })
+      if (existingProfile.docs.length > 0) {
+        activeRetailerProfile = existingProfile.docs[0]
+      } else {
+        activeRetailerProfile = await payload.create({
+          collection: 'retailers',
+          data: {
+            user: activeRetailerUserId,
+            shopName: 'Active Retailer Gadgets',
+            ownerName: 'Active Seller',
+            mobileNumber: '+916666666669',
+            emailId: 'retailer.user@testing.zinikart.local',
+            gstNumber: 'GST99ABCDE6666',
+            images: [mediaId],
+            shopAddress: {
+              street: '123 Active St',
+              city: 'Delhi',
+              state: 'Delhi',
+              zipCode: '110001',
+            },
+            businessHours: {
+              startTime: '09:00',
+              endTime: '21:00',
+            },
+            paymentMethods: [
+              {
+                methodType: 'upi',
+                isDefault: true,
+                upiId: 'active@upi',
+              },
+            ],
+            approvalStatus: 'approved',
+          } as any,
+          overrideAccess: true,
+        })
+      }
     }
 
     // Create a competitor retailer user

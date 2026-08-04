@@ -34,6 +34,12 @@ import { checkOfferTimeoutTask } from '@/jobs/checkOfferTimeout'
 import { retailerActionTimeoutTask } from '@/jobs/retailerActionTimeout'
 import { processRazorpayRefundTask } from '@/jobs/processRazorpayRefund'
 import { DATABASE_URL, PAYLOAD_SECRET } from '@/constants/env'
+import { PlatformSettings } from '@/globals/PlatformSettings'
+import { PayoutLedger } from '@/collections/PayoutLedger'
+import { PayoutInvoice } from '@/collections/PayoutInvoice'
+import { processPayoutsTask } from '@/jobs/processPayouts'
+
+import { myLedgerEndpoint, myInvoicesEndpoint, invoiceDetailEndpoint } from '@/endpoints/payouts'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -53,7 +59,8 @@ export default buildConfig({
       },
     },
   },
-  collections: [Users, Pages, Categories, Media, Retailers, DeliveryPartners, Brands, Ratings, Wishlists],
+  collections: [Users, Pages, Categories, Media, Retailers, DeliveryPartners, Brands, Ratings, Wishlists, PayoutLedger, PayoutInvoice],
+
   db: postgresAdapter({
     idType: 'uuid',
     pool: {
@@ -108,8 +115,11 @@ export default buildConfig({
       path: '/mobile/search',
       handler: searchEndpoint,
     },
+    myLedgerEndpoint,
+    myInvoicesEndpoint,
+    invoiceDetailEndpoint,
   ],
-  globals: [Header, Footer, AgentSettings],
+  globals: [Header, Footer, AgentSettings, PlatformSettings],
   plugins,
   secret: PAYLOAD_SECRET,
   typescript: {
@@ -149,6 +159,20 @@ export default buildConfig({
           { name: 'transactionId', type: 'text', required: true }
         ],
         handler: processRazorpayRefundTask,
+      },
+      {
+        slug: 'processPayouts',
+        inputSchema: [],
+        handler: processPayoutsTask,
+      },
+    ],
+    workflows: [
+      {
+        slug: 'hourlyPayoutCheck',
+        schedule: [{ cron: '0 * * * *', queue: 'default' }],
+        handler: async ({ tasks }) => {
+          await tasks.processPayouts!('1', { input: {} })
+        },
       },
     ],
   },

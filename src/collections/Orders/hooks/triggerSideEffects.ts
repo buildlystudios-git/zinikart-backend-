@@ -34,6 +34,7 @@ export const triggerSideEffects: CollectionAfterChangeHook = async ({
   }
 
   // Handle Razorpay Refund on Cancelled
+  // TODO: When a 'returned' order status is added, queue refund here for returns as well.
   if (doc.status === ORDER_STATUS.CANCELLED && previousDoc?.status !== ORDER_STATUS.CANCELLED) {
     try {
       const transactions = await payload.find({

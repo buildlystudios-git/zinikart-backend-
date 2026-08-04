@@ -13,6 +13,7 @@ import { runWishlistTests } from './wishlist'
 import { runCartTests } from './cart'
 import { runCheckoutTests } from './checkout'
 import { runQuickCommerceTests } from './quick-commerce'
+import { runPayoutTests } from './payouts'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -51,6 +52,20 @@ async function main() {
       collection: 'ratings',
       where: {
         customer: { in: userIds },
+      },
+      overrideAccess: true,
+    })
+    await payload.delete({
+      collection: 'payout-ledger',
+      where: {
+        recipient: { in: userIds },
+      },
+      overrideAccess: true,
+    })
+    await payload.delete({
+      collection: 'payout-invoices',
+      where: {
+        recipient: { in: userIds },
       },
       overrideAccess: true,
     })
@@ -277,6 +292,7 @@ async function main() {
     await runCartTests(report, payload, otherUserToken)
     await runCheckoutTests(report, payload, otherUserToken)
     await runQuickCommerceTests(report, payload, adminUserToken, retailerUserToken, otherUserToken, retailerUserToken)
+    await runPayoutTests(report, payload, adminUserToken, retailerUserToken)
 
   } catch (err) {
     console.error('Test execution error occurred:', err)
@@ -298,6 +314,27 @@ async function main() {
     console.log(`Batch cleaning profiles and users for IDs: ${finalUserIds.join(', ')}`)
     await payload.delete({
       collection: 'ratings',
+      where: {
+        customer: { in: finalUserIds },
+      },
+      overrideAccess: true,
+    })
+    await payload.delete({
+      collection: 'payout-ledger',
+      where: {
+        recipient: { in: finalUserIds },
+      },
+      overrideAccess: true,
+    })
+    await payload.delete({
+      collection: 'payout-invoices',
+      where: {
+        recipient: { in: finalUserIds },
+      },
+      overrideAccess: true,
+    })
+    await payload.delete({
+      collection: 'orders',
       where: {
         customer: { in: finalUserIds },
       },

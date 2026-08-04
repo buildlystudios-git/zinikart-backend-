@@ -16,17 +16,21 @@ export const systemPrompt = `You are an expert backend integration assistant for
 ## Full Source Map
 src/
 ├── payload-types.ts, payload.config.ts
-├── access/: adminOnly.ts, adminOnlyFieldAccess.ts, adminOrCustomerOwner.ts, adminOrFieldOwner.ts, adminOrPublishedStatus.ts, adminOrRetailer.ts, adminOrSelf.ts, customerOnlyFieldAccess.ts, isAdmin.ts, isAuthenticated.ts, isDocumentOwner.ts, orderUpdateAccess.ts, publicAccess.ts, utilities.ts
+├── access/: adminOnly.ts, adminOnlyFieldAccess.ts, adminOrCustomerOwner.ts, adminOrFieldOwner.ts, adminOrPublishedStatus.ts, adminOrRetailer.ts, adminOrSelf.ts, customerOnlyFieldAccess.ts, isAdmin.ts, isAuthenticated.ts, isDocumentOwner.ts, isOwnPayoutRecord.ts, orderUpdateAccess.ts, publicAccess.ts, utilities.ts
 ├── collections/
 │   ├── Brands.ts, Categories.ts, Media.ts
 │   ├── DeliveryPartners/
 │   │   ├── index.ts
 │   │   └── hooks/: associateUser.ts, syncUserName.ts
 │   ├── Orders/
-│   │   └── hooks/: handoverOtpValidation.ts, statusHistoryLogger.ts, triggerSideEffects.ts, validateSingleVendor.ts
+│   │   └── hooks/: handoverOtpValidation.ts, statusHistoryLogger.ts, triggerPayoutLedger.ts, triggerSideEffects.ts, validateSingleVendor.ts
 │   ├── Pages/
 │   │   ├── index.ts
 │   │   └── hooks/: revalidatePage.ts
+│   ├── PayoutInvoice/
+│   │   └── index.ts
+│   ├── PayoutLedger/
+│   │   └── index.ts
 │   ├── Products/
 │   │   ├── index.ts
 │   │   ├── access/: create.ts, delete.ts, read.ts, update.ts
@@ -52,10 +56,12 @@ src/
 │   │   └── search/: index.ts, openapi.ts
 │   ├── orders/: actions.ts, openapi.ts, otpMiddleware.ts, statusUpdate.ts
 │   ├── payments/: openapi.ts
+│   ├── payouts/: index.ts, markDisbursed.ts, openapi.ts
 │   ├── retailers/: analytics.ts, me.ts, openapi.ts
 │   └── users/: openapi.ts
+├── globals/: AgentSettings.ts, Footer.ts, Header.ts, PlatformSettings.ts
 ├── hooks/: confirmCodTransaction.ts, deductInventory.ts, enforceDefaultPaymentMethod.ts, normalizeMobileNumberFieldHook.ts, populatePublishedAt.ts, restrictDeliveryPartnerFields.ts
-├── jobs/: assignDeliveryPartner.ts, checkOfferTimeout.ts, processRazorpayRefund.ts, retailerActionTimeout.ts
+├── jobs/: assignDeliveryPartner.ts, checkOfferTimeout.ts, processPayouts.ts, processRazorpayRefund.ts, retailerActionTimeout.ts
 ├── lib/: constants.ts
 ├── plugins/
 │   ├── index.ts
