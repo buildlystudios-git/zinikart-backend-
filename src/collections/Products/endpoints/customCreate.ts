@@ -80,9 +80,44 @@ export const customCreateEndpoint: Endpoint = {
       // If variants are provided, update or create them linked to the product.
       if (hasVariants) {
         for (const variant of variants) {
+          
+          // Resolve option strings (like "opt_red") to database IDs
+          const resolvedOptions = []
+          for (const opt of variant.options || []) {
+            const isUUID = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(opt)
+            if (isUUID) {
+              resolvedOptions.push(opt)
+            } else {
+              const optionDoc = await req.payload.find({
+                collection: 'variantOptions',
+                where: { value: { equals: opt } },
+                limit: 1,
+              })
+              if (optionDoc.docs.length > 0) {
+                resolvedOptions.push(optionDoc.docs[0].id)
+              } else {
+                req.payload.logger.info(`[customCreate] Auto-creating missing variantOption for: ${opt}`)
+                try {
+                  const newOption = await req.payload.create({
+                    collection: 'variantOptions',
+                    data: {
+                      label: opt,
+                      value: opt,
+                    } as any,
+                    req,
+                    overrideAccess: true,
+                  })
+                  resolvedOptions.push(newOption.id)
+                } catch (err: any) {
+                  throw new Error(`Failed to auto-create variant option "${opt}". It might require a variantType or other fields: ${err.message}`)
+                }
+              }
+            }
+          }
+
           const variantData = {
             product: savedProduct.id,
-            options: variant.options,
+            options: resolvedOptions,
             inventory: variant.inventory,
             priceInINR: variant.priceInINR,
             ...variant.otherData,
