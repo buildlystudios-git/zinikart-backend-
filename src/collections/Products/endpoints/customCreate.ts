@@ -105,9 +105,21 @@ export const customCreateEndpoint: Endpoint = {
       )
     } catch (error: any) {
       req.payload.logger.error(`customCreateEndpoint error: ${error.message || error}`)
+      if (error.stack) {
+        req.payload.logger.error(`Stack trace: ${error.stack}`)
+      }
+      
+      // Payload validation errors are often in error.data
+      const validationDetails = error.data || []
+
       return Response.json(
-        { error: 'An error occurred while creating the product', details: error.message },
-        { status: 500 }
+        { 
+          error: 'An error occurred while creating the product', 
+          message: error.message,
+          details: validationDetails,
+          stack: error.stack 
+        },
+        { status: error.status || 500 }
       )
     }
   },
