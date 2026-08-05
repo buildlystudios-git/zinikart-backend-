@@ -19,9 +19,12 @@ export const customCreateEndpoint: Endpoint = {
         body = (req as any).body || {}
       }
 
+      req.payload.logger.info(`[customCreate] Received payload: ${JSON.stringify(body, null, 2)}`)
+
       const { id, title, parentTemplate, variants, priceInINR, inventory, ...otherData } = body
 
       if (!id && !title) {
+        req.payload.logger.error(`[customCreate] Missing required field: title for creation`)
         return Response.json({ error: 'Missing required field: title for creation' }, { status: 400 })
       }
 
@@ -47,9 +50,12 @@ export const customCreateEndpoint: Endpoint = {
         }
       }
 
+      req.payload.logger.info(`[customCreate] productData before create/update: ${JSON.stringify(productData, null, 2)}`)
+
       // Create or Update the product.
       let savedProduct
       if (id) {
+        req.payload.logger.info(`[customCreate] Updating product with ID: ${id}`)
         savedProduct = await req.payload.update({
           collection: 'products',
           id,
@@ -58,6 +64,7 @@ export const customCreateEndpoint: Endpoint = {
           overrideAccess: true,
         })
       } else {
+        req.payload.logger.info(`[customCreate] Creating new product...`)
         savedProduct = await req.payload.create({
           collection: 'products',
           data: productData,
@@ -65,6 +72,8 @@ export const customCreateEndpoint: Endpoint = {
           overrideAccess: true,
         })
       }
+      
+      req.payload.logger.info(`[customCreate] Product saved with ID: ${savedProduct.id}`)
 
       const savedVariants = []
 
@@ -81,6 +90,7 @@ export const customCreateEndpoint: Endpoint = {
 
           let savedVariant
           if (variant.id) {
+            req.payload.logger.info(`[customCreate] Updating variant ID: ${variant.id} with options: ${JSON.stringify(variant.options)}`)
             savedVariant = await req.payload.update({
               collection: 'variants',
               id: variant.id,
@@ -88,18 +98,23 @@ export const customCreateEndpoint: Endpoint = {
               req,
               overrideAccess: true,
             })
+            req.payload.logger.info(`[customCreate] Successfully updated variant: ${savedVariant.id}`)
           } else {
+            req.payload.logger.info(`[customCreate] Creating new variant with options: ${JSON.stringify(variant.options)}`)
             savedVariant = await req.payload.create({
               collection: 'variants',
               data: variantData,
               req,
               overrideAccess: true,
             })
+            req.payload.logger.info(`[customCreate] Successfully created new variant: ${savedVariant.id}`)
           }
 
           savedVariants.push(savedVariant)
         }
       }
+
+      req.payload.logger.info(`[customCreate] Endpoint execution completed successfully.`)
 
       return Response.json(
         {
