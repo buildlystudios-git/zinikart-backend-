@@ -1,5 +1,6 @@
 import { Endpoint } from 'payload'
 import { toKebabCase } from '@/utilities/toKebabCase'
+import { randomUUID } from 'crypto'
 
 export const customCreateEndpoint: Endpoint = {
   path: '/custom-create',
@@ -41,7 +42,8 @@ export const customCreateEndpoint: Endpoint = {
       if (title) {
         productData.title = title
         if (!productData.slug) {
-          productData.slug = toKebabCase(title)
+          const baseSlug = toKebabCase(title)
+          productData.slug = `${baseSlug}-${randomUUID()}`
         }
       }
 
