@@ -53,12 +53,14 @@ export const customCreateEndpoint: Endpoint = {
           id,
           data: productData,
           req,
+          overrideAccess: true,
         })
       } else {
         savedProduct = await req.payload.create({
           collection: 'products',
           data: productData,
           req,
+          overrideAccess: true,
         })
       }
 
@@ -82,12 +84,14 @@ export const customCreateEndpoint: Endpoint = {
               id: variant.id,
               data: variantData,
               req,
+              overrideAccess: true,
             })
           } else {
             savedVariant = await req.payload.create({
               collection: 'variants',
               data: variantData,
               req,
+              overrideAccess: true,
             })
           }
 
@@ -111,6 +115,7 @@ export const customCreateEndpoint: Endpoint = {
       
       // Payload validation errors are often in error.data
       const validationDetails = error.data || []
+      req.payload.logger.error(`Validation details: ${JSON.stringify(validationDetails, null, 2)}`)
 
       return Response.json(
         { 

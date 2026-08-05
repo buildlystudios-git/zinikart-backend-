@@ -14,6 +14,7 @@ import { runCartTests } from './cart'
 import { runCheckoutTests } from './checkout'
 import { runQuickCommerceTests } from './quick-commerce'
 import { runPayoutTests } from './payouts'
+import { runCustomCreateTests } from './customCreate'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -293,6 +294,7 @@ async function main() {
     await runCheckoutTests(report, payload, otherUserToken)
     await runQuickCommerceTests(report, payload, adminUserToken, retailerUserToken, otherUserToken, retailerUserToken)
     await runPayoutTests(report, payload, adminUserToken, retailerUserToken)
+    await runCustomCreateTests(report, adminUserToken, retailerUserToken, payload)
 
   } catch (err) {
     console.error('Test execution error occurred:', err)
@@ -408,12 +410,10 @@ async function main() {
     overrideAccess: true,
   })
 
-  // Clean up any mock catalog items created during this test run.
-  // Products must be deleted first because they reference categories and brands.
   await payload.delete({
     collection: 'products',
     where: {
-      title: { in: ['ZiniPhone 14 Max', 'Retailer Standalone Phone', 'Cloned ZiniPhone 14 Max'] },
+      title: { in: ['ZiniPhone 14 Max', 'Retailer Standalone Phone', 'Cloned ZiniPhone 14 Max', 'Test Simple Product', 'Test Variant Product'] },
     },
     overrideAccess: true,
   })
