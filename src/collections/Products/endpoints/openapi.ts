@@ -111,9 +111,15 @@ The \`setTemplateFields\` before-change hook will automatically populate empty i
                       },
                       options: {
                         type: 'array',
-                        description: 'Array of variant-option IDs (e.g. "Red", "XL").',
+                        description: 'Legacy support: Array of variant-option IDs (e.g. "opt_red", "opt_xl") or UUIDs.',
                         items: { type: 'string' },
                         example: ['opt_red', 'opt_xl'],
+                      },
+                      attributes: {
+                        type: 'object',
+                        description: 'Simplified key-value map of variant attributes (e.g. {"Color": "Red", "Size": "Small"}). The API will auto-create missing Types and Options automatically.',
+                        additionalProperties: { type: 'string' },
+                        example: { Color: 'Red', Size: 'Small' },
                       },
                       priceInINR: {
                         type: 'number',
@@ -152,9 +158,9 @@ The \`setTemplateFields\` before-change hook will automatically populate empty i
                   title: 'Classic T-Shirt',
                   parentTemplate: '683a2f1e4b2c3d0087654321',
                   variants: [
-                    { options: ['opt_red', 'opt_small'], priceInINR: 799, inventory: 50 },
-                    { options: ['opt_red', 'opt_large'], priceInINR: 849, inventory: 30 },
-                    { options: ['opt_blue', 'opt_small'], priceInINR: 799, inventory: 40 },
+                    { attributes: { Color: 'Red', Size: 'Small' }, priceInINR: 799, inventory: 50 },
+                    { attributes: { Color: 'Red', Size: 'Large' }, priceInINR: 849, inventory: 30 },
+                    { attributes: { Color: 'Blue', Size: 'Small' }, priceInINR: 799, inventory: 40 },
                   ],
                 },
               },
@@ -175,12 +181,12 @@ The \`setTemplateFields\` before-change hook will automatically populate empty i
                   variants: [
                     {
                       id: '683a2f1e4b2c3d0099887766',
-                      options: ['opt_red', 'opt_small'],
+                      attributes: { Color: 'Red', Size: 'Small' },
                       priceInINR: 850,
                       inventory: 45,
                     },
                     {
-                      options: ['opt_green', 'opt_medium'],
+                      attributes: { Color: 'Green', Size: 'Medium' },
                       priceInINR: 900,
                       inventory: 25,
                     },

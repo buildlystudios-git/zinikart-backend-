@@ -4,41 +4,6 @@ import { ReportManager, apiRequest } from './helpers'
 export async function runCustomCreateTests(report: ReportManager, adminToken: string, retailerToken: string, payload: Payload) {
   report.setSuite('Custom Create Endpoint Tests')
 
-  // Setup mock options for variants
-  let optRed, optSmall, optLarge, optBlue, optGreen
-  try {
-    // 1. Create Variant Types
-    let colorType = await payload.find({ collection: 'variantTypes', where: { name: { equals: 'color' } }, overrideAccess: true })
-    if (!colorType.docs.length) {
-      await payload.create({ collection: 'variantTypes', data: { label: 'Color', name: 'color' } as any, overrideAccess: true })
-      colorType = await payload.find({ collection: 'variantTypes', where: { name: { equals: 'color' } }, overrideAccess: true })
-    }
-    
-    let sizeType = await payload.find({ collection: 'variantTypes', where: { name: { equals: 'size' } }, overrideAccess: true })
-    if (!sizeType.docs.length) {
-      await payload.create({ collection: 'variantTypes', data: { label: 'Size', name: 'size' } as any, overrideAccess: true })
-      sizeType = await payload.find({ collection: 'variantTypes', where: { name: { equals: 'size' } }, overrideAccess: true })
-    }
-
-    const cid = colorType.docs[0].id
-    const sid = sizeType.docs[0].id
-
-    // 2. Create Variant Options
-    const opts = await payload.find({ collection: 'variantOptions', overrideAccess: true })
-    optRed = opts.docs.find((o) => o.value === 'opt_red')
-    optSmall = opts.docs.find((o) => o.value === 'opt_small')
-    optLarge = opts.docs.find((o) => o.value === 'opt_large')
-    optBlue = opts.docs.find((o) => o.value === 'opt_blue')
-    optGreen = opts.docs.find((o) => o.value === 'opt_green')
-
-    if (!optRed) optRed = await payload.create({ collection: 'variantOptions', data: { label: 'Red', value: 'opt_red', variantType: cid } as any, overrideAccess: true })
-    if (!optSmall) optSmall = await payload.create({ collection: 'variantOptions', data: { label: 'Small', value: 'opt_small', variantType: sid } as any, overrideAccess: true })
-    if (!optLarge) optLarge = await payload.create({ collection: 'variantOptions', data: { label: 'Large', value: 'opt_large', variantType: sid } as any, overrideAccess: true })
-    if (!optBlue) optBlue = await payload.create({ collection: 'variantOptions', data: { label: 'Blue', value: 'opt_blue', variantType: cid } as any, overrideAccess: true })
-    if (!optGreen) optGreen = await payload.create({ collection: 'variantOptions', data: { label: 'Green', value: 'opt_green', variantType: cid } as any, overrideAccess: true })
-  } catch (e) {
-    console.error('Failed to setup mock options', e)
-  }
 
   // Case 8: No auth token (-> 401)
   const noAuthRes = await apiRequest('/api/products/custom-create', 'POST', {
@@ -76,9 +41,9 @@ export async function runCustomCreateTests(report: ReportManager, adminToken: st
   const variantsProductRes = await apiRequest('/api/products/custom-create', 'POST', {
     title: variantsProductTitle,
     variants: [
-      { options: [optRed?.id, optSmall?.id], priceInINR: 799, inventory: 50 },
-      { options: [optRed?.id, optLarge?.id], priceInINR: 849, inventory: 30 },
-      { options: [optBlue?.id, optSmall?.id], priceInINR: 799, inventory: 40 }
+      { attributes: { Color: 'Red', Size: 'Small' }, priceInINR: 799, inventory: 50 },
+      { attributes: { Color: 'Red', Size: 'Large' }, priceInINR: 849, inventory: 30 },
+      { attributes: { Color: 'Blue', Size: 'Small' }, priceInINR: 799, inventory: 40 }
     ]
   }, adminToken)
   report.assert('Case 2: Create product with variants', variantsProductRes.status === 201, 'Best Case', `Status: ${variantsProductRes.status}, Body: ${JSON.stringify(variantsProductRes.body)}`)
@@ -126,8 +91,8 @@ export async function runCustomCreateTests(report: ReportManager, adminToken: st
     newVariantsProduct = await apiRequest('/api/products/custom-create', 'POST', {
       id: variantsProductId,
       variants: [
-        { options: [optBlue?.id, optLarge?.id], priceInINR: 850, inventory: 45 },
-        { options: [optGreen?.id, optLarge?.id], priceInINR: 900, inventory: 20 }
+        { attributes: { Color: 'Blue', Size: 'Large' }, priceInINR: 850, inventory: 45 },
+        { attributes: { Color: 'Green', Size: 'Large' }, priceInINR: 900, inventory: 20 }
       ]
     }, adminToken)
     report.assert('Case 5: Update product and upsert all new variants', newVariantsProduct.status === 201, 'Best Case', `Status: ${newVariantsProduct.status}, Body: ${JSON.stringify(newVariantsProduct.body)}`)
@@ -146,12 +111,12 @@ export async function runCustomCreateTests(report: ReportManager, adminToken: st
         variants: [
           {
             id: existingVariantId,
-            options: [optBlue?.id, optLarge?.id], // Original options from Case 5
-            priceInINR: 950, // Update price
+            attributes: { Color: 'Blue', Size: 'Large' },
+            priceInINR: 950,
             inventory: 45
           },
           {
-            options: [optGreen?.id, optSmall?.id], // New variant
+            attributes: { Color: 'Green', Size: 'Small' },
             priceInINR: 900,
             inventory: 25
           }

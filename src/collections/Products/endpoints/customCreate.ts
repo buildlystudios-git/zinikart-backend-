@@ -82,11 +82,74 @@ export const customCreateEndpoint: Endpoint = {
         for (const variant of variants) {
           
           // Resolve option strings (like "opt_red") to database IDs
-          const resolvedOptions = []
+          const resolvedOptions: string[] = []
+          // Resolve options from the new simplified `attributes` key-value format
+          if (variant.attributes && typeof variant.attributes === 'object') {
+            for (const [attrName, attrValue] of Object.entries(variant.attributes)) {
+              if (typeof attrValue !== 'string') continue;
+              
+              // 1. Find or create the VariantType (e.g., "Color")
+              let typeId;
+              const typeDoc = await req.payload.find({
+                collection: 'variantTypes',
+                where: { name: { equals: attrName } },
+                limit: 1,
+              })
+              
+              if (typeDoc.docs.length > 0) {
+                typeId = typeDoc.docs[0].id
+              } else {
+                req.payload.logger.info(`[customCreate] Auto-creating missing variantType: ${attrName}`)
+                const newType = await req.payload.create({
+                  collection: 'variantTypes',
+                  data: { label: attrName, name: attrName } as any,
+                  req,
+                  overrideAccess: true,
+                })
+                typeId = newType.id
+              }
+
+              // 2. Find or create the VariantOption (e.g., "Red") linked to this type
+              let optId;
+              const optionDoc = await req.payload.find({
+                collection: 'variantOptions',
+                where: {
+                  and: [
+                    { value: { equals: attrValue } },
+                    { variantType: { equals: typeId } },
+                  ]
+                },
+                limit: 1,
+              })
+              
+              if (optionDoc.docs.length > 0) {
+                optId = optionDoc.docs[0].id
+              } else {
+                req.payload.logger.info(`[customCreate] Auto-creating missing variantOption for: ${attrValue} under type: ${attrName}`)
+                const newOption = await req.payload.create({
+                  collection: 'variantOptions',
+                  data: {
+                    label: attrValue,
+                    value: attrValue,
+                    variantType: typeId,
+                  } as any,
+                  req,
+                  overrideAccess: true,
+                })
+                optId = newOption.id
+              }
+              
+              if (!resolvedOptions.includes(optId)) {
+                resolvedOptions.push(optId)
+              }
+            }
+          }
+
+          // Resolve legacy option strings (like "opt_red") from `options` array
           for (const opt of variant.options || []) {
             const isUUID = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(opt)
             if (isUUID) {
-              resolvedOptions.push(opt)
+              if (!resolvedOptions.includes(opt)) resolvedOptions.push(opt)
             } else {
               const optionDoc = await req.payload.find({
                 collection: 'variantOptions',
@@ -94,22 +157,42 @@ export const customCreateEndpoint: Endpoint = {
                 limit: 1,
               })
               if (optionDoc.docs.length > 0) {
-                resolvedOptions.push(optionDoc.docs[0].id)
+                if (!resolvedOptions.includes(optionDoc.docs[0].id)) {
+                  resolvedOptions.push(optionDoc.docs[0].id)
+                }
               } else {
-                req.payload.logger.info(`[customCreate] Auto-creating missing variantOption for: ${opt}`)
+                req.payload.logger.info(`[customCreate] Auto-creating missing legacy variantOption for: ${opt}`)
                 try {
+                  // Get the first variantType, or auto-create a default one.
+                  let defaultVariantTypeId;
+                  const types = await req.payload.find({ collection: 'variantTypes', limit: 1 })
+                  if (types.docs.length > 0) {
+                    defaultVariantTypeId = types.docs[0].id
+                  } else {
+                    const newType = await req.payload.create({
+                      collection: 'variantTypes',
+                      data: { label: 'Auto Generated Type', name: 'Auto Generated Type' } as any,
+                      req,
+                      overrideAccess: true,
+                    })
+                    defaultVariantTypeId = newType.id
+                  }
+
                   const newOption = await req.payload.create({
                     collection: 'variantOptions',
                     data: {
                       label: opt,
                       value: opt,
+                      variantType: defaultVariantTypeId,
                     } as any,
                     req,
                     overrideAccess: true,
                   })
-                  resolvedOptions.push(newOption.id)
+                  if (!resolvedOptions.includes(newOption.id)) {
+                    resolvedOptions.push(newOption.id)
+                  }
                 } catch (err: any) {
-                  throw new Error(`Failed to auto-create variant option "${opt}". It might require a variantType or other fields: ${err.message}`)
+                  throw new Error(`Failed to auto-create legacy variant option "${opt}". ${err.message}`)
                 }
               }
             }
