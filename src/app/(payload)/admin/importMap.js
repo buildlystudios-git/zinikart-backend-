@@ -32,6 +32,8 @@ import { Icon as Icon_a44df17d0fc3dcd873dae43dc3bf66bd } from '@/components/admi
 import { Logo as Logo_a44df17d0fc3dcd873dae43dc3bf66bd } from '@/components/admin/Logo'
 import { S3ClientUploadHandler as S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24 } from '@payloadcms/storage-s3/client'
 import { default as default_8d5ccf53266e3797f61e9453e2f2d431 } from '@/components/admin/DashboardView'
+import { default as default_a1373b17bcb8401f4c60c1706dc6e133 } from '@/components/admin/views/CategoryBrandsPage'
+import { default as default_b690c9e6ec02117e4b7a1bdc5f83ba06 } from '@/components/admin/views/CategoryBrandProductsPage'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 
 /** @type import('payload').ImportMap */
@@ -70,5 +72,7 @@ export const importMap = {
   "@/components/admin/Logo#Logo": Logo_a44df17d0fc3dcd873dae43dc3bf66bd,
   "@payloadcms/storage-s3/client#S3ClientUploadHandler": S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24,
   "@/components/admin/DashboardView#default": default_8d5ccf53266e3797f61e9453e2f2d431,
+  "@/components/admin/views/CategoryBrandsPage#default": default_a1373b17bcb8401f4c60c1706dc6e133,
+  "@/components/admin/views/CategoryBrandProductsPage#default": default_b690c9e6ec02117e4b7a1bdc5f83ba06,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
 }

@@ -129,7 +129,7 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 24px;
 }
 
@@ -139,6 +139,8 @@
   border: 1px solid #e5e7eb;
   padding: 20px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  display: flex;
+  flex-direction: column;
   transition: all 0.2s ease;
 }
 
@@ -148,52 +150,42 @@
   border-color: #d1d5db;
 }
 
-.cardMain {
+.cardHeader {
   display: flex;
-  gap: 16px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
 }
 
-.imageArea {
-  width: 80px;
-  height: 80px;
+.logoArea {
+  width: 48px;
+  height: 48px;
   border-radius: 8px;
-  background: #f3f4f6;
+  background: #f9fafb;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  flex-shrink: 0;
+  border: 1px solid #f3f4f6;
 }
 
-.imageArea img {
+.logoArea img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
-.cardContent {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.title {
+.brandName {
   font-size: 16px;
   font-weight: 700;
   color: #111827;
-  margin: 0 0 16px;
 }
 
-.metricsRow {
-  display: flex;
-  gap: 24px;
-  margin-bottom: auto;
-}
-
-.metric {
+.cardContent {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  margin-bottom: 20px;
 }
 
 .metricLabel {
@@ -208,7 +200,7 @@
 }
 
 .viewLink {
-  margin-top: 16px;
+  margin-top: auto;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -216,7 +208,6 @@
   font-weight: 600;
   color: #16a34a;
   text-decoration: none;
-  align-self: flex-start;
 }
 
 .viewLink:hover {
@@ -241,7 +232,13 @@
   margin-bottom: 8px;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1200px) {
+  .grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
   .grid {
     grid-template-columns: repeat(2, 1fr);
   }

@@ -56,6 +56,14 @@ export default buildConfig({
         dashboard: {
           Component: '@/components/admin/DashboardView',
         },
+        categoryBrands: {
+          Component: '@/components/admin/views/CategoryBrandsPage',
+          path: '/categories/:categoryId/brands',
+        },
+        categoryBrandProducts: {
+          Component: '@/components/admin/views/CategoryBrandProductsPage',
+          path: '/categories/:categoryId/brands/:brandId/products',
+        },
       },
     },
   },
