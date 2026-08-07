@@ -57,7 +57,7 @@ export default function CategoryBrandsView() {
       fetch(`/api/categories/${categoryId}`).then(res => res.json()),
       fetch(`/api/brands?where[categories][in]=${categoryId}&limit=0`).then(res => res.json()),
       fetch(`/api/products?where[categories][in]=${categoryId}&limit=0`).then(res => res.json()),
-      fetch(`/api/products?where[categories][in]=${categoryId}&where[inventory][less_than_or_equal]=0&limit=0`).then(res => res.json())
+      fetch(`/api/products?where[categories][in]=${categoryId}&where[inventory][less_than_equal]=0&limit=0`).then(res => res.json())
     ]).then(([catData, brandData, prodData, oosData]) => {
       setCategoryName(catData.title || 'Category')
       setStats({
