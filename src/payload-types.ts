@@ -1151,6 +1151,7 @@ export interface Retailer {
   ownerName: string;
   mobileNumber: string;
   emailId: string;
+  profileImage?: (string | null) | Media;
   alternateContactNumber?: string | null;
   gstNumber: string;
   images: (string | Media)[];
@@ -1209,6 +1210,7 @@ export interface DeliveryPartner {
   fullName: string;
   mobileNumber: string;
   email: string;
+  profileImage?: (string | null) | Media;
   gender: 'male' | 'female' | 'other';
   dob: string;
   drivingLicense: string | Media;
@@ -1971,6 +1973,7 @@ export interface RetailersSelect<T extends boolean = true> {
   ownerName?: T;
   mobileNumber?: T;
   emailId?: T;
+  profileImage?: T;
   alternateContactNumber?: T;
   gstNumber?: T;
   images?: T;
@@ -2020,6 +2023,7 @@ export interface DeliveryPartnersSelect<T extends boolean = true> {
   fullName?: T;
   mobileNumber?: T;
   email?: T;
+  profileImage?: T;
   gender?: T;
   dob?: T;
   drivingLicense?: T;

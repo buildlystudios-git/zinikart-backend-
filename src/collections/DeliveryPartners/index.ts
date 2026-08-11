@@ -60,6 +60,13 @@ export const DeliveryPartners: CollectionConfig = {
       required: true,
     },
     {
+      name: 'profileImage',
+      type: 'upload',
+      relationTo: 'media',
+      label: 'Profile Image',
+      required: false,
+    },
+    {
       name: 'gender',
       type: 'select',
       label: 'Gender',

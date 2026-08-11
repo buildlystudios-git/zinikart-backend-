@@ -76,6 +76,13 @@ export const Retailers: CollectionConfig = {
       required: true,
     },
     {
+      name: 'profileImage',
+      type: 'upload',
+      relationTo: 'media',
+      label: 'Profile Image',
+      required: false,
+    },
+    {
       name: 'alternateContactNumber',
       type: 'text',
       label: 'Alternate Contact Number',
