@@ -35,6 +35,8 @@ import { mobileOtpAuthPlugin, mobileOtpAuthPaths } from '@/plugins/mobileOtpAuth
 import { openapi, swaggerUI } from 'payload-oapi'
 import { mobileCatalogPaths } from '@/endpoints/mobile/catalog/openapi'
 import { mobileSearchPaths } from '@/endpoints/mobile/search/openapi'
+import { mobileCategoriesPaths } from '@/endpoints/mobile/categories/openapi'
+import { mobileBrandsPaths } from '@/endpoints/mobile/brands/openapi'
 import { seedPaths } from '@/endpoints/seed/openapi'
 import { cartPaths } from '@/endpoints/cart/openapi'
 import { paymentPaths } from '@/endpoints/payments/openapi'
@@ -296,6 +298,8 @@ const openapiEnhancerPlugin = (): Plugin => (config) => {
           ...mobileOtpAuthPaths,
           ...mobileCatalogPaths,
           ...mobileSearchPaths,
+          ...mobileCategoriesPaths,
+          ...mobileBrandsPaths,
           ...seedPaths,
           ...cartPaths,
           ...paymentPaths,

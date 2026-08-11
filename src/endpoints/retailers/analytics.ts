@@ -1,6 +1,8 @@
 import type { PayloadRequest, Where } from 'payload'
 import { ORDER_STATUS } from '@/constants/orderStatuses'
 import { checkRole } from '@/access/utilities'
+import { transformCategory } from '../mobile/transformers/category'
+import { transformBrand } from '../mobile/transformers/brand'
 
 export const analyticsEndpoint = async (req: PayloadRequest): Promise<Response> => {
   if (!req.user) {
@@ -426,8 +428,8 @@ export const analyticsEndpoint = async (req: PayloadRequest): Promise<Response> 
       catalogStats: {
         categories: {
           docs: Array.from(listedCategories.values()).map(item => ({
-            ...item.data,
-            brands: Array.from(item.retailerBrands.values()), // Only the brands this retailer sells in this category
+            ...transformCategory(item.data),
+            brands: Array.from(item.retailerBrands.values()).map(transformBrand),
             productCount: item.productCount,
             activeProductCount: item.activeProductCount,
           })),
@@ -436,7 +438,7 @@ export const analyticsEndpoint = async (req: PayloadRequest): Promise<Response> 
         },
         brands: {
           docs: Array.from(listedBrands.values()).map(item => ({
-            ...item.data,
+            ...transformBrand(item.data),
             productCount: item.productCount,
             activeProductCount: item.activeProductCount,
           })),

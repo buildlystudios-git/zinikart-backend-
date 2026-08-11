@@ -1,4 +1,5 @@
 import type { PayloadRequest } from 'payload'
+import { transformProductDetail } from '../transformers/product'
 
 export const productDetailsEndpoint = async (req: PayloadRequest): Promise<Response> => {
   const id = req.routeParams?.id as string
@@ -13,7 +14,7 @@ export const productDetailsEndpoint = async (req: PayloadRequest): Promise<Respo
     product = await req.payload.findByID({
       collection: 'products',
       id,
-      depth: 2,
+      depth: 4,
       req,
       overrideAccess: true,
     })
@@ -21,7 +22,7 @@ export const productDetailsEndpoint = async (req: PayloadRequest): Promise<Respo
     return Response.json({ error: 'Product not found' }, { status: 404 })
   }
 
-  if (!product || product.isMasterTemplate) {
+  if (!product) {
     return Response.json({ error: 'Product not found' }, { status: 404 })
   }
 
@@ -121,9 +122,35 @@ export const productDetailsEndpoint = async (req: PayloadRequest): Promise<Respo
     }
   }
 
-  return Response.json({
-    product,
+  // 4. Fetch variantTypes globally to map any unpopulated relation IDs
+  let variantTypesMap: Record<string, string> = {}
+  try {
+    const typesRes = await req.payload.find({
+      collection: 'variantTypes',
+      limit: 1000,
+      overrideAccess: true,
+      req,
+    })
+    typesRes.docs.forEach((t: any) => {
+      variantTypesMap[t.id] = t.name || t.label || 'Option'
+    })
+  } catch (err) {
+    // Ignore if collection doesn't exist
+  }
+
+  // 5. Transform product and construct final shape
+  const transformedProduct = transformProductDetail(product, variantTypesMap);
+  
+  if (!transformedProduct) {
+    return Response.json({ error: 'Failed to transform product' }, { status: 500 })
+  }
+
+  // Inject retailer and otherOffers directly into the top-level product object
+  const finalResponse = {
+    ...transformedProduct,
     retailer: activeRetailer,
     otherOffers,
-  })
+  }
+
+  return Response.json(finalResponse)
 }

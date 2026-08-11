@@ -56,7 +56,8 @@ export default function ProductEditView() {
     slug: '',
     averageRating: 0,
     ratingCount: 0,
-    discountedPrice: 0
+    discountedPrice: 0,
+    _status: 'published'
   })
 
   // Reference data
@@ -197,7 +198,8 @@ export default function ProductEditView() {
           slug: data.slug || '',
           averageRating: data.averageRating || 0,
           ratingCount: data.ratingCount || 0,
-          discountedPrice: data.discountedPrice || 0
+          discountedPrice: data.discountedPrice || 0,
+          _status: data._status || 'published'
         })
         
         setInitialVariants(variantsArray)
@@ -431,6 +433,18 @@ export default function ProductEditView() {
               options={allRetailers.map(r => ({ label: r.email || r.id, value: r.id }))}
               value={formData.retailer}
               onChange={(val) => setFormData({ ...formData, retailer: val })}
+            />
+          </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <SelectField 
+              label="Product Status"
+              options={[
+                { label: 'Published', value: 'published' },
+                { label: 'Draft', value: 'draft' }
+              ]}
+              value={formData._status}
+              onChange={(val) => setFormData({ ...formData, _status: val })}
             />
           </div>
 

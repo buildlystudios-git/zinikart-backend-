@@ -27,8 +27,7 @@ import { AgentSettings } from '@/globals/AgentSettings'
 import { Ratings } from '@/collections/Ratings'
 import { Wishlists } from '@/collections/Wishlists'
 import { plugins } from './plugins'
-import { productDetailsEndpoint } from '@/endpoints/mobile/catalog/productDetails'
-import { searchEndpoint } from '@/endpoints/mobile/search/index'
+import { mobileEndpoints } from '@/endpoints/mobile'
 import { assignDeliveryPartnerTask } from '@/jobs/assignDeliveryPartner'
 import { checkOfferTimeoutTask } from '@/jobs/checkOfferTimeout'
 import { retailerActionTimeoutTask } from '@/jobs/retailerActionTimeout'
@@ -113,16 +112,7 @@ export default buildConfig({
   }),
   //email: nodemailerAdapter(),
   endpoints: [
-    {
-      method: 'get',
-      path: '/mobile/product/:id',
-      handler: productDetailsEndpoint,
-    },
-    {
-      method: 'get',
-      path: '/mobile/search',
-      handler: searchEndpoint,
-    },
+    ...mobileEndpoints,
     myLedgerEndpoint,
     myInvoicesEndpoint,
     invoiceDetailEndpoint,

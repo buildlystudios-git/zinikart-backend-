@@ -1,9 +1,12 @@
 import type { PayloadRequest } from 'payload'
+import { transformProductSummary } from '../transformers/product'
 
 export const searchEndpoint = async (req: PayloadRequest): Promise<Response> => {
   // Retrieve the search query parameter 'q'
   const url = new URL(req.url || '', 'http://localhost:3000')
   const q = url.searchParams.get('q') || ''
+  const isMasterTemplate = url.searchParams.get('isMasterTemplate') === 'true'
+  const statusParam = url.searchParams.get('status') || 'published'
 
   if (!q.trim()) {
     return Response.json({
@@ -64,8 +67,8 @@ export const searchEndpoint = async (req: PayloadRequest): Promise<Response> => 
     // Exclude master catalog templates; only list active retailer products (isMasterTemplate: false).
     const productsWhere: any = {
       and: [
-        { isMasterTemplate: { equals: false } },
-        { _status: { equals: 'published' } },
+        { isMasterTemplate: { equals: isMasterTemplate } },
+        { _status: { equals: statusParam } },
         {
           or: [
             { title: { like: q } },
@@ -127,21 +130,12 @@ export const searchEndpoint = async (req: PayloadRequest): Promise<Response> => 
 
     // 7. Format matching Products with resolved Retailer details
     const formattedProducts = matchingProducts.docs.map((p: any) => {
+      const summary = transformProductSummary(p);
       const retUserId = typeof p.retailer === 'object' ? p.retailer?.id : p.retailer
       const profile = retUserId ? retailerProfilesMap.get(String(retUserId)) : null
+      
       return {
-        id: p.id,
-        title: p.title,
-        priceInINR: p.priceInINR,
-        discountedPrice: p.discountedPrice,
-        brand: p.brand,
-        categories: p.categories,
-        gallery: p.gallery,
-        meta: p.meta,
-        images: p.gallery,
-        media: p.meta?.image,
-        averageRating: p.averageRating || 0,
-        ratingCount: p.ratingCount || 0,
+        ...summary,
         retailer: profile
           ? {
               id: profile.id,

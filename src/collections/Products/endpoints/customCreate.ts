@@ -1,6 +1,7 @@
 import { Endpoint } from 'payload'
 import { toKebabCase } from '@/utilities/toKebabCase'
 import { randomUUID } from 'crypto'
+import { transformProductDetail } from '@/endpoints/mobile/transformers/product'
 
 export const customCreateEndpoint: Endpoint = {
   path: '/custom-create',
@@ -21,30 +22,84 @@ export const customCreateEndpoint: Endpoint = {
 
       req.payload.logger.info(`[customCreate] Received payload: ${JSON.stringify(body, null, 2)}`)
 
-      const { id, title, parentTemplate, variants, priceInINR, inventory, ...otherData } = body
+      const { id, title, parentTemplate, variants, priceInINR, inventory, status, price, description, discountedPrice, image, ...otherData } = body
 
       if (!id && !title) {
         req.payload.logger.error(`[customCreate] Missing required field: title for creation`)
         return Response.json({ error: 'Missing required field: title for creation' }, { status: 400 })
       }
 
-      // Determine if variants are enabled
+      // Determine if variants are enabled.
+      // On update: only override enableVariants if variants were explicitly sent.
       const hasVariants = Array.isArray(variants) && variants.length > 0
-      const enableVariants = hasVariants
+      const enableVariants = hasVariants ? true : (id ? undefined : false)
 
       // Prepare product payload
       // Other data can be passed, but the setTemplateFields hook will overwrite empty inherited fields.
+      let lexicalDesc
+      if (typeof description === 'string' && description.trim()) {
+        lexicalDesc = {
+          root: {
+            type: "root",
+            format: "",
+            indent: 0,
+            version: 1,
+            children: [{
+              type: "paragraph",
+              format: "",
+              indent: 0,
+              version: 1,
+              children: [{
+                detail: 0,
+                format: 0,
+                mode: "normal",
+                style: "",
+                text: description,
+                type: "text",
+                version: 1
+              }]
+            }]
+          }
+        }
+      } else {
+        lexicalDesc = description
+      }
+
       const productData: any = {
-        parentTemplate: parentTemplate || null,
         enableVariants,
-        priceInINR: !hasVariants ? priceInINR : undefined,
-        inventory: !hasVariants ? inventory : undefined,
         ...otherData,
+      }
+      
+      // Only set parentTemplate if explicitly provided (avoid nulling it on partial updates)
+      if (parentTemplate !== undefined) {
+        productData.parentTemplate = parentTemplate || null
+      }
+      
+      // Only set price/inventory for flat products and only if explicitly provided
+      if (!hasVariants) {
+        const resolvedPrice = priceInINR !== undefined ? priceInINR : price
+        if (resolvedPrice !== undefined) productData.priceInINR = resolvedPrice
+        if (inventory !== undefined) productData.inventory = inventory
+      }
+      
+      if (status !== undefined) {
+        productData._status = status;
+      } else if (!id) {
+        productData._status = 'published';
+      }
+      
+      if (discountedPrice !== undefined) productData.discountedPrice = discountedPrice;
+      if (lexicalDesc) productData.description = lexicalDesc;
+      
+      const newGalleryItems: any[] = [];
+      if (image) {
+        newGalleryItems.push({ image })
       }
       
       if (title) {
         productData.title = title
-        if (!productData.slug) {
+        // Only generate slug on CREATE, never overwrite slug on update
+        if (!id && !productData.slug) {
           const baseSlug = toKebabCase(title)
           productData.slug = `${baseSlug}-${randomUUID()}`
         }
@@ -198,27 +253,72 @@ export const customCreateEndpoint: Endpoint = {
             }
           }
 
-          const variantData = {
+          // Destructure variant to capture all specific fields and any extra data
+          const { 
+            id: variantId, 
+            attributes, 
+            options, 
+            price, 
+            priceInINR, 
+            inventory, 
+            image, 
+            discountedPrice, 
+            status, 
+            ...variantOtherData 
+          } = variant;
+
+          const variantData: any = {
             product: savedProduct.id,
-            options: resolvedOptions,
-            inventory: variant.inventory,
-            priceInINR: variant.priceInINR,
-            ...variant.otherData,
+            inventory: inventory,
+            priceInINR: priceInINR !== undefined ? priceInINR : price,
+            ...variantOtherData,
+          }
+          if (resolvedOptions.length > 0) {
+            variantData.options = resolvedOptions
+          } else if (variantId) {
+            // On update with no new attributes supplied, preserve the existing variant options
+            // to avoid the ecommerce:variantOptionsRequired validation error
+            const existingVariant = await req.payload.findByID({
+              collection: 'variants',
+              id: variantId,
+              req,
+              overrideAccess: true,
+            })
+            const existingOptionIds = (existingVariant.options || []).map((o: any) =>
+              typeof o === 'object' ? o.id : o
+            )
+            if (existingOptionIds.length > 0) {
+              variantData.options = existingOptionIds
+            }
+          }
+          
+          if (discountedPrice !== undefined) {
+            variantData.discountedPrice = discountedPrice;
+          }
+          if (status !== undefined) {
+            variantData._status = status;
+          }
+          
+          if (image && resolvedOptions.length > 0) {
+            newGalleryItems.push({
+              image: image,
+              variantOption: resolvedOptions[0]
+            })
           }
 
           let savedVariant
-          if (variant.id) {
-            req.payload.logger.info(`[customCreate] Updating variant ID: ${variant.id} with options: ${JSON.stringify(variant.options)}`)
+          if (variantId) {
+            req.payload.logger.info(`[customCreate] Updating variant ID: ${variantId} with options: ${JSON.stringify(resolvedOptions)}`)
             savedVariant = await req.payload.update({
               collection: 'variants',
-              id: variant.id,
+              id: variantId,
               data: variantData,
               req,
               overrideAccess: true,
             })
             req.payload.logger.info(`[customCreate] Successfully updated variant: ${savedVariant.id}`)
           } else {
-            req.payload.logger.info(`[customCreate] Creating new variant with options: ${JSON.stringify(variant.options)}`)
+            req.payload.logger.info(`[customCreate] Creating new variant with options: ${JSON.stringify(resolvedOptions)}`)
             savedVariant = await req.payload.create({
               collection: 'variants',
               data: variantData,
@@ -232,13 +332,56 @@ export const customCreateEndpoint: Endpoint = {
         }
       }
 
+      if (newGalleryItems.length > 0) {
+        const existingGallery: any[] = savedProduct.gallery || []
+        const existingImageIds = new Set(existingGallery.map((g: any) => 
+          typeof g.image === 'object' ? g.image?.id : g.image
+        ))
+        const dedupedNewItems = newGalleryItems.filter(g => !existingImageIds.has(
+          typeof g.image === 'object' ? g.image?.id : g.image
+        ))
+        if (dedupedNewItems.length > 0) {
+          savedProduct = await req.payload.update({
+            collection: 'products',
+            id: savedProduct.id,
+            data: {
+              gallery: [...existingGallery, ...dedupedNewItems]
+            },
+            req,
+            overrideAccess: true,
+          })
+        }
+      }
+
       req.payload.logger.info(`[customCreate] Endpoint execution completed successfully.`)
+
+      const fullyPopulatedProduct = await req.payload.findByID({
+        collection: 'products',
+        id: savedProduct.id,
+        depth: 4,
+        req,
+        overrideAccess: true,
+      })
+
+      let variantTypesMap: Record<string, string> = {}
+      try {
+        const typesRes = await req.payload.find({
+          collection: 'variantTypes',
+          limit: 1000,
+          overrideAccess: true,
+          req,
+        })
+        typesRes.docs.forEach((t: any) => {
+          variantTypesMap[t.id] = t.name || t.label || 'Option'
+        })
+      } catch (err) {
+        // Ignore
+      }
 
       return Response.json(
         {
           message: id ? 'Product updated successfully' : 'Product created successfully',
-          product: savedProduct,
-          variants: savedVariants,
+          product: transformProductDetail(fullyPopulatedProduct, variantTypesMap) || fullyPopulatedProduct,
         },
         { status: 201 }
       )

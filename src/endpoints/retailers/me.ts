@@ -1,4 +1,5 @@
 import type { Endpoint } from 'payload'
+import { transformProductSummary } from '../mobile/transformers/product'
 
 export const retailerMeEndpoint: Endpoint = {
   path: '/me',
@@ -18,22 +19,53 @@ export const retailerMeEndpoint: Endpoint = {
         return Response.json({ success: false, reason: 'Retailer profile not found' }, { status: 404 })
       }
       
-      const retailerId = docs.docs[0].id
-
-      // Fetch products listed by this retailer (product.retailer references users collection)
-      const productsQuery = await req.payload.find({
-        collection: 'products',
-        where: { retailer: { equals: req.user.id } },
-        limit: 100, // Fetch up to 100 products initially, or allow pagination later
-        req,
-      })
-      let finalProducts = productsQuery.docs
+      const retailer = docs.docs[0]
 
       const url = new URL(req.url || '', 'http://localhost:3000')
+      const page = parseInt(url.searchParams.get('page') || '1', 10)
+      let limit = parseInt(url.searchParams.get('limit') || '20', 10)
+      if (limit > 100) limit = 100
+      
+      const q = url.searchParams.get('q')
+      const category = url.searchParams.get('category')
+      const brand = url.searchParams.get('brand')
+      const sortParam = url.searchParams.get('sort')
       const inventoryStatus = url.searchParams.get('inventoryStatus')
 
+      const where: any = {
+        and: [
+          { retailer: { equals: req.user.id } }
+        ]
+      }
+
+      if (q) where.and.push({ title: { like: q } })
+      if (category) where.and.push({ categories: { in: [category] } })
+      if (brand) where.and.push({ brand: { equals: brand } })
+
+      let sort = '-createdAt'
+      if (sortParam === 'price_asc') sort = 'priceInINR'
+      if (sortParam === 'price_desc') sort = '-priceInINR'
+      if (sortParam === 'newest') sort = '-createdAt'
+      if (sortParam === 'rating') sort = '-averageRating'
+
+      let finalProducts: any[] = []
+      let totalDocs = 0
+      let totalPages = 0
+      let hasNextPage = false
+
       if (inventoryStatus) {
-        const productsWithVariants = finalProducts.filter((p) => p.enableVariants)
+        // If filtering by inventory, we must fetch all matching products to calculate variant stock
+        const allProductsQuery = await req.payload.find({
+          collection: 'products',
+          where,
+          limit: 10000,
+          sort,
+          depth: 1,
+          req,
+        })
+        let allProducts = allProductsQuery.docs
+
+        const productsWithVariants = allProducts.filter((p) => p.enableVariants)
         const variantProductIds = productsWithVariants.map((p) => p.id)
         
         let variantsRes = { docs: [] as any[] }
@@ -48,7 +80,7 @@ export const retailerMeEndpoint: Endpoint = {
         }
 
         const stockMap = new Map<string | number, number>()
-        for (const p of finalProducts) {
+        for (const p of allProducts) {
           if (!p.enableVariants) {
             stockMap.set(p.id, p.inventory || 0)
           } else {
@@ -62,19 +94,51 @@ export const retailerMeEndpoint: Endpoint = {
           }
         }
 
-        finalProducts = finalProducts.filter((p) => {
+        allProducts = allProducts.filter((p) => {
           const stock = stockMap.get(p.id) || 0
           if (inventoryStatus === 'in-stock') return stock > 0
           if (inventoryStatus === 'out-of-stock') return stock === 0
           if (inventoryStatus === 'low-stock') return stock > 0 && stock <= 5
           return true
         })
+
+        totalDocs = allProducts.length
+        totalPages = Math.ceil(totalDocs / limit)
+        hasNextPage = page < totalPages
+
+        const startIndex = (page - 1) * limit
+        finalProducts = allProducts.slice(startIndex, startIndex + limit)
+
+      } else {
+        // Standard database pagination
+        const productsQuery = await req.payload.find({
+          collection: 'products',
+          where,
+          limit,
+          page,
+          sort,
+          depth: 1,
+          req,
+        })
+        finalProducts = productsQuery.docs
+        totalDocs = productsQuery.totalDocs
+        totalPages = productsQuery.totalPages
+        hasNextPage = productsQuery.hasNextPage
       }
       
+      const formattedDocs = finalProducts.map(transformProductSummary)
+
       return Response.json({ 
         success: true, 
-        retailer: docs.docs[0],
-        products: finalProducts 
+        retailer,
+        products: formattedDocs,
+        pagination: {
+          page,
+          limit,
+          totalDocs,
+          totalPages,
+          hasNextPage,
+        }
       })
     } catch (err: any) {
       req.payload.logger.error({ err }, 'Error fetching retailer me')
