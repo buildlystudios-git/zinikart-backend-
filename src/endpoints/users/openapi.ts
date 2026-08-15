@@ -123,4 +123,48 @@ export const usersAuthPaths = {
       },
     },
   },
+  '/api/users/refresh-token': {
+    post: {
+      summary: 'Refresh Auth Token',
+      description: `Exchanges the current session cookie for a fresh JWT token.
+The browser automatically sends the \`HttpOnly\` session cookie, so no Authorization header is required.
+The returned \`token\` is a plain-text JWT that can be read by JavaScript — useful for authenticating
+cross-subdomain WebSocket connections (e.g. passing it as \`?token=<jwt>\` in the WS URL).`,
+      tags: ['Users'],
+      security: [
+        {
+          CookieAuth: [],
+        },
+      ],
+      responses: {
+        200: {
+          description: 'Token refreshed successfully.',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  token: {
+                    type: 'string',
+                    description: 'A fresh JWT token readable by JavaScript. Use this for WebSocket authentication.',
+                    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+                  },
+                  exp: {
+                    type: 'number',
+                    description: 'Unix timestamp when the new token expires.',
+                    example: 1723900800,
+                  },
+                  user: {
+                    type: 'object',
+                    description: 'The authenticated user profile.',
+                  },
+                },
+              },
+            },
+          },
+        },
+        401: { description: 'Unauthorized — no valid session cookie present.' },
+      },
+    },
+  },
 }

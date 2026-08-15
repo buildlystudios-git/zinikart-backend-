@@ -114,7 +114,7 @@ export default function ChatEditView() {
     }
   }
 
-  const initWebSocket = (cid: string, chatData?: any) => {
+  const initWebSocket = async (cid: string, chatData?: any) => {
     // Close any existing connection first
     if (wsRef.current && wsRef.current.readyState !== WebSocket.CLOSED) {
       wsRef.current.onclose = null  // Prevent reconnect loop on intentional close
@@ -122,15 +122,26 @@ export default function ChatEditView() {
     }
 
     // Standalone WS service (configurable via NEXT_PUBLIC_CHAT_WS_URL)
-    // Browsers can't send cookies cross-subdomain during a WS upgrade.
-    // Standard solution: read the auth token from the cookie and pass it as a
-    // query parameter so the WS server can authenticate without relying on cookies.
+    // Payload sets its auth cookie as HttpOnly — JS cannot read it via document.cookie.
+    // Solution: call the refresh-token endpoint (same domain, so the HttpOnly cookie
+    // IS sent by the browser) to get back a readable JWT, then pass it as ?token=
     const wsBase = process.env.NEXT_PUBLIC_CHAT_WS_URL || 'ws://localhost:3001'
-    const payloadToken = document.cookie
-      .split('; ')
-      .find(row => row.startsWith('payload-token='))
-      ?.split('=')[1]
-    const wsUrl = payloadToken ? `${wsBase}?token=${encodeURIComponent(payloadToken)}` : wsBase
+    
+    let wsUrl = wsBase
+    try {
+      const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || ''
+      const res = await fetch(`${serverUrl}/api/users/refresh-token`, {
+        method: 'POST',
+        credentials: 'include', // sends the HttpOnly cookie automatically
+      })
+      const data = await res.json()
+      if (data?.token) {
+        wsUrl = `${wsBase}?token=${encodeURIComponent(data.token)}`
+      }
+    } catch {
+      console.warn('[Admin WS] Could not refresh token, attempting cookie-less connection')
+    }
+    
     const ws = new WebSocket(wsUrl)
     wsRef.current = ws
 
