@@ -135,8 +135,11 @@ export default function ChatEditView() {
         credentials: 'include', // sends the HttpOnly cookie automatically
       })
       const data = await res.json()
-      if (data?.token) {
-        wsUrl = `${wsBase}?token=${encodeURIComponent(data.token)}`
+      const jwt = data?.refreshedToken ?? data?.token
+      if (jwt) {
+        wsUrl = `${wsBase}?token=${encodeURIComponent(jwt)}`
+      } else {
+        console.warn('[Admin WS] refresh-token response had no token field', data)
       }
     } catch {
       console.warn('[Admin WS] Could not refresh token, attempting cookie-less connection')
