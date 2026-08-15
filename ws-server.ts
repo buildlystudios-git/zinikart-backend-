@@ -164,7 +164,9 @@ async function handleSend(ws: WebSocket, user: AuthedUser, msg: any) {
     return send(ws, 'error', { code: 'bad_request', message: 'Content must be a string' })
   }
   const content = (msg.content || '').trim()
-  if (!content && (!Array.isArray(msg.attachmentIds) || msg.attachmentIds.length === 0)) {
+  // Accept both 'attachmentIds' (documented) and 'attachments' (common alias)
+  const attachmentIds: string[] = msg.attachmentIds ?? msg.attachments ?? []
+  if (!content && attachmentIds.length === 0) {
     return send(ws, 'error', { code: 'bad_request', message: 'Cannot send empty message' })
   }
   if (content.length > 3000) {
@@ -180,7 +182,7 @@ async function handleSend(ws: WebSocket, user: AuthedUser, msg: any) {
       data: {
         chat:        msg.chatId,
         content:     msg.content,
-        attachments: msg.attachmentIds ?? [],
+        attachments: attachmentIds,
         sender:      user.id,
       },
       req: { user: { id: user.id, roles: [user.role] } },

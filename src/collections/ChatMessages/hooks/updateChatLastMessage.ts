@@ -56,6 +56,29 @@ export const updateChatLastMessage: CollectionAfterChangeHook = async ({ doc, re
   const senderObj = typeof doc.sender === 'object' && doc.sender !== null ? doc.sender : null
   const senderId = senderObj ? senderObj.id : doc.sender
 
+  // Populate attachments so the broadcast includes url/filename/mimeType, not just IDs
+  const rawAttachments: string[] = (doc.attachments || []).map((a: any) => typeof a === 'object' ? a.id : a).filter(Boolean)
+  let populatedAttachments: any[] = []
+  if (rawAttachments.length > 0) {
+    try {
+      const result = await req.payload.find({
+        collection: 'chat-media',
+        where: { id: { in: rawAttachments } },
+        depth: 0,
+        pagination: false,
+        req,
+      })
+      populatedAttachments = result.docs.map((d: any) => ({
+        id: d.id,
+        url: d.url,
+        thumbnailURL: d.thumbnailURL,
+        filename: d.filename,
+        mimeType: d.mimeType,
+        filesize: d.filesize,
+      }))
+    } catch { /* attachment fetch failed, send empty */ }
+  }
+
   // 2. Real-time broadcast via the standalone WS service
   // Pick only essential fields to avoid sending massive Payload objects over WS
   const messagePayload = {
@@ -65,7 +88,7 @@ export const updateChatLastMessage: CollectionAfterChangeHook = async ({ doc, re
     senderRole: doc.senderRole, // UI needs this for left/right alignment
     createdAt: doc.createdAt,
     readBy: doc.readBy || [],
-    attachments: doc.attachments || [],
+    attachments: populatedAttachments,
   }
   
   await broadcastToWsService(chatId, 'message_new', { chatId, message: messagePayload }, senderId as string)

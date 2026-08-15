@@ -395,7 +395,27 @@ export default function ChatEditView() {
               return (
                 <div key={msg.id || idx} className={`${styles.messageRow} ${isAdminMsg ? styles.messageRowAdmin : styles.messageRowUser}`}>
                   <div className={`${styles.messageBubble} ${isAdminMsg ? styles.bubbleAdmin : styles.bubbleUser}`}>
-                    {msg.content}
+                    {msg.content && <span>{msg.content}</span>}
+                    {Array.isArray(msg.attachments) && msg.attachments.length > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: msg.content ? '8px' : '0' }}>
+                        {msg.attachments.map((att: any, i: number) => {
+                          const url = typeof att === 'object' ? (att.url || att.thumbnailURL) : null
+                          const filename = typeof att === 'object' ? att.filename : `Attachment ${i + 1}`
+                          const mimeType = typeof att === 'object' ? (att.mimeType || '') : ''
+                          const isImage = mimeType.startsWith('image/')
+                          if (!url) return null
+                          return isImage ? (
+                            <a key={i} href={url} target="_blank" rel="noreferrer">
+                              <img src={url} alt={filename} style={{ maxWidth: '220px', maxHeight: '220px', borderRadius: '8px', display: 'block', objectFit: 'cover' }} />
+                            </a>
+                          ) : (
+                            <a key={i} href={url} target="_blank" rel="noreferrer" style={{ fontSize: '13px', color: '#60a5fa', textDecoration: 'underline', wordBreak: 'break-all' }}>
+                              📎 {filename}
+                            </a>
+                          )
+                        })}
+                      </div>
+                    )}
                     <div className={styles.msgFooter}>
                       <span className={styles.msgTime}>
                         {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
