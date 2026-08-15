@@ -22,6 +22,7 @@ import { CategoryEditView as CategoryEditView_6328e9d6fb2fd7fdb89d6dce08931bea }
 import { default as default_0246abb39801f219cf7376bba2066e47 } from '@/components/admin/CategoryCardView'
 import { default as default_8242abd23369d4616b740fd8e31d5144 } from '@/components/admin/ApprovalManagementView'
 import { default as default_60b7829accaf7954c9f0c1f216b96fe5 } from '@/components/admin/BrandSplitView'
+import { default as default_d170d3fc8dd04e6dc6cb1a979092503d } from '@/components/admin/views/ChatEditView'
 import { VariantOptionsSelector as VariantOptionsSelector_b91672ccd6e8b071c11142ab941fedfb } from '@payloadcms/plugin-ecommerce/rsc'
 import { PriceCell as PriceCell_e27bf7b8cc50640dcdd584767b8eac3c } from '@payloadcms/plugin-ecommerce/client'
 import { PriceInput as PriceInput_b91672ccd6e8b071c11142ab941fedfb } from '@payloadcms/plugin-ecommerce/rsc'
@@ -62,6 +63,7 @@ export const importMap = {
   "@/components/admin/CategoryCardView#default": default_0246abb39801f219cf7376bba2066e47,
   "@/components/admin/ApprovalManagementView#default": default_8242abd23369d4616b740fd8e31d5144,
   "@/components/admin/BrandSplitView#default": default_60b7829accaf7954c9f0c1f216b96fe5,
+  "@/components/admin/views/ChatEditView#default": default_d170d3fc8dd04e6dc6cb1a979092503d,
   "@payloadcms/plugin-ecommerce/rsc#VariantOptionsSelector": VariantOptionsSelector_b91672ccd6e8b071c11142ab941fedfb,
   "@payloadcms/plugin-ecommerce/client#PriceCell": PriceCell_e27bf7b8cc50640dcdd584767b8eac3c,
   "@payloadcms/plugin-ecommerce/rsc#PriceInput": PriceInput_b91672ccd6e8b071c11142ab941fedfb,

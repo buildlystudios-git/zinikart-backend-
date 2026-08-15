@@ -78,6 +78,9 @@ export interface Config {
     wishlists: Wishlist;
     'payout-ledger': PayoutLedger;
     'payout-invoices': PayoutInvoice;
+    'support-chats': SupportChat;
+    'chat-messages': ChatMessage;
+    'chat-media': ChatMedia;
     forms: Form;
     'form-submissions': FormSubmission;
     addresses: Address;
@@ -122,6 +125,9 @@ export interface Config {
     wishlists: WishlistsSelect<false> | WishlistsSelect<true>;
     'payout-ledger': PayoutLedgerSelect<false> | PayoutLedgerSelect<true>;
     'payout-invoices': PayoutInvoicesSelect<false> | PayoutInvoicesSelect<true>;
+    'support-chats': SupportChatsSelect<false> | SupportChatsSelect<true>;
+    'chat-messages': ChatMessagesSelect<false> | ChatMessagesSelect<true>;
+    'chat-media': ChatMediaSelect<false> | ChatMediaSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     addresses: AddressesSelect<false> | AddressesSelect<true>;
@@ -1428,6 +1434,108 @@ export interface PayoutInvoice {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-chats".
+ */
+export interface SupportChat {
+  id: string;
+  heading: string;
+  type: 'order_issue' | 'general_query' | 'delivery_issue' | 'payment_issue' | 'other';
+  status: 'open' | 'pending' | 'resolved' | 'closed';
+  initiator: string | User;
+  initiatorType: 'customer' | 'retailer' | 'delivery_partner' | 'admin';
+  order?: (string | null) | Order;
+  /**
+   * Admins participating in this chat
+   */
+  participants?:
+    | {
+        user: string | User;
+        role?: 'admin' | null;
+        id?: string | null;
+      }[]
+    | null;
+  lastMessageAt?: string | null;
+  lastMessagePreview?: string | null;
+  adminNotes?: string | null;
+  rating?: {
+    score?: number | null;
+    comment?: string | null;
+    ratedBy?: (string | null) | User;
+    ratedAt?: string | null;
+  };
+  resolvedAt?: string | null;
+  resolvedBy?: (string | null) | User;
+  /**
+   * Opaque metadata for future AI agent integrations
+   */
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "chat-messages".
+ */
+export interface ChatMessage {
+  id: string;
+  chat: string | SupportChat;
+  sender: string | User;
+  senderRole: 'customer' | 'retailer' | 'delivery_partner' | 'admin';
+  content?: string | null;
+  attachments?: (string | ChatMedia)[] | null;
+  messageType?: ('text' | 'image' | 'file' | 'system') | null;
+  readBy?:
+    | {
+        user: string | User;
+        readAt: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Opaque metadata for future AI agent integrations
+   */
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "chat-media".
+ */
+export interface ChatMedia {
+  id: string;
+  alt?: string | null;
+  prefix?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "form-submissions".
  */
 export interface FormSubmission {
@@ -1631,6 +1739,18 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'payout-invoices';
         value: string | PayoutInvoice;
+      } | null)
+    | ({
+        relationTo: 'support-chats';
+        value: string | SupportChat;
+      } | null)
+    | ({
+        relationTo: 'chat-messages';
+        value: string | ChatMessage;
+      } | null)
+    | ({
+        relationTo: 'chat-media';
+        value: string | ChatMedia;
       } | null)
     | ({
         relationTo: 'forms';
@@ -2165,6 +2285,82 @@ export interface PayoutInvoicesSelect<T extends boolean = true> {
   adminNotes?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-chats_select".
+ */
+export interface SupportChatsSelect<T extends boolean = true> {
+  heading?: T;
+  type?: T;
+  status?: T;
+  initiator?: T;
+  initiatorType?: T;
+  order?: T;
+  participants?:
+    | T
+    | {
+        user?: T;
+        role?: T;
+        id?: T;
+      };
+  lastMessageAt?: T;
+  lastMessagePreview?: T;
+  adminNotes?: T;
+  rating?:
+    | T
+    | {
+        score?: T;
+        comment?: T;
+        ratedBy?: T;
+        ratedAt?: T;
+      };
+  resolvedAt?: T;
+  resolvedBy?: T;
+  metadata?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "chat-messages_select".
+ */
+export interface ChatMessagesSelect<T extends boolean = true> {
+  chat?: T;
+  sender?: T;
+  senderRole?: T;
+  content?: T;
+  attachments?: T;
+  messageType?: T;
+  readBy?:
+    | T
+    | {
+        user?: T;
+        readAt?: T;
+        id?: T;
+      };
+  metadata?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "chat-media_select".
+ */
+export interface ChatMediaSelect<T extends boolean = true> {
+  alt?: T;
+  prefix?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

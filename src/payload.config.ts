@@ -21,6 +21,9 @@ import { Users } from '@/collections/Users'
 import { Retailers } from '@/collections/Retailers'
 import { DeliveryPartners } from '@/collections/DeliveryPartners'
 import { Brands } from '@/collections/Brands'
+import { SupportChats } from '@/collections/SupportChats'
+import { ChatMessages } from '@/collections/ChatMessages'
+import { ChatMedia } from '@/collections/ChatMedia'
 import { Footer } from '@/globals/Footer'
 import { Header } from '@/globals/Header'
 import { AgentSettings } from '@/globals/AgentSettings'
@@ -39,6 +42,7 @@ import { PayoutInvoice } from '@/collections/PayoutInvoice'
 import { processPayoutsTask } from '@/jobs/processPayouts'
 
 import { myLedgerEndpoint, myInvoicesEndpoint, invoiceDetailEndpoint } from '@/endpoints/payouts'
+import { supportChatEndpoints } from '@/endpoints/support-chat'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -66,8 +70,7 @@ export default buildConfig({
       },
     },
   },
-  collections: [Users, Pages, Categories, Media, Retailers, DeliveryPartners, Brands, Ratings, Wishlists, PayoutLedger, PayoutInvoice],
-
+  collections: [Users, Pages, Categories, Media, Retailers, DeliveryPartners, Brands, Ratings, Wishlists, PayoutLedger, PayoutInvoice, SupportChats, ChatMessages, ChatMedia],
   db: postgresAdapter({
     idType: 'uuid',
     pool: {
@@ -116,6 +119,7 @@ export default buildConfig({
     myLedgerEndpoint,
     myInvoicesEndpoint,
     invoiceDetailEndpoint,
+    ...supportChatEndpoints,
   ],
   globals: [Header, Footer, AgentSettings, PlatformSettings],
   plugins,
