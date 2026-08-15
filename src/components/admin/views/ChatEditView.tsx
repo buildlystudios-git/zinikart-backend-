@@ -121,8 +121,16 @@ export default function ChatEditView() {
       wsRef.current.close()
     }
 
-    // Standalone WS service on port 3001 (configurable via NEXT_PUBLIC_CHAT_WS_URL)
-    const wsUrl = process.env.NEXT_PUBLIC_CHAT_WS_URL || 'ws://localhost:3001'
+    // Standalone WS service (configurable via NEXT_PUBLIC_CHAT_WS_URL)
+    // Browsers can't send cookies cross-subdomain during a WS upgrade.
+    // Standard solution: read the auth token from the cookie and pass it as a
+    // query parameter so the WS server can authenticate without relying on cookies.
+    const wsBase = process.env.NEXT_PUBLIC_CHAT_WS_URL || 'ws://localhost:3001'
+    const payloadToken = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('payload-token='))
+      ?.split('=')[1]
+    const wsUrl = payloadToken ? `${wsBase}?token=${encodeURIComponent(payloadToken)}` : wsBase
     const ws = new WebSocket(wsUrl)
     wsRef.current = ws
 

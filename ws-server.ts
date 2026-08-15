@@ -33,6 +33,18 @@ async function handleAuth(req: IncomingMessage): Promise<AuthedUser | null> {
       if (Array.isArray(value)) value.forEach(v => webHeaders.append(key, v))
       else webHeaders.set(key, value)
     }
+
+    // Browsers on a different subdomain cannot send cookies cross-origin.
+    // Solution: Frontend reads the payload-token cookie and passes it as ?token=
+    // We inject it as an Authorization header so Payload's auth() can resolve it.
+    if (!webHeaders.has('authorization')) {
+      const urlParams = new URL(req.url || '/', `http://localhost`).searchParams
+      const token = urlParams.get('token')
+      if (token) {
+        webHeaders.set('Authorization', `JWT ${token}`)
+      }
+    }
+
     const { user } = await payload.auth({ headers: webHeaders as any })
     if (!user) {
       console.log('[Chat WS] Auth failed: no user resolved from token')
