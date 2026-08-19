@@ -29,6 +29,7 @@ import { Header } from '@/globals/Header'
 import { AgentSettings } from '@/globals/AgentSettings'
 import { Ratings } from '@/collections/Ratings'
 import { Wishlists } from '@/collections/Wishlists'
+import { ContactUs } from '@/collections/ContactUs'
 import { plugins } from './plugins'
 import { mobileEndpoints } from '@/endpoints/mobile'
 import { assignDeliveryPartnerTask } from '@/jobs/assignDeliveryPartner'
@@ -70,7 +71,7 @@ export default buildConfig({
       },
     },
   },
-  collections: [Users, Pages, Categories, Media, Retailers, DeliveryPartners, Brands, Ratings, Wishlists, PayoutLedger, PayoutInvoice, SupportChats, ChatMessages, ChatMedia],
+  collections: [Users, Pages, Categories, Media, Retailers, DeliveryPartners, Brands, Ratings, Wishlists, PayoutLedger, PayoutInvoice, SupportChats, ChatMessages, ChatMedia, ContactUs],
   db: postgresAdapter({
     idType: 'uuid',
     pool: {

@@ -81,6 +81,7 @@ export interface Config {
     'support-chats': SupportChat;
     'chat-messages': ChatMessage;
     'chat-media': ChatMedia;
+    'contact-us': ContactUs;
     forms: Form;
     'form-submissions': FormSubmission;
     addresses: Address;
@@ -128,6 +129,7 @@ export interface Config {
     'support-chats': SupportChatsSelect<false> | SupportChatsSelect<true>;
     'chat-messages': ChatMessagesSelect<false> | ChatMessagesSelect<true>;
     'chat-media': ChatMediaSelect<false> | ChatMediaSelect<true>;
+    'contact-us': ContactUsSelect<false> | ContactUsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     addresses: AddressesSelect<false> | AddressesSelect<true>;
@@ -1536,6 +1538,21 @@ export interface ChatMedia {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "contact-us".
+ */
+export interface ContactUs {
+  id: string;
+  fullName: string;
+  email: string;
+  phone?: string | null;
+  subject: string;
+  message: string;
+  status?: ('new' | 'in_progress' | 'resolved') | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "form-submissions".
  */
 export interface FormSubmission {
@@ -1751,6 +1768,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'chat-media';
         value: string | ChatMedia;
+      } | null)
+    | ({
+        relationTo: 'contact-us';
+        value: string | ContactUs;
       } | null)
     | ({
         relationTo: 'forms';
@@ -2361,6 +2382,20 @@ export interface ChatMediaSelect<T extends boolean = true> {
   height?: T;
   focalX?: T;
   focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "contact-us_select".
+ */
+export interface ContactUsSelect<T extends boolean = true> {
+  fullName?: T;
+  email?: T;
+  phone?: T;
+  subject?: T;
+  message?: T;
+  status?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
