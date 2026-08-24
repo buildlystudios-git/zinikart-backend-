@@ -1,12 +1,12 @@
 import type { Endpoint } from 'payload'
-import { transformProductSummary } from '../mobile/transformers/product'
+import { transformProductDetail } from '../mobile/transformers/product'
 
 export const retailerMeEndpoint: Endpoint = {
   path: '/me',
   method: 'get',
   handler: async (req) => {
     if (!req.user) return Response.json({ success: false, reason: 'Unauthorized' }, { status: 401 })
-    
+
     try {
       const docs = await req.payload.find({
         collection: 'retailers',
@@ -14,18 +14,18 @@ export const retailerMeEndpoint: Endpoint = {
         limit: 1,
         req,
       })
-      
+
       if (!docs.docs.length) {
         return Response.json({ success: false, reason: 'Retailer profile not found' }, { status: 404 })
       }
-      
+
       const retailer = docs.docs[0]
 
       const url = new URL(req.url || '', 'http://localhost:3000')
       const page = parseInt(url.searchParams.get('page') || '1', 10)
       let limit = parseInt(url.searchParams.get('limit') || '20', 10)
       if (limit > 100) limit = 100
-      
+
       const q = url.searchParams.get('q')
       const category = url.searchParams.get('category')
       const brand = url.searchParams.get('brand')
@@ -60,14 +60,14 @@ export const retailerMeEndpoint: Endpoint = {
           where,
           limit: 10000,
           sort,
-          depth: 1,
+          depth: 4,
           req,
         })
         let allProducts = allProductsQuery.docs
 
         const productsWithVariants = allProducts.filter((p) => p.enableVariants)
         const variantProductIds = productsWithVariants.map((p) => p.id)
-        
+
         let variantsRes = { docs: [] as any[] }
         if (variantProductIds.length > 0) {
           variantsRes = await req.payload.find({
@@ -117,7 +117,7 @@ export const retailerMeEndpoint: Endpoint = {
           limit,
           page,
           sort,
-          depth: 1,
+          depth: 4,
           req,
         })
         finalProducts = productsQuery.docs
@@ -125,11 +125,26 @@ export const retailerMeEndpoint: Endpoint = {
         totalPages = productsQuery.totalPages
         hasNextPage = productsQuery.hasNextPage
       }
-      
-      const formattedDocs = finalProducts.map(transformProductSummary)
 
-      return Response.json({ 
-        success: true, 
+      let variantTypesMap: Record<string, string> = {}
+      try {
+        const typesRes = await req.payload.find({
+          collection: 'variantTypes',
+          limit: 1000,
+          overrideAccess: true,
+          req,
+        })
+        typesRes.docs.forEach((t: any) => {
+          variantTypesMap[t.id] = t.name || t.label || 'Option'
+        })
+      } catch (err) {
+        // Ignore if collection doesn't exist
+      }
+
+      const formattedDocs = finalProducts.map(p => transformProductDetail(p, variantTypesMap))
+
+      return Response.json({
+        success: true,
         retailer,
         products: formattedDocs,
         pagination: {
