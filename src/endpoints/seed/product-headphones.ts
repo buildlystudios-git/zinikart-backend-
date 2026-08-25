@@ -32,8 +32,8 @@ export const productHeadphonesData = ({
       image: metaImage,
     },
     specifications: [
-      { key: 'Type', value: 'In-Ear', type: 'select' },
-      { key: 'Wireless', value: 'Yes', type: 'select' },
+      { key: 'Connectivity', value: 'Wireless', type: 'select' },
+      { key: 'Noise Cancellation', value: 'Active Noise Cancellation', type: 'text' },
     ],
     relatedProducts,
   }

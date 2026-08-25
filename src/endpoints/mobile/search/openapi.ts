@@ -14,6 +14,24 @@ export const mobileSearchPaths = {
             type: 'string',
           },
         },
+        {
+          name: 'isMasterTemplate',
+          in: 'query',
+          description: 'Set to true to search master templates instead of regular products',
+          schema: {
+            type: 'boolean',
+          },
+        },
+        {
+          name: 'status',
+          in: 'query',
+          description: 'Filter by product status (e.g. published or draft). Defaults to published.',
+          schema: {
+            type: 'string',
+            enum: ['published', 'draft'],
+            default: 'published'
+          },
+        },
       ],
       responses: {
         200: {

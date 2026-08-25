@@ -1,6 +1,8 @@
 import type { PayloadRequest, Where } from 'payload'
 import { ORDER_STATUS } from '@/constants/orderStatuses'
 import { checkRole } from '@/access/utilities'
+import { transformCategory } from '../mobile/transformers/category'
+import { transformBrand } from '../mobile/transformers/brand'
 
 export const analyticsEndpoint = async (req: PayloadRequest): Promise<Response> => {
   if (!req.user) {
@@ -64,6 +66,55 @@ export const analyticsEndpoint = async (req: PayloadRequest): Promise<Response> 
     })
 
     const productIds = retailerProducts.docs.map((p) => p.id)
+
+    // Calculate catalog listing statistics
+    const listedCategories = new Map<string | number, { data: any; retailerBrands: Map<string|number, any>; productCount: number; activeProductCount: number }>()
+    const listedBrands = new Map<string | number, { data: any; productCount: number; activeProductCount: number }>()
+
+    let totalCatProductCount = 0
+    let totalCatActiveProductCount = 0
+    let totalBrandProductCount = 0
+    let totalBrandActiveProductCount = 0
+
+    for (const p of retailerProducts.docs) {
+      const isActive = p._status !== 'draft'
+
+      if (p.categories) {
+        for (const cat of p.categories) {
+          if (typeof cat === 'object') {
+            if (!listedCategories.has(cat.id)) {
+              const { brands, ...cleanCatData } = cat // Remove global brands array from payload response
+              listedCategories.set(cat.id, { data: cleanCatData, retailerBrands: new Map(), productCount: 0, activeProductCount: 0 })
+            }
+            const stat = listedCategories.get(cat.id)!
+            stat.productCount++
+            totalCatProductCount++
+            if (isActive) {
+              stat.activeProductCount++
+              totalCatActiveProductCount++
+            }
+            // Add the product's brand to this category's retailer-specific brands
+            if (p.brand && typeof p.brand === 'object') {
+              if (!stat.retailerBrands.has(p.brand.id)) {
+                stat.retailerBrands.set(p.brand.id, p.brand)
+              }
+            }
+          }
+        }
+      }
+      if (p.brand && typeof p.brand === 'object') {
+        if (!listedBrands.has(p.brand.id)) {
+          listedBrands.set(p.brand.id, { data: p.brand, productCount: 0, activeProductCount: 0 })
+        }
+        const stat = listedBrands.get(p.brand.id)!
+        stat.productCount++
+        totalBrandProductCount++
+        if (isActive) {
+          stat.activeProductCount++
+          totalBrandActiveProductCount++
+        }
+      }
+    }
 
     // Calculate inventory statistics
     let totalStock = 0
@@ -374,6 +425,27 @@ export const analyticsEndpoint = async (req: PayloadRequest): Promise<Response> 
       topCategories,
       topBrands,
       historicalData,
+      catalogStats: {
+        categories: {
+          docs: Array.from(listedCategories.values()).map(item => ({
+            ...transformCategory(item.data),
+            brands: Array.from(item.retailerBrands.values()).map(transformBrand),
+            productCount: item.productCount,
+            activeProductCount: item.activeProductCount,
+          })),
+          totalProductCount: totalCatProductCount,
+          totalActiveProductCount: totalCatActiveProductCount,
+        },
+        brands: {
+          docs: Array.from(listedBrands.values()).map(item => ({
+            ...transformBrand(item.data),
+            productCount: item.productCount,
+            activeProductCount: item.activeProductCount,
+          })),
+          totalProductCount: totalBrandProductCount,
+          totalActiveProductCount: totalBrandActiveProductCount,
+        },
+      },
     })
   } catch (err: any) {
     req.payload.logger.error(`Error in retailer analytics endpoint: ${err.message}`)

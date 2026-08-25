@@ -16,6 +16,7 @@ import {
   markUserOtpLogin,
   createSessionToken,
   getUsersCollection,
+  getUserStatus,
 } from './services'
 
 export const requestOtpEndpoint = (usersSlug: string): Endpoint => ({
@@ -69,8 +70,10 @@ export const verifyOtpEndpoint = (usersSlug: string): Endpoint => ({
       }
 
       let user = await findUserByMobileNumber(req, usersSlug, mobileNumber)
+      let exists = true
 
       if (!user) {
+        exists = false
         user = await createOtpUser(req, usersSlug, mobileNumber, name, role)
       } else if (!user.roles?.includes(role)) {
         user = await req.payload.update({
@@ -86,53 +89,13 @@ export const verifyOtpEndpoint = (usersSlug: string): Endpoint => ({
 
       user = await markUserOtpLogin(req, usersSlug, user.id, name)
 
-      let status: 'approved' | 'registration_required' | 'pending_approval' | 'rejected' | 'suspended' = 'approved'
-
-      if (role === 'retailer') {
-        const retailerDocs = await req.payload.find({
-          collection: 'retailers',
-          where: {
-            user: { equals: user.id },
-          },
-          limit: 1,
-          overrideAccess: true,
-        })
-        const retailer = retailerDocs.docs[0]
-        if (!retailer) {
-          status = 'registration_required'
-        } else {
-          const appStatus = retailer.approvalStatus as string
-          if (appStatus === 'approved') status = 'approved'
-          else if (appStatus === 'pending') status = 'pending_approval'
-          else if (appStatus === 'rejected') status = 'rejected'
-          else if (appStatus === 'suspended') status = 'suspended'
-        }
-      } else if (role === 'delivery_partner') {
-        const deliveryDocs = await req.payload.find({
-          collection: 'delivery-partners',
-          where: {
-            user: { equals: user.id },
-          },
-          limit: 1,
-          overrideAccess: true,
-        })
-        const partner = deliveryDocs.docs[0]
-        if (!partner) {
-          status = 'registration_required'
-        } else {
-          const appStatus = partner.approvalStatus as string
-          if (appStatus === 'approved') status = 'approved'
-          else if (appStatus === 'pending') status = 'pending_approval'
-          else if (appStatus === 'rejected') status = 'rejected'
-          else if (appStatus === 'suspended') status = 'suspended'
-        }
-      }
+      const status = await getUserStatus(req, user, role)
 
       let token: string | null = null
       let exp: number | null = null
       const headers = new Headers()
 
-      if (status === 'approved' || status === 'registration_required') {
+      if (status === 'approved' || status === 'approved_no_products' || status === 'registration_required' || status === "pending_approval") {
         const session = await createSessionToken({
           req,
           user,
@@ -155,6 +118,7 @@ export const verifyOtpEndpoint = (usersSlug: string): Endpoint => ({
         {
           success: true,
           status,
+          exists,
           exp,
           token,
           user: sanitizeMobileUser(user),
@@ -183,8 +147,11 @@ export const meEndpoint = (): Endpoint => ({
       return errorResponse(req, 'Unauthorized.', 401)
     }
 
+    const status = await getUserStatus(req, req.user)
+
     return jsonResponse(req, {
       user: sanitizeMobileUser(req.user),
+      status,
     })
   },
   custom: {

@@ -5,6 +5,10 @@ import { isAuthenticated } from '@/access/isAuthenticated'
 import { adminOrFieldOwner } from '@/access/adminOrFieldOwner'
 import { analyticsEndpoint } from '@/endpoints/retailers/analytics'
 import { enforceDefaultPaymentMethod } from '@/hooks/enforceDefaultPaymentMethod'
+import { assignUserId } from './hooks/assignUserId'
+import { retailerMeEndpoint } from '@/endpoints/retailers/me'
+import { normalizeMobileNumberFieldHook } from '@/hooks/normalizeMobileNumberFieldHook'
+import { syncUserName } from './hooks/syncUserName'
 
 export const Retailers: CollectionConfig = {
   slug: 'retailers',
@@ -14,6 +18,7 @@ export const Retailers: CollectionConfig = {
       method: 'get',
       handler: analyticsEndpoint,
     },
+    retailerMeEndpoint,
   ],
   access: {
     create: isAuthenticated,
@@ -24,50 +29,69 @@ export const Retailers: CollectionConfig = {
   admin: {
     useAsTitle: 'shopName',
     defaultColumns: ['shopName', 'ownerName', 'approvalStatus', 'createdAt'],
-    group: 'Profiles',
+    group: 'Users',
+    components: {
+      views: {
+        list: {
+          Component: '@/components/admin/ApprovalManagementView#default',
+        },
+      },
+    },
   },
   hooks: {
     beforeChange: [
-      ({ req, operation, data }) => {
-        if (operation === 'create' && req.user && !data.user) {
-          data.user = req.user.id
-        }
-        return data
-      },
+      assignUserId,
       enforceDefaultPaymentMethod,
     ],
+    afterChange: [syncUserName],
   },
   fields: [
     {
       name: 'shopName',
       type: 'text',
+      label: 'Store / Shop Name',
       required: true,
     },
     {
       name: 'ownerName',
       type: 'text',
+      label: 'Owner Full Name',
       required: true,
     },
     {
       name: 'mobileNumber',
       type: 'text',
+      label: 'Mobile Number',
       required: true,
       unique: true,
       index: true,
+      hooks: {
+        beforeValidate: [normalizeMobileNumberFieldHook],
+      },
     },
     {
       name: 'emailId',
       type: 'email',
+      label: 'Email Address',
       required: true,
+    },
+    {
+      name: 'profileImage',
+      type: 'upload',
+      relationTo: 'media',
+      label: 'Profile Image',
+      required: false,
     },
     {
       name: 'alternateContactNumber',
       type: 'text',
+      label: 'Alternate Contact Number',
       required: false,
     },
     {
       name: 'gstNumber',
       type: 'text',
+      label: 'GST Number',
       required: true,
     },
     {
@@ -227,8 +251,12 @@ export const Retailers: CollectionConfig = {
     {
       name: 'approvalStatus',
       type: 'select',
+      label: 'Approval Status',
       required: true,
       defaultValue: 'pending',
+      admin: {
+        position: 'sidebar',
+      },
       access: {
         create: adminOnlyFieldAccess,
         update: adminOnlyFieldAccess,
@@ -270,6 +298,10 @@ export const Retailers: CollectionConfig = {
       name: 'averageRating',
       type: 'number',
       defaultValue: 0,
+      access: {
+        create: adminOnlyFieldAccess,
+        update: adminOnlyFieldAccess,
+      },
       admin: {
         readOnly: true,
         description: 'Pre-calculated average rating cached from the reviews',
@@ -279,6 +311,10 @@ export const Retailers: CollectionConfig = {
       name: 'ratingCount',
       type: 'number',
       defaultValue: 0,
+      access: {
+        create: adminOnlyFieldAccess,
+        update: adminOnlyFieldAccess,
+      },
       admin: {
         readOnly: true,
         description: 'Total number of ratings submitted for this retailer',

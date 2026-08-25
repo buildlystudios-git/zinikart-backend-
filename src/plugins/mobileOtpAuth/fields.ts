@@ -1,4 +1,5 @@
 import type { Field } from 'payload'
+import { normalizeMobileNumberFieldHook } from '@/hooks/normalizeMobileNumberFieldHook'
 
 export const mobileAuthFields: Field[] = [
   {
@@ -10,6 +11,9 @@ export const mobileAuthFields: Field[] = [
     },
     index: true,
     unique: true,
+    hooks: {
+      beforeValidate: [normalizeMobileNumberFieldHook],
+    },
   },
   {
     name: 'mobileVerified',

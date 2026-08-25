@@ -9,6 +9,9 @@ export const Footer: GlobalConfig = {
     read: () => true,
     update: adminOnly,
   },
+  admin: {
+    hidden: true,
+  },
   fields: [
     {
       name: 'navItems',

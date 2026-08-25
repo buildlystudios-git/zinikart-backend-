@@ -1,7 +1,7 @@
 import type { CollectionSlug, PayloadRequest } from 'payload'
 import { jwtSign } from 'payload'
 import { DEFAULT_CUSTOMER_ROLE } from './constants'
-import { syntheticEmailForMobile } from './helpers'
+import { syntheticEmailForMobile, normalizeMobileNumber } from './helpers'
 
 export const getUsersCollection = (req: PayloadRequest, usersSlug: string) => {
   const collection = req.payload.collections[usersSlug as CollectionSlug]
@@ -14,6 +14,9 @@ export const getUsersCollection = (req: PayloadRequest, usersSlug: string) => {
 }
 
 export const findUserByMobileNumber = async (req: PayloadRequest, usersSlug: string, mobileNumber: string) => {
+  const digits = mobileNumber.replace(/\D/g, '')
+  const core10Digits = digits.length >= 10 ? digits.slice(-10) : digits
+
   const result = await req.payload.find({
     collection: usersSlug as 'users',
     limit: 1,
@@ -22,7 +25,7 @@ export const findUserByMobileNumber = async (req: PayloadRequest, usersSlug: str
     showHiddenFields: true,
     where: {
       mobileNumber: {
-        equals: mobileNumber,
+        like: core10Digits,
       },
     } as any,
   })
@@ -37,11 +40,13 @@ export const createOtpUser = async (
   name?: string,
   role = DEFAULT_CUSTOMER_ROLE,
 ) => {
+  const formattedMobile = normalizeMobileNumber(mobileNumber)
+
   return req.payload.create({
     collection: usersSlug as 'users',
     data: {
-      email: syntheticEmailForMobile(mobileNumber),
-      mobileNumber,
+      email: syntheticEmailForMobile(formattedMobile),
+      mobileNumber: formattedMobile,
       mobileVerified: true,
       password: crypto.randomUUID(),
       roles: [role],
@@ -125,4 +130,64 @@ export const createSessionToken = async ({
   })
 
   return { exp, token }
+}
+
+export const getUserStatus = async (
+  req: PayloadRequest,
+  user: any,
+  requestedRole?: string
+): Promise<'approved' | 'approved_no_products' | 'registration_required' | 'pending_approval' | 'rejected' | 'suspended'> => {
+  const role = requestedRole || (user.roles?.includes('retailer') ? 'retailer' : user.roles?.includes('delivery_partner') ? 'delivery_partner' : 'customer')
+
+  let status: 'approved' | 'approved_no_products' | 'registration_required' | 'pending_approval' | 'rejected' | 'suspended' = 'approved'
+
+  if (role === 'retailer') {
+    const retailerDocs = await req.payload.find({
+      collection: 'retailers',
+      where: { user: { equals: user.id } },
+      limit: 1,
+      overrideAccess: true,
+    })
+    const retailer = retailerDocs.docs[0]
+    if (!retailer) {
+      status = 'registration_required'
+    } else {
+      const appStatus = retailer.approvalStatus as string
+      if (appStatus === 'approved') {
+        const productDocs = await req.payload.find({
+          collection: 'products',
+          where: { retailer: { equals: user.id } },
+          limit: 1,
+          overrideAccess: true,
+        })
+        if (productDocs.totalDocs > 0) {
+          status = 'approved'
+        } else {
+          status = 'approved_no_products'
+        }
+      }
+      else if (appStatus === 'pending') status = 'pending_approval'
+      else if (appStatus === 'rejected') status = 'rejected'
+      else if (appStatus === 'suspended') status = 'suspended'
+    }
+  } else if (role === 'delivery_partner') {
+    const deliveryDocs = await req.payload.find({
+      collection: 'delivery-partners',
+      where: { user: { equals: user.id } },
+      limit: 1,
+      overrideAccess: true,
+    })
+    const partner = deliveryDocs.docs[0]
+    if (!partner) {
+      status = 'registration_required'
+    } else {
+      const appStatus = partner.approvalStatus as string
+      if (appStatus === 'approved') status = 'approved'
+      else if (appStatus === 'pending') status = 'pending_approval'
+      else if (appStatus === 'rejected') status = 'rejected'
+      else if (appStatus === 'suspended') status = 'suspended'
+    }
+  }
+
+  return status
 }

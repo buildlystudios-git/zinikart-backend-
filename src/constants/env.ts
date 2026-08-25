@@ -18,8 +18,17 @@ export const PAYLOAD_SECRET = process.env.PAYLOAD_SECRET || ''
 // App
 export const PREVIEW_SECRET = process.env.PREVIEW_SECRET || ''
 export const ASSIGNMENT_STRATEGY = process.env.ASSIGNMENT_STRATEGY || 'background_job'
+export const NODE_ENV = process.env.NODE_ENV || 'development'
+export const SEED_PRODUCT_COUNT = process.env.SEED_PRODUCT_COUNT || '0'
 
 // Timeouts (configurable)
 export const RIDER_OFFER_TIMEOUT_MS = parseInt(process.env.RIDER_OFFER_TIMEOUT_MS || '60000', 10)
 export const RETAILER_ACTION_TIMEOUT_MS = parseInt(process.env.RETAILER_ACTION_TIMEOUT_MS || '300000', 10)
 export const LOCATION_THROTTLE_MS = parseInt(process.env.LOCATION_THROTTLE_MS || '10000', 10)
+
+// S3 Storage
+export const S3_BUCKET = process.env.S3_BUCKET || ''
+export const S3_REGION = process.env.S3_REGION || ''
+export const S3_ACCESS_KEY_ID = process.env.S3_ACCESS_KEY_ID || ''
+export const S3_SECRET_ACCESS_KEY = process.env.S3_SECRET_ACCESS_KEY || ''
+export const S3_ENDPOINT = process.env.S3_ENDPOINT || ''

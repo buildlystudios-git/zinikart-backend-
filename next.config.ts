@@ -48,6 +48,7 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(dirname),
   },
+  allowedDevOrigins: ['zinikart.com'],
 }
 
 export default withPayload(nextConfig)

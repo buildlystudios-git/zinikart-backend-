@@ -52,4 +52,33 @@ export const deliveryPartnerPaths = {
       },
     },
   },
+  '/api/delivery-partners/me': {
+    get: {
+      summary: 'Get current delivery partner profile',
+      description: 'Fetch the delivery partner profile associated with the currently authenticated user.',
+      tags: ['Delivery Partners'],
+      security: [
+        { BearerAuth: [] },
+      ],
+      responses: {
+        200: {
+          description: 'Delivery partner profile successfully fetched',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean' },
+                  deliveryPartner: { type: 'object' },
+                },
+              },
+            },
+          },
+        },
+        401: { description: 'Unauthorized' },
+        404: { description: 'Delivery partner profile not found' },
+        500: { description: 'Internal server error' },
+      },
+    },
+  },
 }

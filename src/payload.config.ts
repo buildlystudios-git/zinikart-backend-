@@ -21,35 +21,57 @@ import { Users } from '@/collections/Users'
 import { Retailers } from '@/collections/Retailers'
 import { DeliveryPartners } from '@/collections/DeliveryPartners'
 import { Brands } from '@/collections/Brands'
+import { SupportChats } from '@/collections/SupportChats'
+import { ChatMessages } from '@/collections/ChatMessages'
+import { ChatMedia } from '@/collections/ChatMedia'
 import { Footer } from '@/globals/Footer'
 import { Header } from '@/globals/Header'
+import { AgentSettings } from '@/globals/AgentSettings'
 import { Ratings } from '@/collections/Ratings'
 import { Wishlists } from '@/collections/Wishlists'
+import { ContactUs } from '@/collections/ContactUs'
 import { plugins } from './plugins'
-import { productDetailsEndpoint } from '@/endpoints/mobile/catalog/productDetails'
-import { searchEndpoint } from '@/endpoints/mobile/search/index'
+import { mobileEndpoints } from '@/endpoints/mobile'
 import { assignDeliveryPartnerTask } from '@/jobs/assignDeliveryPartner'
 import { checkOfferTimeoutTask } from '@/jobs/checkOfferTimeout'
 import { retailerActionTimeoutTask } from '@/jobs/retailerActionTimeout'
 import { processRazorpayRefundTask } from '@/jobs/processRazorpayRefund'
 import { DATABASE_URL, PAYLOAD_SECRET } from '@/constants/env'
+import { PlatformSettings } from '@/globals/PlatformSettings'
+import { PayoutLedger } from '@/collections/PayoutLedger'
+import { PayoutInvoice } from '@/collections/PayoutInvoice'
+import { processPayoutsTask } from '@/jobs/processPayouts'
+
+import { myLedgerEndpoint, myInvoicesEndpoint, invoiceDetailEndpoint } from '@/endpoints/payouts'
+import { supportChatEndpoints } from '@/endpoints/support-chat'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
 export default buildConfig({
   admin: {
-    components: {
-      // The `BeforeLogin` component renders a message that you see while logging into your admin panel.
-      // Feel free to delete this at any time. Simply remove the line below and the import `BeforeLogin` statement on line 15.
-      beforeLogin: ['@/components/BeforeLogin#BeforeLogin'],
-      // The `BeforeDashboard` component renders the 'welcome' block that you see after logging into your admin panel.
-      // Feel free to delete this at any time. Simply remove the line below and the import `BeforeDashboard` statement on line 15.
-      beforeDashboard: ['@/components/BeforeDashboard#BeforeDashboard'],
-    },
     user: Users.slug,
+    components: {
+      graphics: {
+        Logo: '@/components/admin/Logo#Logo',
+        Icon: '@/components/admin/Logo#Icon',
+      },
+      views: {
+        dashboard: {
+          Component: '@/components/admin/DashboardView',
+        },
+        categoryBrands: {
+          Component: '@/components/admin/views/CategoryBrandsPage',
+          path: '/categories/:categoryId/brands',
+        },
+        categoryBrandProducts: {
+          Component: '@/components/admin/views/CategoryBrandProductsPage',
+          path: '/categories/:categoryId/brands/:brandId/products',
+        },
+      },
+    },
   },
-  collections: [Users, Pages, Categories, Media, Retailers, DeliveryPartners, Brands, Ratings, Wishlists],
+  collections: [Users, Pages, Categories, Media, Retailers, DeliveryPartners, Brands, Ratings, Wishlists, PayoutLedger, PayoutInvoice, SupportChats, ChatMessages, ChatMedia, ContactUs],
   db: postgresAdapter({
     idType: 'uuid',
     pool: {
@@ -94,18 +116,13 @@ export default buildConfig({
   }),
   //email: nodemailerAdapter(),
   endpoints: [
-    {
-      method: 'get',
-      path: '/mobile/product/:id',
-      handler: productDetailsEndpoint,
-    },
-    {
-      method: 'get',
-      path: '/mobile/search',
-      handler: searchEndpoint,
-    },
+    ...mobileEndpoints,
+    myLedgerEndpoint,
+    myInvoicesEndpoint,
+    invoiceDetailEndpoint,
+    ...supportChatEndpoints,
   ],
-  globals: [Header, Footer],
+  globals: [Header, Footer, AgentSettings, PlatformSettings],
   plugins,
   secret: PAYLOAD_SECRET,
   typescript: {
@@ -145,6 +162,20 @@ export default buildConfig({
           { name: 'transactionId', type: 'text', required: true }
         ],
         handler: processRazorpayRefundTask,
+      },
+      {
+        slug: 'processPayouts',
+        inputSchema: [],
+        handler: processPayoutsTask,
+      },
+    ],
+    workflows: [
+      {
+        slug: 'hourlyPayoutCheck',
+        schedule: [{ cron: '0 * * * *', queue: 'default' }],
+        handler: async ({ tasks }) => {
+          await tasks.processPayouts!('1', { input: {} })
+        },
       },
     ],
   },

@@ -10,17 +10,23 @@ export const normalizeMobileNumber = (value?: string): string => {
     throw new Error('Mobile number is required.')
   }
 
-  const compact = raw.replace(/[\s()-]/g, '')
+  const hasPlus = raw.startsWith('+')
+  const digits = raw.replace(/\D/g, '')
 
-  if (/^\+[1-9]\d{7,14}$/.test(compact)) {
-    return compact
+  if (hasPlus) {
+    if (digits.length >= 8 && digits.length <= 15) {
+      return `+${digits}`
+    }
+  } else {
+    if (digits.length === 10) {
+      return `+91${digits}`
+    }
+    if (digits.length === 12 && digits.startsWith('91')) {
+      return `+${digits}`
+    }
   }
 
-  if (/^\d{10}$/.test(compact)) {
-    return `+91${compact}`
-  }
-
-  throw new Error('Mobile number must be a valid E.164 number.')
+  throw new Error('Mobile number must be a valid 10-digit number or E.164 format.')
 }
 
 export const syntheticEmailForMobile = (mobileNumber: string): string => {
@@ -43,11 +49,15 @@ export const getCodeFromBody = (body: OtpVerifyBody): string => {
 }
 
 export const isTestOtp = (mobileNumber: string, code?: string): boolean => {
+  // TODO: Remove this test account pattern for prod
+  const isTestAccount =
+    mobileNumber === OTP_TEST_MOBILE_NUMBER || /^\+?(91)?998877\d{4}$/.test(mobileNumber)
+
   if (code) {
-    return mobileNumber === OTP_TEST_MOBILE_NUMBER && code === OTP_TEST_CODE
+    return isTestAccount && code === OTP_TEST_CODE
   }
 
-  return mobileNumber === OTP_TEST_MOBILE_NUMBER
+  return isTestAccount
 }
 
 export const sanitizeMobileUser = (user: any) => {

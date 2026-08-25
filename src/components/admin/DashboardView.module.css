@@ -1,0 +1,161 @@
+.dashboard { --green: #138c31; --ink: #172018; --muted: #66706a; min-height: calc(100vh - 36px); padding: 24px; color: var(--ink); background: #f7f8f7; font-family: Arial, sans-serif; }
+:global(:root) { --nav-width: 230px; }
+.content { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; max-width: 1440px; margin: 0 auto; }.primary,.sidebar { min-width: 0; }.greeting,.sectionHeading,.metricTop,.profile,.action,.ticket,.help,.mobileHeader { display: flex; align-items: center; }.greeting,.sectionHeading { justify-content: space-between; }.greeting { margin: 0 0 18px; }.greeting h1 { margin: 0 0 5px; font-size: 26px; line-height: 1.2; }.greeting p,.revenue p { margin: 0; color: var(--muted); font-size: 14px; }.profile { gap: 9px; font-size: 13px; }.profile > span { display: grid; place-items: center; width: 37px; height: 37px; border-radius: 50%; color: #fff; background: var(--green); font-size: 17px; }.profile small,.ticket small,.action small { display: block; margin-top: 3px; color: var(--muted); }
+.metrics { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; }.metric { display: flex; flex-direction: column; min-height: 228px; padding: 20px; overflow: hidden; border: 1px solid #e6eae6; border-radius: 10px; background: #fff; box-shadow: 0 2px 10px #17201808; }.metric:nth-child(1),.metric:nth-child(2) { grid-column: span 3; }.metric:nth-child(n + 3) { grid-column: span 2; min-height: 220px; }.metricTop { justify-content: space-between; }.metricIcon { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; }.metric p { margin: 16px 0 4px; font-size: 13px; font-weight: bold; }.metric strong { line-height: 1.1; font-size: 27px; }.metric .change { display: block; min-height: 18px; margin-top: 10px; }.change { color: var(--green); font-size: 13px; font-weight: bold; }.change em { color: var(--muted); font-style: normal; font-weight: normal; }.metricLink { display: flex; align-items: center; justify-content: space-between; min-height: 42px; margin-top: auto; padding: 0 12px; border-radius: 6px; color: inherit; text-decoration: none; font-size: 12px; }.metricamber .metricIcon { color: #ed9b16; background: #fff2df; }.metricamber .metricLink { background: #fff7ed; }.metricgreen .metricIcon { color: var(--green); background: #e9f7eb; }.metricgreen .metricLink { background: #eef9ef; }.metricblue .metricIcon { color: #1477e7; background: #eaf3ff; }.metricviolet .metricIcon { color: #7b3ee7; background: #f2eaff; }.select { display: inline-flex; align-items: center; gap: 3px; padding: 7px 10px; border: 1px solid #dfe5e1; border-radius: 7px; background: #fff; color: #28312b; font-size: 12px; }
+.actions,.recentOrders,.tickets,.revenue { margin-top: 18px; border: 1px solid #e3e8e4; border-radius: 10px; background: #fff; box-shadow: 0 2px 10px #17201808; }.actions,.recentOrders,.tickets,.revenue { padding: 16px; }.actions h2,.sectionHeading h2 { margin: 0; font-size: 16px; }.actionGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 14px; }.action { display: flex; align-items: center; min-width: 0; min-height: 68px; gap: 10px; padding: 12px 14px; border: 1px solid #dfe6e1; border-radius: 8px; background: #fff; color: var(--ink); line-height: 1.3; text-decoration: none; font: inherit; font-size: 12px; transition: all 0.2s ease; }.action:hover { border-color: var(--green); background: #eef9ef; }.action svg { flex: none; color: var(--green); }.action > div,.ticket > div { min-width: 0; flex: 1; }.action b { display: block; font-size: 12px; font-weight: 600; color: #172018; }.action small { display: block; margin-top: 2px; color: var(--green); font-size: 11px; font-weight: 500; }.action > svg:last-child { width: 16px; color: #64748b; }.sectionHeading { gap: 10px; }.sectionHeading a,.recentOrders footer a,.revenue > a { display: flex; align-items: center; color: var(--green); text-decoration: none; white-space: nowrap; font-size: 12px; }
+.tableWrap { margin-top: 13px; overflow-x: auto; }.tableWrap table { width: 100%; border-collapse: collapse; font-size: 12px; }.tableWrap th { padding: 8px 0; color: var(--muted); text-align: left; font-weight: normal; }.tableWrap td { padding: 10px 0; border-top: 1px solid #edf0ee; white-space: nowrap; }.status,.ticketState { display: inline-block; padding: 5px 8px; border-radius: 5px; font-size: 11px; }.statusDelivered,.ticketStategreen { color: #177b2a; background: #e8f7eb; }.statusOutforDelivery,.statusConfirmed { color: #6532c9; background: #f0ebff; }.statusPacked { color: #1766c7; background: #e8f2ff; }.statusPending,.ticketStateorange { color: #d27a00; background: #fff4e7; }.more,.iconButton { border: 0; color: inherit; background: transparent; cursor: pointer; }.recentOrders footer { display: flex; justify-content: space-between; padding-top: 12px; border-top: 1px solid #edf0ee; color: var(--muted); font-size: 12px; }
+.tickets,.revenue { margin-top: 0; padding: 18px; }.ticketCounts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 18px 0 22px; }.ticketCounts div { padding: 13px 10px; border: 1px solid #e0e6e2; border-radius: 7px; }.ticketCounts b { display: block; color: #e11313; font-size: 25px; }.ticketCounts div:nth-child(2) b { color: #e18700; }.ticketCounts div:nth-child(3) b { color: #16842c; }.ticketCounts span { color: #e11313; font-size: 11px; }.ticketCounts div:nth-child(2) span { color: #d47c00; }.ticketCounts div:nth-child(3) span { color: #16842c; }.tickets h3 { margin: 0 0 12px; font-size: 13px; }.ticketList { display: grid; gap: 14px; }.ticket { gap: 10px; }.ticketIcon { display: grid; flex: none; place-items: center; width: 32px; height: 32px; border-radius: 50%; }.ticketred { color: #e31717; background: #fff0f0; }.ticketorange { color: #dc8700; background: #fff5e7; }.ticketgreen { color: #168b2e; background: #eaf8eb; }.ticket b { display: block; font-size: 12px; }.ticket small { font-size: 11px; }.ticketStatered { color: #d31616; background: #fff0f0; }.ticketState { white-space: nowrap; }.revenue { margin-top: 18px; }.revenue > strong { display: block; margin: 12px 0; font-size: 25px; }.revenue svg { width: 100%; margin: 15px 0 0; }.chartDays { display: flex; justify-content: space-between; color: #48524b; font-size: 10px; }.revenue > a { justify-content: flex-end; margin-top: 20px; }.help { gap: 10px; margin-top: 18px; padding: 15px; border-radius: 8px; color: white; background: #073a34; }.help > div { flex: 1; }.help b { display: block; font-size: 13px; }.help small { color: #d5e5df; font-size: 11px; }.mobileHeader { display: none; }.iconButton { position: relative; }.iconButton b { position: absolute; top: -5px; right: -6px; display: grid; place-items: center; width: 15px; height: 15px; border-radius: 50%; color: #fff; background: #e51616; font-size: 9px; }
+@media (max-width: 1180px) { .content { grid-template-columns: 1fr; }.sidebar { display: grid; grid-template-columns: 1.25fr 1fr; gap: 18px; }.help { display: none; }.revenue { margin-top: 0; } }
+@media (max-width: 850px) { :global(:root) { --nav-width: 100vw; }.dashboard { padding: 15px; }.mobileHeader { display: flex; justify-content: space-between; gap: 14px; margin-bottom: 18px; }.search { display: flex; align-items: center; flex: 1; gap: 8px; padding: 9px 12px; border: 1px solid #dfe5e1; border-radius: 7px; background: #fff; }.search input { width: 100%; border: 0; outline: 0; background: transparent; }.greeting .profile { display: none; }.metrics { grid-template-columns: repeat(2, 1fr); }.metric:nth-child(n) { grid-column: span 1; }.actionGrid { grid-template-columns: repeat(2, 1fr); }.sidebar { grid-template-columns: 1fr; }.revenue { margin-top: 0; } }
+@media (max-width: 560px) { .greeting h1 { font-size: 22px; }.metrics,.actionGrid { grid-template-columns: 1fr; }.metric:nth-child(n) { min-height: 155px; }.recentOrders { padding: 13px; }.sectionHeading h2 { font-size: 15px; }.ticketCounts { gap: 6px; }.ticketCounts div { padding: 10px 7px; }.dashboard { min-height: auto; } }
+
+/* --- Special Metric Cards (Total Orders & Total Revenue) --- */
+.specialMetric {
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  border: 1px solid #e6eae6;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 2px 10px rgba(23, 32, 24, 0.03);
+  min-height: 200px;
+  justify-content: space-between;
+}
+
+.metrics > .specialMetric {
+  grid-column: span 3;
+}
+
+.specialHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.specialLeft {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.specialIconBadge {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.specialamber .specialIconBadge {
+  background: #fff4e5;
+  color: #ea580c;
+}
+
+.specialgreen .specialIconBadge {
+  background: #e8f7eb;
+  color: #138c31;
+}
+
+.specialTitleBox {
+  display: flex;
+  flex-direction: column;
+}
+
+.specialLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 2px;
+}
+
+.specialValue {
+  font-size: 26px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.1;
+}
+
+.specialDropdownWrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.timeDropdown {
+  appearance: none;
+  -webkit-appearance: none;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 6px 28px 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e293b;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.timeDropdown:hover {
+  border-color: #94a3b8;
+}
+
+.dropdownChevron {
+  position: absolute;
+  right: 8px;
+  pointer-events: none;
+  color: #64748b;
+}
+
+.specialChange {
+  font-size: 13px;
+  font-weight: 700;
+  color: #16a34a;
+  margin-top: 14px;
+  margin-bottom: 14px;
+}
+
+.specialChange em {
+  font-style: normal;
+  font-weight: 500;
+  color: #64748b;
+  margin-left: 4px;
+}
+
+.specialReportLink {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+
+.specialamber .specialReportLink {
+  background: #fff7ed;
+  color: #ea580c;
+}
+
+.specialamber .specialReportLink:hover {
+  background: #ffedd5;
+}
+
+.specialgreen .specialReportLink {
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+.specialgreen .specialReportLink:hover {
+  background: #dcfce7;
+}
+
+.specialReportLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

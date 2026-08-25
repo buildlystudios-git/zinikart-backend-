@@ -18,12 +18,23 @@ import { MetaImageComponent as MetaImageComponent_a8a977ebc872c5d5ea7ee689724c08
 import { MetaDescriptionComponent as MetaDescriptionComponent_a8a977ebc872c5d5ea7ee689724c0860 } from '@payloadcms/plugin-seo/client'
 import { PreviewComponent as PreviewComponent_a8a977ebc872c5d5ea7ee689724c0860 } from '@payloadcms/plugin-seo/client'
 import { SlugField as SlugField_2b8867833a34864a02ddf429b0728a40 } from '@payloadcms/next/client'
+import { CategoryEditView as CategoryEditView_6328e9d6fb2fd7fdb89d6dce08931bea } from '@/components/admin/views/CategoryEditView'
+import { default as default_0246abb39801f219cf7376bba2066e47 } from '@/components/admin/CategoryCardView'
+import { default as default_8242abd23369d4616b740fd8e31d5144 } from '@/components/admin/ApprovalManagementView'
+import { default as default_60b7829accaf7954c9f0c1f216b96fe5 } from '@/components/admin/BrandSplitView'
+import { default as default_d170d3fc8dd04e6dc6cb1a979092503d } from '@/components/admin/views/ChatEditView'
 import { VariantOptionsSelector as VariantOptionsSelector_b91672ccd6e8b071c11142ab941fedfb } from '@payloadcms/plugin-ecommerce/rsc'
 import { PriceCell as PriceCell_e27bf7b8cc50640dcdd584767b8eac3c } from '@payloadcms/plugin-ecommerce/client'
 import { PriceInput as PriceInput_b91672ccd6e8b071c11142ab941fedfb } from '@payloadcms/plugin-ecommerce/rsc'
 import { HorizontalRuleFeatureClient as HorizontalRuleFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
-import { BeforeDashboard as BeforeDashboard_1a7510af427896d367a49dbf838d2de6 } from '@/components/BeforeDashboard'
-import { BeforeLogin as BeforeLogin_8a7ab0eb7ab5c511aba12e68480bfe5e } from '@/components/BeforeLogin'
+import { default as default_745a88460638fb052d18d449db74e17d } from '@/components/admin/views/ProductEditView'
+import { default as default_32883a028a6a42b37db24b90fe924bcf } from '@/components/admin/views/OrderEditView'
+import { Icon as Icon_a44df17d0fc3dcd873dae43dc3bf66bd } from '@/components/admin/Logo'
+import { Logo as Logo_a44df17d0fc3dcd873dae43dc3bf66bd } from '@/components/admin/Logo'
+import { S3ClientUploadHandler as S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24 } from '@payloadcms/storage-s3/client'
+import { default as default_8d5ccf53266e3797f61e9453e2f2d431 } from '@/components/admin/DashboardView'
+import { default as default_a1373b17bcb8401f4c60c1706dc6e133 } from '@/components/admin/views/CategoryBrandsPage'
+import { default as default_b690c9e6ec02117e4b7a1bdc5f83ba06 } from '@/components/admin/views/CategoryBrandProductsPage'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 
 /** @type import('payload').ImportMap */
@@ -48,11 +59,22 @@ export const importMap = {
   "@payloadcms/plugin-seo/client#MetaDescriptionComponent": MetaDescriptionComponent_a8a977ebc872c5d5ea7ee689724c0860,
   "@payloadcms/plugin-seo/client#PreviewComponent": PreviewComponent_a8a977ebc872c5d5ea7ee689724c0860,
   "@payloadcms/next/client#SlugField": SlugField_2b8867833a34864a02ddf429b0728a40,
+  "@/components/admin/views/CategoryEditView#CategoryEditView": CategoryEditView_6328e9d6fb2fd7fdb89d6dce08931bea,
+  "@/components/admin/CategoryCardView#default": default_0246abb39801f219cf7376bba2066e47,
+  "@/components/admin/ApprovalManagementView#default": default_8242abd23369d4616b740fd8e31d5144,
+  "@/components/admin/BrandSplitView#default": default_60b7829accaf7954c9f0c1f216b96fe5,
+  "@/components/admin/views/ChatEditView#default": default_d170d3fc8dd04e6dc6cb1a979092503d,
   "@payloadcms/plugin-ecommerce/rsc#VariantOptionsSelector": VariantOptionsSelector_b91672ccd6e8b071c11142ab941fedfb,
   "@payloadcms/plugin-ecommerce/client#PriceCell": PriceCell_e27bf7b8cc50640dcdd584767b8eac3c,
   "@payloadcms/plugin-ecommerce/rsc#PriceInput": PriceInput_b91672ccd6e8b071c11142ab941fedfb,
   "@payloadcms/richtext-lexical/client#HorizontalRuleFeatureClient": HorizontalRuleFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
-  "@/components/BeforeDashboard#BeforeDashboard": BeforeDashboard_1a7510af427896d367a49dbf838d2de6,
-  "@/components/BeforeLogin#BeforeLogin": BeforeLogin_8a7ab0eb7ab5c511aba12e68480bfe5e,
+  "@/components/admin/views/ProductEditView#default": default_745a88460638fb052d18d449db74e17d,
+  "@/components/admin/views/OrderEditView#default": default_32883a028a6a42b37db24b90fe924bcf,
+  "@/components/admin/Logo#Icon": Icon_a44df17d0fc3dcd873dae43dc3bf66bd,
+  "@/components/admin/Logo#Logo": Logo_a44df17d0fc3dcd873dae43dc3bf66bd,
+  "@payloadcms/storage-s3/client#S3ClientUploadHandler": S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24,
+  "@/components/admin/DashboardView#default": default_8d5ccf53266e3797f61e9453e2f2d431,
+  "@/components/admin/views/CategoryBrandsPage#default": default_a1373b17bcb8401f4c60c1706dc6e133,
+  "@/components/admin/views/CategoryBrandProductsPage#default": default_b690c9e6ec02117e4b7a1bdc5f83ba06,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
 }

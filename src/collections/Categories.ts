@@ -14,17 +14,39 @@ export const Categories: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'title',
-    group: 'Content',
+    defaultColumns: ['title', 'brands'],
+    group: 'Products',
+    components: {
+      views: {
+        list: {
+          Component: '@/components/admin/CategoryCardView#default',
+        },
+        edit: {
+          default: {
+            Component: '@/components/admin/views/CategoryEditView#CategoryEditView',
+          },
+        },
+      },
+    },
   },
   fields: [
     {
       name: 'title',
       type: 'text',
+      label: 'Category Name',
       required: true,
+    },
+    {
+      name: 'media',
+      type: 'upload',
+      label: 'Category Image',
+      relationTo: 'media',
+      required: false,
     },
     {
       name: 'parentCategory',
       type: 'relationship',
+      label: 'Parent Category',
       relationTo: 'categories',
       required: false,
       admin: {
@@ -79,6 +101,17 @@ export const Categories: CollectionConfig = {
           label: 'Required',
         },
       ],
+    },
+    {
+      name: 'brands',
+      type: 'join',
+      label: 'Associated Brands',
+      collection: 'brands',
+      on: 'categories',
+      admin: {
+        allowCreate: false,
+        defaultColumns: ['name', 'featured'],
+      },
     },
     slugField({
       position: undefined,

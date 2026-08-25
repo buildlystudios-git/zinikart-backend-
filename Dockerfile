@@ -21,7 +21,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
 # Dummy env variables required by Payload CMS during Next.js build compilation
-ENV DATABASE_URI="postgresql://postgres:dummy@localhost:5432/dummy"
+ENV DATABASE_URL="postgresql://postgres:madhav@host.docker.internal:5432/postgres"
 ENV PAYLOAD_SECRET="dummy_payload_secret_key_for_compilation"
 
 RUN pnpm build

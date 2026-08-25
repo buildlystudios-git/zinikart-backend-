@@ -3,6 +3,7 @@ import { Content } from '@/blocks/Content/config'
 import { MediaBlock } from '@/blocks/MediaBlock/config'
 import { slugField } from 'payload'
 import { generatePreviewPath } from '@/utilities/generatePreviewPath'
+import { customCreateEndpoint } from './endpoints/customCreate'
 import { CollectionOverride } from '@payloadcms/plugin-ecommerce/types'
 import {
   MetaDescriptionField,
@@ -33,7 +34,16 @@ export const ProductsCollection: CollectionOverride = ({ defaultCollection }) =>
   ...defaultCollection,
   admin: {
     ...defaultCollection?.admin,
-    defaultColumns: ['title', 'enableVariants', '_status', 'variants.variants', 'isMasterTemplate', 'inventory', 'categories', 'brand', 'retailer'],
+    defaultColumns: ['title', '_status', 'inventory', 'categories', 'brand', 'retailer'],
+    components: {
+      views: {
+        edit: {
+          default: {
+            Component: '@/components/admin/views/ProductEditView',
+          },
+        },
+      },
+    },
     livePreview: {
       url: ({ data, req }) =>
         generatePreviewPath({
@@ -49,6 +59,7 @@ export const ProductsCollection: CollectionOverride = ({ defaultCollection }) =>
         req,
       }),
     useAsTitle: 'title',
+    group: 'Products',
   },
   defaultPopulate: {
     ...defaultCollection?.defaultPopulate,
@@ -68,8 +79,12 @@ export const ProductsCollection: CollectionOverride = ({ defaultCollection }) =>
     update: updateAccess,
     delete: deleteAccess,
   },
+  endpoints: [
+    ...(defaultCollection?.endpoints || []),
+    customCreateEndpoint,
+  ],
   fields: [
-    { name: 'title', type: 'text', required: true },
+    { name: 'title', type: 'text', label: 'Product Title', required: true },
     {
       type: 'tabs',
       tabs: [
@@ -180,6 +195,7 @@ export const ProductsCollection: CollectionOverride = ({ defaultCollection }) =>
             {
               name: 'brand',
               type: 'relationship',
+              label: 'Product Brand',
               relationTo: 'brands',
               required: false,
               admin: {
@@ -299,6 +315,7 @@ export const ProductsCollection: CollectionOverride = ({ defaultCollection }) =>
     {
       name: 'categories',
       type: 'relationship',
+      label: 'Product Categories',
       admin: {
         position: 'sidebar',
         sortOptions: 'title',
@@ -309,6 +326,7 @@ export const ProductsCollection: CollectionOverride = ({ defaultCollection }) =>
     {
       name: 'retailer',
       type: 'relationship',
+      label: 'Retailer Store',
       relationTo: 'users',
       required: false,
       admin: {

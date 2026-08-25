@@ -16,7 +16,7 @@ export const Ratings: CollectionConfig = {
   admin: {
     useAsTitle: 'id',
     defaultColumns: ['rating', 'product', 'retailer', 'customer', 'createdAt'],
-    group: 'Profiles',
+    group: 'Reviews',
   },
   hooks: {
     beforeValidate: [checkUniqueRating],
@@ -28,6 +28,7 @@ export const Ratings: CollectionConfig = {
     {
       name: 'rating',
       type: 'number',
+      label: 'Rating Score (1-5)',
       required: true,
       min: 1,
       max: 5,
@@ -38,6 +39,7 @@ export const Ratings: CollectionConfig = {
     {
       name: 'reviewText',
       type: 'textarea',
+      label: 'Customer Review',
       required: false,
       admin: {
         description: 'Optional review text',
@@ -46,6 +48,7 @@ export const Ratings: CollectionConfig = {
     {
       name: 'product',
       type: 'relationship',
+      label: 'Reviewed Product',
       relationTo: 'products',
       required: true,
       index: true,
@@ -53,6 +56,7 @@ export const Ratings: CollectionConfig = {
     {
       name: 'retailer',
       type: 'relationship',
+      label: 'Retailer Store',
       relationTo: 'retailers',
       required: true,
       index: true,
@@ -60,6 +64,7 @@ export const Ratings: CollectionConfig = {
     {
       name: 'customer',
       type: 'relationship',
+      label: 'Customer',
       relationTo: 'users',
       required: true,
       index: true,

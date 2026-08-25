@@ -6,6 +6,9 @@ import { adminOrFieldOwner } from '@/access/adminOrFieldOwner'
 import { associateUser } from './hooks/associateUser'
 import { locationTrackingEndpoint } from '@/endpoints/delivery-partners/location'
 import { enforceDefaultPaymentMethod } from '@/hooks/enforceDefaultPaymentMethod'
+import { deliveryPartnerMeEndpoint } from '@/endpoints/delivery-partners/me'
+import { normalizeMobileNumberFieldHook } from '@/hooks/normalizeMobileNumberFieldHook'
+import { syncUserName } from './hooks/syncUserName'
 
 export const DeliveryPartners: CollectionConfig = {
   slug: 'delivery-partners',
@@ -18,33 +21,55 @@ export const DeliveryPartners: CollectionConfig = {
   admin: {
     useAsTitle: 'fullName',
     defaultColumns: ['fullName', 'mobileNumber', 'vehicleType', 'approvalStatus', 'onlineStatus', 'createdAt'],
-    group: 'Profiles',
+    group: 'Users',
+    components: {
+      views: {
+        list: {
+          Component: '@/components/admin/ApprovalManagementView#default',
+        },
+      },
+    },
   },
   hooks: {
     beforeChange: [associateUser, enforceDefaultPaymentMethod],
+    afterChange: [syncUserName],
   },
-  endpoints: [locationTrackingEndpoint],
+  endpoints: [locationTrackingEndpoint, deliveryPartnerMeEndpoint],
   fields: [
     {
       name: 'fullName',
       type: 'text',
+      label: 'Partner Full Name',
       required: true,
     },
     {
       name: 'mobileNumber',
       type: 'text',
+      label: 'Mobile Number',
       required: true,
       unique: true,
       index: true,
+      hooks: {
+        beforeValidate: [normalizeMobileNumberFieldHook],
+      },
     },
     {
       name: 'email',
       type: 'email',
+      label: 'Email Address',
       required: true,
+    },
+    {
+      name: 'profileImage',
+      type: 'upload',
+      relationTo: 'media',
+      label: 'Profile Image',
+      required: false,
     },
     {
       name: 'gender',
       type: 'select',
+      label: 'Gender',
       required: true,
       options: [
         { label: 'Male', value: 'male' },
@@ -175,6 +200,7 @@ export const DeliveryPartners: CollectionConfig = {
     {
       name: 'vehicleType',
       type: 'select',
+      label: 'Vehicle Type',
       required: true,
       options: [
         {
@@ -198,7 +224,11 @@ export const DeliveryPartners: CollectionConfig = {
     {
       name: 'approvalStatus',
       type: 'select',
+      label: 'Approval Status',
       required: true,
+      admin: {
+        position: 'sidebar',
+      },
       defaultValue: 'pending',
       access: {
         create: adminOnlyFieldAccess,
@@ -226,6 +256,7 @@ export const DeliveryPartners: CollectionConfig = {
     {
       name: 'onlineStatus',
       type: 'checkbox',
+      label: 'Online Status',
       required: true,
       defaultValue: false,
     },

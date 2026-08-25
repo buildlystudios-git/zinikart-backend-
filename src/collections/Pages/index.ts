@@ -31,7 +31,7 @@ export const Pages: CollectionConfig = {
     update: adminOnly,
   },
   admin: {
-    group: 'Content',
+    hidden: true,
     defaultColumns: ['title', 'slug', 'updatedAt'],
     livePreview: {
       url: ({ data, req }) =>

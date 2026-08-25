@@ -1,0 +1,265 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  padding: 32px;
+  background: #f8faf9;
+  min-height: calc(100vh - 36px);
+  font-family: Arial, sans-serif;
+  color: #111827;
+}
+
+.pageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.headerTitle h1 {
+  margin: 0 0 8px;
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.headerTitle p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.addBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: #16a34a;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background 0.2s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.addBtn:hover {
+  background: #15803d;
+}
+
+.statsRow {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+.filterBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.searchWrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 10px 16px;
+  width: 320px;
+}
+
+.searchWrap:focus-within {
+  border-color: #16a34a;
+}
+
+.searchInput {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  color: #111827;
+  outline: none;
+}
+
+.sortWrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sortLabel {
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.sortSelectWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.sortSelect {
+  appearance: none;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 8px 32px 8px 12px;
+  font-size: 13px;
+  color: #111827;
+  outline: none;
+  cursor: pointer;
+}
+
+.sortSelect:focus {
+  border-color: #16a34a;
+}
+
+.sortIcon {
+  position: absolute;
+  right: 12px;
+  pointer-events: none;
+  color: #6b7280;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  transition: all 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.04);
+  border-color: #d1d5db;
+}
+
+.cardMain {
+  display: flex;
+  gap: 16px;
+}
+
+.imageArea {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.imageArea img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cardContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 16px;
+}
+
+.metricsRow {
+  display: flex;
+  gap: 24px;
+  margin-bottom: auto;
+}
+
+.metric {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.metricLabel {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.metricValue {
+  font-size: 16px;
+  font-weight: 600;
+  color: #16a34a;
+}
+
+.viewLink {
+  margin-top: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #16a34a;
+  text-decoration: none;
+  align-self: flex-start;
+}
+
+.viewLink:hover {
+  color: #15803d;
+}
+
+.loading, .emptyState {
+  padding: 40px;
+  text-align: center;
+  color: #6b7280;
+}
+
+.emptyState {
+  grid-column: 1 / -1;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px dashed #d1d5db;
+}
+
+.emptyState h3 {
+  color: #111827;
+  margin-bottom: 8px;
+}
+
+@media (max-width: 1024px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .statsRow {
+    flex-direction: column;
+  }
+  .filterBar {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+  .searchWrap {
+    width: 100%;
+  }
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

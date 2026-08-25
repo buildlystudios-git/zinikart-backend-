@@ -30,10 +30,12 @@ export const Users: CollectionConfig = {
     {
       name: 'name',
       type: 'text',
+      label: 'Full Name',
     },
     {
       name: 'roles',
       type: 'select',
+      label: 'Account Role',
       access: {
         create: adminOnlyFieldAccess,
         read: adminOnlyFieldAccess,

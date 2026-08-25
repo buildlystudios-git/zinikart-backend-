@@ -15,7 +15,7 @@ export const Wishlists: CollectionConfig = {
   admin: {
     useAsTitle: 'id',
     defaultColumns: ['product', 'customer', 'createdAt'],
-    group: 'Profiles',
+    hidden: true,
   },
   hooks: {
     beforeValidate: [validateWishlist],

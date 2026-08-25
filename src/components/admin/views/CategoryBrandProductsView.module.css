@@ -1,0 +1,290 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  padding: 32px;
+  background: #f8faf9;
+  min-height: calc(100vh - 36px);
+  font-family: Arial, sans-serif;
+  color: #111827;
+}
+
+.pageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.headerTitle h1 {
+  margin: 0 0 8px;
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.headerTitle p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.addBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: #16a34a;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background 0.2s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.addBtn:hover {
+  background: #15803d;
+}
+
+.filterBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.searchWrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 10px 16px;
+  width: 320px;
+}
+
+.searchWrap:focus-within {
+  border-color: #16a34a;
+}
+
+.searchInput {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  color: #111827;
+  outline: none;
+}
+
+.filtersRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.selectWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.selectField {
+  appearance: none;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 8px 32px 8px 12px;
+  font-size: 13px;
+  color: #111827;
+  outline: none;
+  cursor: pointer;
+  min-width: 120px;
+}
+
+.selectField:focus {
+  border-color: #16a34a;
+}
+
+.selectIcon {
+  position: absolute;
+  right: 12px;
+  pointer-events: none;
+  color: #6b7280;
+}
+
+.filterBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  color: #374151;
+  cursor: pointer;
+}
+
+.filterBtn:hover {
+  background: #f9fafb;
+}
+
+.tableWrap {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.table th {
+  padding: 16px 20px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #6b7280;
+  border-bottom: 1px solid #e5e7eb;
+  letter-spacing: 0.5px;
+}
+
+.table td {
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: middle;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.productCell {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.productImage {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+.productImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.productTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+  text-decoration: none;
+}
+
+.productTitle:hover {
+  text-decoration: underline;
+}
+
+.variantsText {
+  font-size: 14px;
+  color: #2563eb;
+}
+
+.priceBlock {
+  display: flex;
+  flex-direction: column;
+}
+
+.priceValue {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.priceSub {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.badge.admin {
+  background: #ecfdf5;
+  color: #10b981;
+}
+
+.badge.retailer {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.actionsCell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.actionBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #4b5563;
+  text-decoration: none;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.actionBtn:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+  color: #111827;
+}
+
+.loading, .emptyState {
+  padding: 64px;
+  text-align: center;
+  color: #6b7280;
+}
+
+@media (max-width: 1024px) {
+  .filterBar {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+  .searchWrap {
+    width: 100%;
+  }
+  .filtersRight {
+    flex-wrap: wrap;
+  }
+}

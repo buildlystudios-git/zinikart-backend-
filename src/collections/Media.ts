@@ -9,17 +9,18 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 
 import { adminOnly } from '@/access/adminOnly'
+import { isAuthenticated } from '@/access/isAuthenticated'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
 export const Media: CollectionConfig = {
   admin: {
-    group: 'Content',
+    hidden: true,
   },
   slug: 'media',
   access: {
-    create: adminOnly,
+    create: isAuthenticated,
     delete: adminOnly,
     read: () => true,
     update: adminOnly,
