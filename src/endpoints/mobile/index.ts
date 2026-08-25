@@ -2,6 +2,7 @@ import type { Endpoint } from 'payload'
 import { productDetailsEndpoint } from './catalog/productDetails'
 import { productListEndpoint } from './catalog/productList'
 import { reorderListEndpoint } from './catalog/reorderList'
+import { wishlistEndpoint } from './catalog/wishlist'
 import { searchEndpoint } from './search'
 import { categoryListEndpoint } from './categories/categoryList'
 import { brandListEndpoint } from './brands/brandList'
@@ -17,6 +18,11 @@ export const mobileEndpoints: Endpoint[] = [
     path: '/mobile/products/reorder',
     method: 'get',
     handler: reorderListEndpoint,
+  },
+  {
+    path: '/mobile/products/wishlist',
+    method: 'get',
+    handler: wishlistEndpoint,
   },
   {
     path: '/mobile/products/:id',
