@@ -40,6 +40,50 @@ export const mobileCatalogPaths = {
       }
     }
   },
+  '/api/mobile/products/reorder': {
+    get: {
+      summary: 'Get products previously ordered by the customer',
+      description: 'Fetch a paginated list of products that the authenticated customer has previously ordered. Uses the detail transformer schema for rich product details.',
+      tags: ['products'],
+      security: [
+        {
+          BearerAuth: [],
+        },
+      ],
+      parameters: [
+        { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
+        { name: 'limit', in: 'query', schema: { type: 'integer', default: 20 } },
+      ],
+      responses: {
+        200: {
+          description: 'Successful product list',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  docs: { type: 'array', items: { type: 'object' } },
+                  pagination: {
+                    type: 'object',
+                    properties: {
+                      page: { type: 'integer' },
+                      limit: { type: 'integer' },
+                      totalDocs: { type: 'integer' },
+                      totalPages: { type: 'integer' },
+                      hasNextPage: { type: 'boolean' },
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        401: {
+          description: 'Unauthorized',
+        }
+      }
+    }
+  },
   '/api/mobile/products/{id}': {
     get: {
       summary: 'Get product details for customer',
