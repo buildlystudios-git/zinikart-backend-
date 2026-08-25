@@ -25,11 +25,17 @@ export const wishlistEndpoint = async (req: PayloadRequest): Promise<Response> =
       req,
     })
 
-    const productIds = wishlistRes.docs
-      .map((item: any) => (typeof item.product === 'object' ? item.product.id : item.product))
-      .filter(Boolean)
+    const wishlistItems = wishlistRes.docs
+      .map((item: any) => {
+        const productId = typeof item.product === 'object' ? item.product.id : item.product
+        return {
+          wishlistId: item.id,
+          productId: productId ? String(productId) : null,
+        }
+      })
+      .filter((item) => Boolean(item.productId))
 
-    if (productIds.length === 0) {
+    if (wishlistItems.length === 0) {
       return Response.json({
         docs: [],
         pagination: {
@@ -59,6 +65,7 @@ export const wishlistEndpoint = async (req: PayloadRequest): Promise<Response> =
     }
 
     // Query those specific products
+    const productIds = wishlistItems.map(item => item.productId)
     const productsRes = await req.payload.find({
       collection: 'products',
       where: {
@@ -77,11 +84,18 @@ export const wishlistEndpoint = async (req: PayloadRequest): Promise<Response> =
     const productsMap = new Map()
     productsRes.docs.forEach((p: any) => productsMap.set(String(p.id), p))
 
-    const formattedDocs = productIds
-      .map((pid: string) => {
-        const product = productsMap.get(String(pid))
+    const formattedDocs = wishlistItems
+      .map(({ wishlistId, productId }) => {
+        const product = productsMap.get(productId)
         if (!product) return null
-        return transformProductDetail(product, variantTypesMap)
+        
+        const transformed = transformProductDetail(product, variantTypesMap)
+        if (!transformed) return null
+        
+        return {
+          ...transformed,
+          wishlistId,
+        }
       })
       .filter(Boolean)
 
