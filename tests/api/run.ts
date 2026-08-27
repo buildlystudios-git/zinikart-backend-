@@ -227,6 +227,7 @@ async function main() {
     data: {
       user: retailerUser.id,
       shopName: 'ZiniTech Store',
+      onlineStatus: 'online',
       ownerName: 'Retailer Tester',
       mobileNumber: retailerMobile,
       emailId: 'retailer.user@testing.zinikart.local',

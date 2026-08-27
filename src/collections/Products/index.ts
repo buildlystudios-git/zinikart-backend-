@@ -32,6 +32,7 @@ import { setTemplateFields } from './hooks/setTemplateFields'
 
 export const ProductsCollection: CollectionOverride = ({ defaultCollection }) => ({
   ...defaultCollection,
+  trash: true,
   admin: {
     ...defaultCollection?.admin,
     defaultColumns: ['title', '_status', 'inventory', 'categories', 'brand', 'retailer'],

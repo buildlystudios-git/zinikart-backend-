@@ -55,6 +55,7 @@ export async function runRetailerTests(
   // 1. Attempt to create profile without authentication (returns 401)
   const unauthCreateRes = await apiRequest('/api/retailers', 'POST', {
     shopName: 'Hackers Shop',
+    onlineStatus: 'online',
     ownerName: 'Hacker',
     mobileNumber: testMobile,
     emailId: 'hacker@example.com',
@@ -105,6 +106,7 @@ export async function runRetailerTests(
     'POST',
     {
       shopName: 'Madhav Gadgets',
+      onlineStatus: 'online',
       ownerName: 'Madhav Seller',
       mobileNumber: testMobile,
       emailId: 'madhav.gadgets@testing.zinikart.local',
@@ -229,6 +231,7 @@ export async function runRetailerTests(
     'POST',
     {
       shopName: 'Duplicate Shop',
+      onlineStatus: 'online',
       ownerName: 'Another Owner',
       mobileNumber: testMobile,
       emailId: 'duplicate.shop@testing.zinikart.local',

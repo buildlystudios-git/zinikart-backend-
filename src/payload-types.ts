@@ -228,6 +228,10 @@ export interface User {
   id: string;
   name?: string | null;
   roles?: ('admin' | 'customer' | 'retailer' | 'delivery_partner')[] | null;
+  /**
+   * Automatically synced from the Retailer profile.
+   */
+  retailerOnlineStatus?: string | null;
   orders?: {
     docs?: (string | Order)[];
     hasNextPage?: boolean;
@@ -1197,6 +1201,10 @@ export interface Retailer {
     openEveryday?: boolean | null;
   };
   approvalStatus: 'pending' | 'approved' | 'rejected' | 'suspended';
+  /**
+   * Retailers can toggle this to go offline temporarily.
+   */
+  onlineStatus: 'online' | 'offline';
   user: string | User;
   /**
    * Pre-calculated average rating cached from the reviews
@@ -1862,6 +1870,7 @@ export interface PayloadMigration {
 export interface UsersSelect<T extends boolean = true> {
   name?: T;
   roles?: T;
+  retailerOnlineStatus?: T;
   orders?: T;
   cart?: T;
   addresses?: T;
@@ -2150,6 +2159,7 @@ export interface RetailersSelect<T extends boolean = true> {
         openEveryday?: T;
       };
   approvalStatus?: T;
+  onlineStatus?: T;
   user?: T;
   averageRating?: T;
   ratingCount?: T;

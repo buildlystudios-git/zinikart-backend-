@@ -69,6 +69,7 @@ export const searchEndpoint = async (req: PayloadRequest): Promise<Response> => 
       and: [
         { isMasterTemplate: { equals: isMasterTemplate } },
         { _status: { equals: statusParam } },
+        { deletedAt: { exists: false } },
         {
           or: [
             { title: { like: q } },
@@ -144,6 +145,7 @@ export const searchEndpoint = async (req: PayloadRequest): Promise<Response> => 
               landmark: profile.shopAddress?.landmark,
               averageRating: profile.averageRating || 0,
               ratingCount: profile.ratingCount || 0,
+              onlineStatus: profile.onlineStatus || 'online',
             }
           : null,
       }
@@ -159,6 +161,7 @@ export const searchEndpoint = async (req: PayloadRequest): Promise<Response> => 
       businessHours: r.businessHours,
       averageRating: r.averageRating || 0,
       ratingCount: r.ratingCount || 0,
+      onlineStatus: r.onlineStatus || 'online',
     }))
 
     return Response.json({

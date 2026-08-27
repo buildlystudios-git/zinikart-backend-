@@ -72,6 +72,7 @@ export const wishlistEndpoint = async (req: PayloadRequest): Promise<Response> =
         and: [
           { id: { in: productIds } },
           { _status: { equals: 'published' } },
+          { deletedAt: { exists: false } },
         ],
       },
       limit: 1000, // Fetch all matched IDs

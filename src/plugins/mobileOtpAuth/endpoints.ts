@@ -75,19 +75,29 @@ export const verifyOtpEndpoint = (usersSlug: string): Endpoint => ({
       if (!user) {
         exists = false
         user = await createOtpUser(req, usersSlug, mobileNumber, name, role)
-      } else if (!user.roles?.includes(role)) {
-        user = await req.payload.update({
-          id: user.id,
-          collection: usersSlug as 'users',
-          data: {
-            roles: [...(user.roles || []), role],
-          } as any,
-          overrideAccess: true,
-          showHiddenFields: true,
-        })
       }
 
-      user = await markUserOtpLogin(req, usersSlug, user.id, name)
+      // Auto-create cart if the user doesn't have one and is a customer
+      if (role === 'customer') {
+        const existingCart = await req.payload.find({
+          collection: 'carts',
+          where: { customer: { equals: user.id } },
+          limit: 1,
+          depth: 0,
+          overrideAccess: true,
+        })
+        if (existingCart.totalDocs === 0) {
+          await req.payload.create({
+            collection: 'carts',
+            data: {
+              customer: user.id,
+            },
+            overrideAccess: true,
+          })
+        }
+      }
+
+      user = await markUserOtpLogin(req, usersSlug, user.id)
 
       const status = await getUserStatus(req, user, role)
 

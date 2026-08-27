@@ -5,20 +5,26 @@ export const syncUserName: CollectionAfterChangeHook = async ({
   req,
   operation,
 }) => {
-  if ((operation === 'create' || operation === 'update') && doc.user && doc.ownerName) {
+  if ((operation === 'create' || operation === 'update') && doc.user) {
     try {
       const user = await req.payload.findByID({
         collection: 'users',
         id: typeof doc.user === 'string' ? doc.user : doc.user.id,
       })
 
+      const dataToUpdate: any = {}
       if (user && user.name !== doc.ownerName) {
+        dataToUpdate.name = doc.ownerName
+      }
+      if (user && user.retailerOnlineStatus !== doc.onlineStatus) {
+        dataToUpdate.retailerOnlineStatus = doc.onlineStatus
+      }
+
+      if (Object.keys(dataToUpdate).length > 0) {
         await req.payload.update({
           collection: 'users',
           id: user.id,
-          data: {
-            name: doc.ownerName,
-          },
+          data: dataToUpdate,
           req,
         })
       }

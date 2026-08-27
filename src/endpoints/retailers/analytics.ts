@@ -56,7 +56,12 @@ export const analyticsEndpoint = async (req: PayloadRequest): Promise<Response> 
 
   try {
     // 1. Fetch retailer's products
-    const productWhere: Where = retailerUserId ? { retailer: { equals: retailerUserId } } : {}
+    const productWhere: Where = {
+      and: [
+        ...(retailerUserId ? [{ retailer: { equals: retailerUserId } }] : []),
+        { deletedAt: { exists: false } }
+      ]
+    }
     const retailerProducts = await req.payload.find({
       collection: 'products',
       where: productWhere,

@@ -9,6 +9,8 @@ import { assignUserId } from './hooks/assignUserId'
 import { retailerMeEndpoint } from '@/endpoints/retailers/me'
 import { normalizeMobileNumberFieldHook } from '@/hooks/normalizeMobileNumberFieldHook'
 import { syncUserName } from './hooks/syncUserName'
+import { retailerStatusEndpoint } from '@/endpoints/retailers/statusEndpoint'
+import { adminOrRetailerOwnerFieldAccess } from '@/access/adminOrRetailerOwnerFieldAccess'
 
 export const Retailers: CollectionConfig = {
   slug: 'retailers',
@@ -19,6 +21,7 @@ export const Retailers: CollectionConfig = {
       handler: analyticsEndpoint,
     },
     retailerMeEndpoint,
+    retailerStatusEndpoint,
   ],
   access: {
     create: isAuthenticated,
@@ -279,6 +282,25 @@ export const Retailers: CollectionConfig = {
           value: 'suspended',
         },
       ],
+    },
+    {
+      name: 'onlineStatus',
+      type: 'select',
+      label: 'Store Status',
+      defaultValue: 'online',
+      required: true,
+      admin: {
+        position: 'sidebar',
+        description: 'Retailers can toggle this to go offline temporarily.',
+      },
+      options: [
+        { label: 'Online (Accepting Orders)', value: 'online' },
+        { label: 'Offline (Temporarily Closed)', value: 'offline' },
+      ],
+      access: {
+        // Field owner can update this (retailer or admin)
+        update: adminOrRetailerOwnerFieldAccess,
+      },
     },
     {
       name: 'user',

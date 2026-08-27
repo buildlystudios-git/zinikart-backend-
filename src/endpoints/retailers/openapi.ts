@@ -173,4 +173,52 @@ export const retailerAnalyticsPaths = {
       },
     },
   },
+  '/api/retailers/status': {
+    patch: {
+      summary: 'Toggle retailer online/offline status',
+      description: 'Allows a retailer to toggle their online (accepting orders) or offline (temporarily closed) status.',
+      tags: ['Retailers'],
+      security: [
+        { BearerAuth: [] },
+      ],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              required: ['onlineStatus'],
+              properties: {
+                onlineStatus: {
+                  type: 'string',
+                  enum: ['online', 'offline'],
+                  description: 'The new status to set for the store',
+                },
+              },
+            },
+          },
+        },
+      },
+      responses: {
+        200: {
+          description: 'Status successfully updated',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean' },
+                  onlineStatus: { type: 'string', enum: ['online', 'offline'] },
+                },
+              },
+            },
+          },
+        },
+        400: { description: 'Invalid status provided' },
+        401: { description: 'Unauthorized' },
+        404: { description: 'Retailer profile not found' },
+        500: { description: 'Internal server error' },
+      },
+    },
+  },
 }

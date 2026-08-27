@@ -465,6 +465,7 @@ export async function runCatalogTests(
           data: {
             user: activeRetailerUserId,
             shopName: 'Active Retailer Gadgets',
+            onlineStatus: 'online',
             ownerName: 'Active Seller',
             mobileNumber: '+916666666669',
             emailId: 'retailer.user@testing.zinikart.local',
@@ -512,6 +513,7 @@ export async function runCatalogTests(
       collection: 'retailers',
       data: {
         shopName: 'Competitor Gadgets',
+        onlineStatus: 'online',
         ownerName: 'Competitor Seller',
         mobileNumber: '+915555555555',
         emailId: 'competitor.gadgets@testing.zinikart.local',

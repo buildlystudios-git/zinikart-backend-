@@ -34,7 +34,8 @@ export const retailerMeEndpoint: Endpoint = {
 
       const where: any = {
         and: [
-          { retailer: { equals: req.user.id } }
+          { retailer: { equals: req.user.id } },
+          { deletedAt: { exists: false } }
         ]
       }
 

@@ -14,7 +14,12 @@ export const validateSingleVendor: CollectionBeforeValidateHook = async ({ data,
     if (productIds.length > 0) {
       const products = await payload.find({
         collection: 'products',
-        where: { id: { in: productIds } },
+        where: { 
+          and: [
+            { id: { in: productIds } },
+            { deletedAt: { exists: false } }
+          ]
+        },
         depth: 0,
         overrideAccess: true,
         req,

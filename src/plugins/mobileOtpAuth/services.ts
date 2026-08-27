@@ -61,14 +61,10 @@ export const markUserOtpLogin = async (
   req: PayloadRequest,
   usersSlug: string,
   userID: number | string,
-  name?: string,
 ) => {
   const data: any = {
     lastOtpLoginAt: new Date().toISOString(),
     mobileVerified: true,
-  }
-  if (name) {
-    data.name = name
   }
   return req.payload.update({
     id: userID as any,
