@@ -17,6 +17,7 @@ export type VariantsConfiguratorProps = {
 export const VariantsConfigurator: React.FC<VariantsConfiguratorProps> = ({
   formData, setFormData, allVariantTypes, allVariantOptions
 }) => {
+  const isProd = process.env.NODE_ENV === 'production' || process.env.NEXT_PUBLIC_NODE_ENV === 'production'
   
   if (!formData.enableVariants) {
     return (
@@ -142,6 +143,7 @@ export const VariantsConfigurator: React.FC<VariantsConfiguratorProps> = ({
 
   // Update a specific variant combination
   const updateCellVariant = (optIds: string[], field: string, value: any) => {
+    if (isProd && field === 'inventory') return
     const variants = [...(formData.variants || [])]
     const existingIndex = variants.findIndex((v: any) => {
       const vOpts = (v.options || []).map((o: any) => typeof o === 'object' ? o.id : o)
@@ -255,7 +257,7 @@ export const VariantsConfigurator: React.FC<VariantsConfiguratorProps> = ({
           <div>
             <h4 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '4px' }}>2. SKU Matrix</h4>
             <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>
-              Toggle cells on/off to create combinations.
+              Toggle cells on/off to create combinations.{isProd ? ' (Qty editing is disabled in production)' : ''}
             </p>
           </div>
           <button 
@@ -309,10 +311,11 @@ export const VariantsConfigurator: React.FC<VariantsConfiguratorProps> = ({
                   
                   <input 
                     type="number" 
-                    disabled={!isActive}
+                    disabled={!isActive || isProd}
                     value={variant?.inventory || 0}
                     onChange={(e) => updateCellVariant([opt.id], 'inventory', parseInt(e.target.value) || 0)}
-                    style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', background: isActive ? 'white' : '#f3f4f6', color: '#111827' }}
+                    title={isProd ? 'Quantity editing is disabled in production' : undefined}
+                    style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', background: (!isActive || isProd) ? '#f3f4f6' : 'white', color: isProd ? '#9ca3af' : '#111827', cursor: isProd ? 'not-allowed' : undefined }}
                   />
                 </div>
               )
@@ -377,10 +380,11 @@ export const VariantsConfigurator: React.FC<VariantsConfiguratorProps> = ({
                               <span style={{ fontSize: '12px', color: '#9ca3af', width: '32px' }}>Qty</span>
                               <input 
                                 type="number"
-                                disabled={!isActive}
+                                disabled={!isActive || isProd}
                                 value={variant?.inventory || 0}
                                 onChange={(e) => updateCellVariant([rowOpt.id, colOpt.id], 'inventory', parseInt(e.target.value) || 0)}
-                                style={{ flex: 1, minWidth: 0, padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '12px', background: isActive ? 'white' : '#f3f4f6', color: '#111827' }}
+                                title={isProd ? 'Quantity editing is disabled in production' : undefined}
+                                style={{ flex: 1, minWidth: 0, padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '12px', background: (!isActive || isProd) ? '#f3f4f6' : 'white', color: isProd ? '#9ca3af' : '#111827', cursor: isProd ? 'not-allowed' : undefined }}
                               />
                             </div>
                           </div>

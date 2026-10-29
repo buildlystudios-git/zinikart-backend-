@@ -9,7 +9,7 @@ import { seedProducts } from './seedProducts'
 import { seedGlobals } from './seedGlobals'
 import { seedPages } from './seedPages'
 import { fetchFileByURL } from './utils'
-import { SEED_PRODUCT_COUNT } from '@/constants/env'
+import { NODE_ENV, SEED_PRODUCT_COUNT } from '@/constants/env'
 
 import { seedDemoData } from './seedDemoData'
 
@@ -34,12 +34,24 @@ export const seed = async ({ payload, req }: { payload: Payload; req?: any }): P
   const fileContents = fs.readFileSync(jsonPath, 'utf8')
   const productsData = JSON.parse(fileContents)
   
+  const isProd = NODE_ENV === 'production'
+  const availableProducts = isProd
+    ? productsData.filter((p: any) => p.image_url && typeof p.image_url === 'string' && p.image_url.trim().length > 0)
+    : productsData
+
+  if (isProd) {
+    const skippedCount = productsData.length - availableProducts.length
+    if (skippedCount > 0) {
+      payload.logger.info(`Production mode: skipped ${skippedCount} products without images from dataset`)
+    }
+  }
+
   const seedProductCount = SEED_PRODUCT_COUNT
   const isAll = seedProductCount?.toLowerCase() === 'all'
   const parsedCount = parseInt(seedProductCount as string, 10)
   const selectedProducts = (seedProductCount && !isAll && !isNaN(parsedCount)) 
-    ? productsData.slice(0, parsedCount) 
-    : productsData
+    ? availableProducts.slice(0, parsedCount) 
+    : availableProducts
 
   const uniqueBrands = new Set<string>()
   const uniqueStorageOptions = new Set<string>()

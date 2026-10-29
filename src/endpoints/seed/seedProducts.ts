@@ -5,6 +5,7 @@ import { createLexicalDescription, fetchImageWithFallback } from './utils'
 import { productSmartphoneVariant } from './product-smartphone'
 import { productCameraData } from './product-camera'
 import { productHeadphonesData } from './product-headphones'
+import { NODE_ENV } from '@/constants/env'
 
 export async function seedProducts(
   payload: Payload,
@@ -64,6 +65,13 @@ export async function seedProducts(
   let productSmartphone: any = null
 
   for (const item of selectedProducts) {
+    if (NODE_ENV === 'production') {
+      if (!item.image_url || typeof item.image_url !== 'string' || !item.image_url.trim()) {
+        payload.logger.info(`Skipping product "${item.model || 'Unknown'}" in production: missing image URL`)
+        continue
+      }
+    }
+
     let ramNum = parseInt((item.ram || '').match(/\d+/)?.[0] || '8', 10)
     let storage = (item.internal_storage || '').trim().replace(/\s+/g, '')
     if (!storage) storage = '128GB'
@@ -80,6 +88,12 @@ export async function seedProducts(
 
     const colorsList = Array.from(new Set<string>((item.colors || '').split(',').map((c: string) => c.trim()).filter(Boolean) as string[]))
     const imageId = await fetchImageWithFallback(payload, item.image_url, images.defaultImg)
+
+    if (NODE_ENV === 'production' && imageId === images.defaultImg) {
+      payload.logger.info(`Skipping product "${item.model || productSlug}" in production: image fetch failed and returned fallback image`)
+      continue
+    }
+
     const price = 15000 + Math.floor(Math.random() * 85000)
 
     let createdProduct;
