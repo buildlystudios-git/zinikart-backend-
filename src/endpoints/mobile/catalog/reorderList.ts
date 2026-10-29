@@ -78,6 +78,7 @@ export const reorderListEndpoint = async (req: PayloadRequest): Promise<Response
         and: [
           { id: { in: uniqueProductIds } },
           { _status: { equals: 'published' } },
+          { deletedAt: { exists: false } },
         ],
       },
       limit,

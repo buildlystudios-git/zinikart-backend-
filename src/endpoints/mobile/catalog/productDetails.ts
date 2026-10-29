@@ -22,7 +22,7 @@ export const productDetailsEndpoint = async (req: PayloadRequest): Promise<Respo
     return Response.json({ error: 'Product not found' }, { status: 404 })
   }
 
-  if (!product) {
+  if (!product || product.deletedAt) {
     return Response.json({ error: 'Product not found' }, { status: 404 })
   }
 
@@ -52,6 +52,7 @@ export const productDetailsEndpoint = async (req: PayloadRequest): Promise<Respo
         businessHours: activeRetDoc.businessHours,
         averageRating: activeRetDoc.averageRating || 0,
         ratingCount: activeRetDoc.ratingCount || 0,
+        onlineStatus: activeRetDoc.onlineStatus || 'online',
       }
     }
   }
@@ -69,6 +70,7 @@ export const productDetailsEndpoint = async (req: PayloadRequest): Promise<Respo
           { id: { not_equals: product.id } },
           { isMasterTemplate: { equals: false } },
           { _status: { equals: 'published' } },
+          { deletedAt: { exists: false } },
         ],
       },
       depth: 1,

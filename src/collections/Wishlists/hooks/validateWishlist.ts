@@ -31,7 +31,7 @@ export const validateWishlist: CollectionBeforeValidateHook = async ({
       })
     }
 
-    if (!product) {
+    if (!product || product.deletedAt) {
       throw new ValidationError({
         errors: [
           {

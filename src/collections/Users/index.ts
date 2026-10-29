@@ -67,6 +67,15 @@ export const Users: CollectionConfig = {
       ],
     },
     {
+      name: 'retailerOnlineStatus',
+      type: 'text',
+      label: 'Retailer Online Status (Synced)',
+      admin: {
+        readOnly: true,
+        description: 'Automatically synced from the Retailer profile.',
+      },
+    },
+    {
       name: 'orders',
       type: 'join',
       collection: 'orders',

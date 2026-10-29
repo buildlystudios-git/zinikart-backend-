@@ -108,6 +108,9 @@ export const transformProductSummary = (rawProduct: any) => {
     specifications: Array.isArray(rawProduct.specifications) ? rawProduct.specifications : [],
     status: rawProduct._status || 'published',
     createdAt: rawProduct.createdAt,
+    retailerOnlineStatus: typeof rawProduct.retailer === 'object' && rawProduct.retailer !== null
+      ? (rawProduct.retailer.retailerOnlineStatus || 'online')
+      : 'online',
   };
 };
 

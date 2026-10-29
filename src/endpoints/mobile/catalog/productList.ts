@@ -18,6 +18,7 @@ export const productListEndpoint = async (req: PayloadRequest): Promise<Response
       and: [
         { isMasterTemplate: { equals: isMasterTemplate } },
         { _status: { equals: 'published' } },
+        { deletedAt: { exists: false } },
       ],
     }
 

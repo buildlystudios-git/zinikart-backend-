@@ -58,6 +58,7 @@ export async function runQuickCommerceTests(
         user: otherRetailerUser.id, 
         name: 'Other Retailer',
         shopName: 'Other Shop',
+        onlineStatus: 'online',
         ownerName: 'Other Owner',
         mobileNumber: `+9198${Math.floor(10000000 + Math.random() * 90000000)}`,
         emailId: 'other.shop@test.local',

@@ -45,6 +45,7 @@ const buildProductWhere = (overrides: any[] = []): any => ({
   and: [
     { isMasterTemplate: { equals: false } },
     { _status: { equals: 'published' } },
+    { deletedAt: { exists: false } },
     ...overrides,
   ],
 })
@@ -113,6 +114,7 @@ const transformRetailerCard = (r: any, distanceKm?: number) => ({
   },
   averageRating: r.averageRating || 0,
   ratingCount: r.ratingCount || 0,
+  onlineStatus: r.onlineStatus || 'online',
   ...(distanceKm !== undefined
     ? { distanceKm: Math.round(distanceKm * 10) / 10 }
     : {}),

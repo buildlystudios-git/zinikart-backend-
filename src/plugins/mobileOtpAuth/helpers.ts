@@ -61,6 +61,9 @@ export const isTestOtp = (mobileNumber: string, code?: string): boolean => {
 }
 
 export const sanitizeMobileUser = (user: any) => {
+  const cartDoc = user.cart?.docs?.[0]
+  const cartId = cartDoc ? (typeof cartDoc === 'object' ? cartDoc.id : cartDoc) : null
+
   return {
     id: user.id,
     email: user.email?.endsWith(`@${OTP_AUTH_EMAIL_DOMAIN}`) ? null : user.email,
@@ -68,6 +71,7 @@ export const sanitizeMobileUser = (user: any) => {
     mobileVerified: user.mobileVerified,
     name: user.name || null,
     roles: user.roles || [],
+    cartId,
   }
 }
 

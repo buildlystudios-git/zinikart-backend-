@@ -5,6 +5,7 @@ export const readAccess: Access = ({ req: { user } }) => {
     return {
       and: [
         { _status: { equals: 'published' } } as Where,
+        { deletedAt: { exists: false } } as Where,
         {
           or: [
             { isMasterTemplate: { equals: false } } as Where,
@@ -17,15 +18,21 @@ export const readAccess: Access = ({ req: { user } }) => {
   if (user.roles?.includes('admin')) return true
   if (user.roles?.includes('retailer')) {
     return {
-      or: [
-        { _status: { equals: 'published' } } as Where,
-        { retailer: { equals: user.id } } as Where,
+      and: [
+        { deletedAt: { exists: false } } as Where,
+        {
+          or: [
+            { _status: { equals: 'published' } } as Where,
+            { retailer: { equals: user.id } } as Where,
+          ],
+        } as Where,
       ],
     } as Where
   }
   return {
     and: [
       { _status: { equals: 'published' } } as Where,
+      { deletedAt: { exists: false } } as Where,
       {
         or: [
           { isMasterTemplate: { equals: false } } as Where,

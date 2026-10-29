@@ -31,6 +31,7 @@ import { default as default_745a88460638fb052d18d449db74e17d } from '@/component
 import { default as default_32883a028a6a42b37db24b90fe924bcf } from '@/components/admin/views/OrderEditView'
 import { Icon as Icon_a44df17d0fc3dcd873dae43dc3bf66bd } from '@/components/admin/Logo'
 import { Logo as Logo_a44df17d0fc3dcd873dae43dc3bf66bd } from '@/components/admin/Logo'
+import { ProdNavHider as ProdNavHider_5297728aa9b9a8b0392b0b43e45f3553 } from '@/components/admin/ProdNavHider'
 import { S3ClientUploadHandler as S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24 } from '@payloadcms/storage-s3/client'
 import { default as default_8d5ccf53266e3797f61e9453e2f2d431 } from '@/components/admin/DashboardView'
 import { default as default_a1373b17bcb8401f4c60c1706dc6e133 } from '@/components/admin/views/CategoryBrandsPage'
@@ -72,6 +73,7 @@ export const importMap = {
   "@/components/admin/views/OrderEditView#default": default_32883a028a6a42b37db24b90fe924bcf,
   "@/components/admin/Logo#Icon": Icon_a44df17d0fc3dcd873dae43dc3bf66bd,
   "@/components/admin/Logo#Logo": Logo_a44df17d0fc3dcd873dae43dc3bf66bd,
+  "@/components/admin/ProdNavHider#ProdNavHider": ProdNavHider_5297728aa9b9a8b0392b0b43e45f3553,
   "@payloadcms/storage-s3/client#S3ClientUploadHandler": S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24,
   "@/components/admin/DashboardView#default": default_8d5ccf53266e3797f61e9453e2f2d431,
   "@/components/admin/views/CategoryBrandsPage#default": default_a1373b17bcb8401f4c60c1706dc6e133,

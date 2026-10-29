@@ -56,6 +56,7 @@ export default buildConfig({
         Logo: '@/components/admin/Logo#Logo',
         Icon: '@/components/admin/Logo#Icon',
       },
+      beforeNavLinks: ['@/components/admin/ProdNavHider#ProdNavHider'],
       views: {
         dashboard: {
           Component: '@/components/admin/DashboardView',
