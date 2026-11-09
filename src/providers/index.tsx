@@ -8,6 +8,7 @@ import React from 'react'
 import { HeaderThemeProvider } from './HeaderTheme'
 import { ThemeProvider } from './Theme'
 import { SonnerProvider } from '@/providers/Sonner'
+import { STRIPE_PUBLISHABLE_KEY } from '@/constants/env'
 
 export const Providers: React.FC<{
   children: React.ReactNode
@@ -49,7 +50,7 @@ export const Providers: React.FC<{
             }}
             paymentMethods={[
               stripeAdapterClient({
-                publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',
+                publishableKey: STRIPE_PUBLISHABLE_KEY || '',
               }),
               razorpayAdapterClient(),
               codAdapterClient(),

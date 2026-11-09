@@ -1,6 +1,7 @@
 import { ReportManager, apiRequest } from './helpers'
 import crypto from 'crypto'
 import type { Payload } from 'payload'
+import { RAZORPAY_KEY_SECRET } from '../../src/constants/env'
 
 export async function runCheckoutTests(
   report: ReportManager,
@@ -106,7 +107,7 @@ export async function runCheckoutTests(
   )
 
   // 3. Confirm Razorpay Order
-  const keySecret = process.env.RAZORPAY_API_SECRET || process.env.RAZORPAY_KEY_SECRET || 'rzp_secret_mock'
+  const keySecret = RAZORPAY_KEY_SECRET || 'rzp_secret_mock'
   const mockPaymentID = 'pay_mock_payment_id'
   const mockSignature = crypto
     .createHmac('sha256', keySecret)

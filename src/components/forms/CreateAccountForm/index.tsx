@@ -11,6 +11,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import React, { useCallback, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { NEXT_PUBLIC_SERVER_URL } from '@/constants/env'
 
 type FormData = {
   email: string
@@ -38,7 +39,7 @@ export const CreateAccountForm: React.FC = () => {
 
   const onSubmit = useCallback(
     async (data: FormData) => {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/users`, {
+      const response = await fetch(`${NEXT_PUBLIC_SERVER_URL}/api/users`, {
         body: JSON.stringify(data),
         headers: {
           'Content-Type': 'application/json',

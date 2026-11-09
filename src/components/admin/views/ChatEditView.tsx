@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { Loader2, Send } from 'lucide-react'
 import { useStepNav, toast } from '@payloadcms/ui'
 import Link from 'next/link'
+import { NEXT_PUBLIC_CHAT_WS_URL, NEXT_PUBLIC_SERVER_URL } from '@/constants/env'
 import { SectionCard } from '../ui/SectionCard'
 import { SelectField } from '../ui/SelectField'
 import styles from './ChatEditView.module.css'
@@ -125,11 +126,11 @@ export default function ChatEditView() {
     // Payload sets its auth cookie as HttpOnly — JS cannot read it via document.cookie.
     // Solution: call the refresh-token endpoint (same domain, so the HttpOnly cookie
     // IS sent by the browser) to get back a readable JWT, then pass it as ?token=
-    const wsBase = process.env.NEXT_PUBLIC_CHAT_WS_URL || 'ws://localhost:3001'
+    const wsBase = NEXT_PUBLIC_CHAT_WS_URL || 'ws://localhost:3001'
     
     let wsUrl = wsBase
     try {
-      const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || ''
+      const serverUrl = NEXT_PUBLIC_SERVER_URL || ''
       const res = await fetch(`${serverUrl}/api/users/refresh-token`, {
         method: 'POST',
         credentials: 'include', // sends the HttpOnly cookie automatically

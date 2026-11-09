@@ -6,6 +6,7 @@ import { SelectField } from './SelectField'
 import { ToggleSwitch } from './ToggleSwitch'
 import { TextInput } from './TextInput'
 import { toast } from '@payloadcms/ui'
+import { IS_PROD } from '@/constants/env'
 
 export type VariantsConfiguratorProps = {
   formData: any
@@ -17,7 +18,7 @@ export type VariantsConfiguratorProps = {
 export const VariantsConfigurator: React.FC<VariantsConfiguratorProps> = ({
   formData, setFormData, allVariantTypes, allVariantOptions
 }) => {
-  const isProd = process.env.NODE_ENV === 'production' || process.env.NEXT_PUBLIC_NODE_ENV === 'production'
+  const isProd = IS_PROD
   
   if (!formData.enableVariants) {
     return (

@@ -1,8 +1,6 @@
 import type { Endpoint } from 'payload'
 import { checkRole } from '@/access/utilities'
-
-const WS_INTERNAL_URL = process.env.WS_INTERNAL_URL || 'http://localhost:3001'
-const WS_INTERNAL_SECRET = process.env.WS_INTERNAL_SECRET || 'dev-ws-internal-secret'
+import { WS_INTERNAL_URL, WS_INTERNAL_SECRET } from '@/constants/env'
 
 export const chatPresenceEndpoint: Endpoint = {
   path: '/presence',

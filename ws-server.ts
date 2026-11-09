@@ -4,16 +4,30 @@ import { createServer, IncomingMessage } from 'http'
 import { WebSocketServer, WebSocket } from 'ws'
 import { getPayload } from 'payload'
 import configPromise from './src/payload.config'
+import { WS_PORT, WS_INTERNAL_SECRET } from './src/constants/env'
 
-const PORT = parseInt(process.env.WS_PORT || '3001', 10)
-const INTERNAL_SECRET = process.env.WS_INTERNAL_SECRET || 'dev-ws-internal-secret'
+const PORT = WS_PORT
+const INTERNAL_SECRET = WS_INTERNAL_SECRET
 
-type AuthedUser = { id: string; role: string }
+type AuthedUser = { id: string; role: string; roles: string[] }
 
 // ─── In-memory socket registry ───────────────────────────────────────────────
-const userSockets = new Map<string, Set<WebSocket>>()
-const chatRooms   = new Map<string, Set<string>>()     // chatId → Set<userId>
-const socketMeta  = new WeakMap<WebSocket, { userId: string; chatIds: Set<string> }>()
+const userSockets   = new Map<string, Set<WebSocket>>()
+const chatRooms     = new Map<string, Set<string>>()     // chatId → Set<userId>
+const orderRooms    = new Map<string, Set<string>>()     // orderId → Set<userId>
+const retailerFeeds = new Map<string, Set<WebSocket>>()  // retailerUserId → Set<WebSocket>
+const dpFeeds       = new Map<string, Set<WebSocket>>()  // dpUserId → Set<WebSocket>
+
+const socketMeta = new WeakMap<
+  WebSocket,
+  {
+    userId: string
+    chatIds: Set<string>
+    orderIds: Set<string>
+    isRetailerFeed?: boolean
+    isDpFeed?: boolean
+  }
+>()
 
 // ─── Payload singleton ────────────────────────────────────────────────────────
 let _payload: Awaited<ReturnType<typeof getPayload>> | null = null
@@ -50,11 +64,12 @@ async function handleAuth(req: IncomingMessage): Promise<AuthedUser | null> {
       console.log('[Chat WS] Auth failed: no user resolved from token')
       return null
     }
-    const role = (user as any).roles?.[0] || 'customer'
-    console.log(`[Chat WS] Auth OK — user ${user.id} (role: ${role})`)
-    return { id: String(user.id), role }
+    const roles: string[] = (user as any).roles || []
+    const role = roles[0] || 'customer'
+    console.log(`[WS] Auth OK — user ${user.id} (role: ${role}, roles: ${roles.join(',')})`)
+    return { id: String(user.id), role, roles }
   } catch (err: any) {
-    console.error('[Chat WS] Auth error:', err.message)
+    console.error('[WS] Auth error:', err.message)
     return null
   }
 }
@@ -66,9 +81,15 @@ function handleConnection(ws: WebSocket, user: AuthedUser) {
 
   if (!userSockets.has(user.id)) userSockets.set(user.id, new Set())
   userSockets.get(user.id)!.add(ws)
-  socketMeta.set(ws, { userId: user.id, chatIds: new Set() })
+  socketMeta.set(ws, {
+    userId: user.id,
+    chatIds: new Set(),
+    orderIds: new Set(),
+    isRetailerFeed: false,
+    isDpFeed: false,
+  })
 
-  console.log(`[Chat WS] ✓ Connected: ${user.id} (${user.role}) | online users: ${userSockets.size}`)
+  console.log(`[WS] ✓ Connected: ${user.id} (${user.role}) | online users: ${userSockets.size}`)
 
   ws.on('message', (raw) => handleMessage(ws, user, raw.toString()))
   ws.on('close', (code) => {
@@ -99,6 +120,15 @@ async function handleMessage(ws: WebSocket, user: AuthedUser, raw: string) {
     case 'typing_start': return broadcastToChat(msg.chatId, 'typing', { chatId: msg.chatId, userId: user.id, isTyping: true  }, user.id)
     case 'typing_stop':  return broadcastToChat(msg.chatId, 'typing', { chatId: msg.chatId, userId: user.id, isTyping: false }, user.id)
     case 'mark_read':    return handleMarkRead(user, msg.chatId, msg.messageIds)
+
+    // ─── Order Real-Time Events ───
+    case 'join_order':           return handleJoinOrder(ws, user, msg.orderId)
+    case 'leave_order':          return handleLeaveOrder(ws, user, msg.orderId)
+    case 'join_retailer_feed':   return handleJoinRetailerFeed(ws, user)
+    case 'leave_retailer_feed':  return handleLeaveRetailerFeed(ws, user)
+    case 'join_dp_feed':         return handleJoinDpFeed(ws, user)
+    case 'leave_dp_feed':        return handleLeaveDpFeed(ws, user)
+
     default:             return send(ws, 'error', { code: 'unknown_type', message: `Unknown type: ${msg.type}` })
   }
 }
@@ -280,11 +310,292 @@ function handleDisconnect(ws: WebSocket, user: AuthedUser) {
   if (userSockets.get(user.id)?.size === 0) userSockets.delete(user.id)
 
   const meta = socketMeta.get(ws)
+  const remainingSockets = userSockets.get(user.id)
+
   meta?.chatIds.forEach((chatId) => {
-    chatRooms.get(chatId)?.delete(user.id)
-    broadcastToChat(chatId, 'presence', { userId: user.id, online: false })
-    if (chatRooms.get(chatId)?.size === 0) chatRooms.delete(chatId)
+    const isStillInChat = remainingSockets && Array.from(remainingSockets).some((s) => socketMeta.get(s)?.chatIds.has(chatId))
+    if (!isStillInChat) {
+      chatRooms.get(chatId)?.delete(user.id)
+      broadcastToChat(chatId, 'presence', { userId: user.id, online: false })
+      if (chatRooms.get(chatId)?.size === 0) chatRooms.delete(chatId)
+    }
   })
+
+  // Clean up order rooms (preserve if user has another socket in the same room)
+  meta?.orderIds.forEach((orderId) => {
+    const isStillInOrder = remainingSockets && Array.from(remainingSockets).some((s) => socketMeta.get(s)?.orderIds.has(orderId))
+    if (!isStillInOrder) {
+      orderRooms.get(orderId)?.delete(user.id)
+      if (orderRooms.get(orderId)?.size === 0) orderRooms.delete(orderId)
+    }
+  })
+
+  // Clean up retailer / DP feeds
+  if (meta?.isRetailerFeed) {
+    retailerFeeds.get(user.id)?.delete(ws)
+    if (retailerFeeds.get(user.id)?.size === 0) retailerFeeds.delete(user.id)
+  }
+  if (meta?.isDpFeed) {
+    dpFeeds.get(user.id)?.delete(ws)
+    if (dpFeeds.get(user.id)?.size === 0) dpFeeds.delete(user.id)
+  }
+}
+
+// ─── Order Real-Time Handlers ──────────────────────────────────────────────────
+function sanitizeOrderSnapshot(
+  order: any,
+  permissions?: {
+    isCustomer?: boolean
+    isRetailer?: boolean
+    isDeliveryPartner?: boolean
+    isAdmin?: boolean
+  },
+) {
+  if (!order) return null
+
+  const retailerObj =
+    typeof order.retailer === 'object' && order.retailer !== null
+      ? {
+          id: order.retailer.id,
+          shopName: order.retailer.shopName,
+          mobileNumber: order.retailer.mobileNumber,
+          shopAddress: order.retailer.shopAddress,
+        }
+      : order.retailer
+
+  const dpObj =
+    typeof order.deliveryPartner === 'object' && order.deliveryPartner !== null
+      ? {
+          id: order.deliveryPartner.id,
+          fullName: order.deliveryPartner.fullName,
+          mobileNumber: order.deliveryPartner.mobileNumber,
+          vehicleType: order.deliveryPartner.vehicleType,
+          vehicleRegistrationNumber: order.deliveryPartner.vehicleRegistrationNumber,
+        }
+      : order.deliveryPartner
+
+  return {
+    id: order.id,
+    status: order.status,
+    total: order.total,
+    subtotal: order.subtotal,
+    deliveryFee: order.deliveryFee,
+    currency: order.currency || 'INR',
+    items: order.items || [],
+    retailer: retailerObj,
+    deliveryPartner: dpObj,
+    deliveryPartnerAcceptance: order.deliveryPartnerAcceptance,
+    currentOfferedPartner: order.currentOfferedPartner
+      ? typeof order.currentOfferedPartner === 'object'
+        ? order.currentOfferedPartner.id
+        : order.currentOfferedPartner
+      : null,
+    offerExpiresAt: order.offerExpiresAt,
+    statusHistory: order.statusHistory || [],
+    shippingAddress: order.shippingAddress,
+    cancellationDetails: order.cancellationDetails,
+    createdAt: order.createdAt,
+    updatedAt: order.updatedAt,
+    // Sensitive OTPs only revealed to authorized roles
+    pickupOTP: permissions?.isRetailer || permissions?.isAdmin ? order.pickupOTP : undefined,
+    deliveryOTP: permissions?.isCustomer || permissions?.isAdmin ? order.deliveryOTP : undefined,
+  }
+}
+
+async function handleJoinOrder(ws: WebSocket, user: AuthedUser, orderId: string) {
+  if (!orderId) return send(ws, 'error', { code: 'missing_orderId', message: 'orderId is required' })
+
+  try {
+    const payload = await getPayloadClient()
+    const order: any = await payload.findByID({
+      collection: 'orders',
+      id: orderId,
+      depth: 2,
+    })
+
+    if (!order) {
+      return send(ws, 'error', { code: 'not_found', message: 'Order not found' })
+    }
+
+    const isAdmin = user.roles.includes('admin') || user.role === 'admin'
+    const customerId =
+      typeof order.customer === 'object' && order.customer ? order.customer.id : order.customer
+    const isCustomer = Boolean(customerId && String(customerId) === String(user.id))
+
+    let isRetailer = false
+    const orderRetailerId =
+      typeof order.retailer === 'object' && order.retailer ? order.retailer.id : order.retailer
+    if (orderRetailerId) {
+      const retDoc =
+        typeof order.retailer === 'object' && order.retailer.user !== undefined
+          ? order.retailer
+          : ((await payload.findByID({ collection: 'retailers', id: orderRetailerId, depth: 0 })) as any)
+      const retUserId =
+        typeof retDoc?.user === 'object' && retDoc?.user ? retDoc.user.id : retDoc?.user
+      if (retUserId && String(retUserId) === String(user.id)) isRetailer = true
+    }
+
+    let isDeliveryPartner = false
+    const dpId =
+      typeof order.deliveryPartner === 'object' && order.deliveryPartner
+        ? order.deliveryPartner.id
+        : order.deliveryPartner
+    const offeredDpId =
+      typeof order.currentOfferedPartner === 'object' && order.currentOfferedPartner
+        ? order.currentOfferedPartner.id
+        : order.currentOfferedPartner
+    const targetDpId = dpId || offeredDpId
+
+    if (targetDpId) {
+      const dpDoc =
+        typeof order.deliveryPartner === 'object' &&
+        order.deliveryPartner?.id === targetDpId &&
+        order.deliveryPartner.user !== undefined
+          ? order.deliveryPartner
+          : ((await payload.findByID({
+              collection: 'delivery-partners',
+              id: targetDpId,
+              depth: 0,
+            })) as any)
+      const dpUserId =
+        typeof dpDoc?.user === 'object' && dpDoc?.user ? dpDoc.user.id : dpDoc?.user
+      if (dpUserId && String(dpUserId) === String(user.id)) isDeliveryPartner = true
+    }
+
+    if (!isAdmin && !isCustomer && !isRetailer && !isDeliveryPartner) {
+      return send(ws, 'error', { code: 'forbidden', message: 'Not authorized for this order' })
+    }
+
+    socketMeta.get(ws)?.orderIds.add(orderId)
+    if (!orderRooms.has(orderId)) orderRooms.set(orderId, new Set())
+    orderRooms.get(orderId)!.add(user.id)
+
+    send(ws, 'joined_order', { orderId, userId: user.id })
+
+    // Immediate snapshot for live status (no polling needed by client)
+    const snapshot = sanitizeOrderSnapshot(order, {
+      isCustomer,
+      isRetailer,
+      isDeliveryPartner,
+      isAdmin,
+    })
+    send(ws, 'order:snapshot', { orderId, order: snapshot })
+
+    console.log(`[Order WS] ${user.id} joined order room ${orderId} | room size: ${orderRooms.get(orderId)!.size}`)
+  } catch (err: any) {
+    console.error(`[Order WS] handleJoinOrder error:`, err.message)
+    return send(ws, 'error', { code: 'server_error', message: err.message })
+  }
+}
+
+function handleLeaveOrder(ws: WebSocket, user: AuthedUser, orderId: string) {
+  socketMeta.get(ws)?.orderIds.delete(orderId)
+  const remainingSockets = userSockets.get(user.id)
+  const isStillInOrder = remainingSockets && Array.from(remainingSockets).some((s) => socketMeta.get(s)?.orderIds.has(orderId))
+  if (!isStillInOrder) {
+    orderRooms.get(orderId)?.delete(user.id)
+    if (orderRooms.get(orderId)?.size === 0) orderRooms.delete(orderId)
+  }
+  send(ws, 'left_order', { orderId, userId: user.id })
+}
+
+function handleJoinRetailerFeed(ws: WebSocket, user: AuthedUser) {
+  const isRetailerOrAdmin =
+    user.roles.includes('retailer') ||
+    user.role === 'retailer' ||
+    user.roles.includes('admin') ||
+    user.role === 'admin'
+  if (!isRetailerOrAdmin) {
+    return send(ws, 'error', { code: 'forbidden', message: 'Only retailers can join retailer feed' })
+  }
+
+  if (!retailerFeeds.has(user.id)) retailerFeeds.set(user.id, new Set())
+  retailerFeeds.get(user.id)!.add(ws)
+  const meta = socketMeta.get(ws)
+  if (meta) meta.isRetailerFeed = true
+
+  send(ws, 'joined_retailer_feed', { userId: user.id })
+  console.log(`[Order WS] Retailer ${user.id} joined retailer feed`)
+}
+
+function handleLeaveRetailerFeed(ws: WebSocket, user: AuthedUser) {
+  retailerFeeds.get(user.id)?.delete(ws)
+  if (retailerFeeds.get(user.id)?.size === 0) retailerFeeds.delete(user.id)
+  const meta = socketMeta.get(ws)
+  if (meta) meta.isRetailerFeed = false
+  send(ws, 'left_retailer_feed', { userId: user.id })
+}
+
+function handleJoinDpFeed(ws: WebSocket, user: AuthedUser) {
+  const isDpOrAdmin =
+    user.roles.includes('delivery_partner') ||
+    user.role === 'delivery_partner' ||
+    user.roles.includes('admin') ||
+    user.role === 'admin'
+  if (!isDpOrAdmin) {
+    return send(ws, 'error', { code: 'forbidden', message: 'Only delivery partners can join DP feed' })
+  }
+
+  if (!dpFeeds.has(user.id)) dpFeeds.set(user.id, new Set())
+  dpFeeds.get(user.id)!.add(ws)
+  const meta = socketMeta.get(ws)
+  if (meta) meta.isDpFeed = true
+
+  send(ws, 'joined_dp_feed', { userId: user.id })
+  console.log(`[Order WS] DP ${user.id} joined DP feed`)
+}
+
+function handleLeaveDpFeed(ws: WebSocket, user: AuthedUser) {
+  dpFeeds.get(user.id)?.delete(ws)
+  if (dpFeeds.get(user.id)?.size === 0) dpFeeds.delete(user.id)
+  const meta = socketMeta.get(ws)
+  if (meta) meta.isDpFeed = false
+  send(ws, 'left_dp_feed', { userId: user.id })
+}
+
+function broadcastOrderEvent({
+  orderId,
+  targetUserIds,
+  type,
+  payload,
+  excludeUserId,
+}: {
+  orderId?: string
+  targetUserIds?: string[]
+  type: string
+  payload: any
+  excludeUserId?: string
+}) {
+  const socketsToSend = new Set<WebSocket>()
+
+  // 1. All users currently in orderRoom
+  if (orderId && orderRooms.has(orderId)) {
+    const userIds = orderRooms.get(orderId)!
+    userIds.forEach((uid) => {
+      if (uid === excludeUserId) return
+      const socks = userSockets.get(uid)
+      if (socks) socks.forEach((sock) => socketsToSend.add(sock))
+    })
+  }
+
+  // 2. All targetUserIds (direct send / feed recipients)
+  if (Array.isArray(targetUserIds)) {
+    targetUserIds.forEach((uid) => {
+      if (!uid || uid === excludeUserId) return
+      const socks = userSockets.get(String(uid))
+      if (socks) socks.forEach((sock) => socketsToSend.add(sock))
+    })
+  }
+
+  let sent = 0
+  socketsToSend.forEach((sock) => {
+    send(sock, type, payload)
+    sent++
+  })
+
+  if (sent > 0) {
+    console.log(`[Order WS] Broadcast "${type}" to ${sent} socket(s) (orderId=${orderId || 'none'})`)
+  }
 }
 
 // ─── Broadcast ────────────────────────────────────────────────────────────────
@@ -319,8 +630,11 @@ const server = createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json' })
     res.end(JSON.stringify({
       status: 'ok',
-      onlineUsers: userSockets.size,
-      chatRooms:   chatRooms.size,
+      onlineUsers:   userSockets.size,
+      chatRooms:     chatRooms.size,
+      orderRooms:    orderRooms.size,
+      retailerFeeds: retailerFeeds.size,
+      dpFeeds:       dpFeeds.size,
     }))
     return
   }
@@ -337,7 +651,7 @@ const server = createServer((req, res) => {
     return
   }
 
-  // ── Broadcast — called by Payload afterChange hook ─────────────────────────
+  // ── Chat Broadcast — called by ChatMessages afterChange hook ───────────────
   if (req.url === '/internal/broadcast' && req.method === 'POST') {
     if (req.headers.authorization !== `Internal ${INTERNAL_SECRET}`) {
       res.writeHead(403).end('Forbidden')
@@ -349,6 +663,26 @@ const server = createServer((req, res) => {
       try {
         const { chatId, type, payload, excludeUserId } = JSON.parse(body)
         broadcastToChat(chatId, type, payload, excludeUserId)
+        res.writeHead(200).end('ok')
+      } catch {
+        res.writeHead(400).end('bad json')
+      }
+    })
+    return
+  }
+
+  // ── Order Broadcast — called by Orders triggerOrderWsEvents hook ───────────
+  if (req.url === '/internal/broadcast-order' && req.method === 'POST') {
+    if (req.headers.authorization !== `Internal ${INTERNAL_SECRET}`) {
+      res.writeHead(403).end('Forbidden')
+      return
+    }
+    let body = ''
+    req.on('data', (chunk) => { body += chunk })
+    req.on('end', () => {
+      try {
+        const { orderId, targetUserIds, type, payload, excludeUserId } = JSON.parse(body)
+        broadcastOrderEvent({ orderId, targetUserIds, type, payload, excludeUserId })
         res.writeHead(200).end('ok')
       } catch {
         res.writeHead(400).end('bad json')
@@ -397,10 +731,11 @@ async function start() {
   console.log('[Chat WS] Initializing Payload...')
   await getPayloadClient()  // warm up the Payload + DB connection before accepting connections
   server.listen(PORT, () => {
-    console.log(`[Chat WS] ✓ WebSocket service ready on port ${PORT}`)
-    console.log(`[Chat WS]   ws://localhost:${PORT}       ← client connections`)
-    console.log(`[Chat WS]   http://localhost:${PORT}/health ← health check`)
-    console.log(`[Chat WS]   http://localhost:${PORT}/internal/broadcast ← Payload hook`)
+    console.log(`[WS] ✓ WebSocket service ready on port ${PORT}`)
+    console.log(`[WS]   ws://localhost:${PORT}                    ← client connections`)
+    console.log(`[WS]   http://localhost:${PORT}/health           ← health check`)
+    console.log(`[WS]   http://localhost:${PORT}/internal/broadcast       ← chat broadcast hook`)
+    console.log(`[WS]   http://localhost:${PORT}/internal/broadcast-order ← order broadcast hook`)
   })
 }
 

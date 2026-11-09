@@ -8,7 +8,7 @@ export const validateSingleVendor: CollectionBeforeValidateHook = async ({ data,
     const payload = req.payload
     
     const productIds = data.items.map((item: any) => 
-      typeof item.product === 'object' ? item.product.id : item.product
+      item?.product && typeof item.product === 'object' ? item.product.id : item?.product
     ).filter(Boolean)
 
     if (productIds.length > 0) {

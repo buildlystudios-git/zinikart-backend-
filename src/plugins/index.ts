@@ -58,6 +58,7 @@ import { statusHistoryLogger } from '@/collections/Orders/hooks/statusHistoryLog
 import { triggerSideEffects } from '@/collections/Orders/hooks/triggerSideEffects'
 import { handoverOtpValidation } from '@/collections/Orders/hooks/handoverOtpValidation'
 import { triggerPayoutLedger } from '@/collections/Orders/hooks/triggerPayoutLedger'
+import { triggerOrderWsEvents } from '@/collections/Orders/hooks/triggerOrderWsEvents'
 import { retailerActionEndpoint, deliveryActionEndpoint } from '@/endpoints/orders/actions'
 import { statusUpdateEndpoint } from '@/endpoints/orders/statusUpdate'
 
@@ -530,6 +531,7 @@ export const plugins: Plugin[] = [
             triggerSideEffects,
             confirmCodTransaction,
             triggerPayoutLedger,
+            triggerOrderWsEvents,
           ],
         },
         endpoints: [

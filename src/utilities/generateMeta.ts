@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import type { Page, Product } from '../payload-types'
 
 import { mergeOpenGraph } from './mergeOpenGraph'
+import { NEXT_PUBLIC_SERVER_URL } from '@/constants/env'
 
 export const generateMeta = async (args: { doc: Page | Product }): Promise<Metadata> => {
   const { doc } = args || {}
@@ -11,7 +12,7 @@ export const generateMeta = async (args: { doc: Page | Product }): Promise<Metad
     typeof doc?.meta?.image === 'object' &&
     doc.meta.image !== null &&
     'url' in doc.meta.image &&
-    `${process.env.NEXT_PUBLIC_SERVER_URL}${doc.meta.image.url}`
+    `${NEXT_PUBLIC_SERVER_URL}${doc.meta.image.url}`
 
   return {
     description: doc?.meta?.description,

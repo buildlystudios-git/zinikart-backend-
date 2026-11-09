@@ -1,10 +1,10 @@
 'use client'
 
 import React, { useEffect } from 'react'
+import { IS_PROD } from '@/constants/env'
 
 export const ProdNavHider: React.FC = () => {
-  const isProd =
-    process.env.NODE_ENV === 'production' || process.env.NEXT_PUBLIC_NODE_ENV === 'production'
+  const isProd = IS_PROD
 
   useEffect(() => {
     if (!isProd) return

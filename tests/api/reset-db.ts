@@ -1,5 +1,6 @@
 import 'dotenv/config'
 import { createRequire } from 'module'
+import { DATABASE_URL } from '../../src/constants/env'
 
 const require = createRequire(import.meta.url)
 const pgPath = require.resolve('pg', { paths: [require.resolve('@payloadcms/db-postgres')] })
@@ -8,7 +9,7 @@ const pg = require(pgPath)
 async function run() {
   console.log('Connecting to database directly via pg.Client resolved from @payloadcms/db-postgres...')
   const client = new pg.Client({
-    connectionString: process.env.DATABASE_URL || '',
+    connectionString: DATABASE_URL || '',
   })
 
   try {

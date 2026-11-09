@@ -15,6 +15,7 @@ import { runCheckoutTests } from './checkout'
 import { runQuickCommerceTests } from './quick-commerce'
 import { runPayoutTests } from './payouts'
 import { runCustomCreateTests } from './customCreate'
+import { runOrderWsTests } from './orderWs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -49,6 +50,23 @@ async function main() {
   const userIds = existingUsers.docs.map((u) => u.id)
   if (userIds.length > 0) {
     console.log(`Batch deleting profiles and users for IDs: ${userIds.join(', ')}`)
+
+    const existingRetailers = await payload.find({
+      collection: 'retailers',
+      where: { user: { in: userIds } },
+      overrideAccess: true,
+      limit: 100,
+    })
+    const retailerIds = existingRetailers.docs.map((r) => r.id)
+
+    const existingDps = await payload.find({
+      collection: 'delivery-partners',
+      where: { user: { in: userIds } },
+      overrideAccess: true,
+      limit: 100,
+    })
+    const dpIds = existingDps.docs.map((d) => d.id)
+
     await payload.delete({
       collection: 'ratings',
       where: {
@@ -56,6 +74,13 @@ async function main() {
       },
       overrideAccess: true,
     })
+    if (retailerIds.length > 0) {
+      await payload.delete({
+        collection: 'ratings',
+        where: { retailer: { in: retailerIds } },
+        overrideAccess: true,
+      })
+    }
     await payload.delete({
       collection: 'payout-ledger',
       where: {
@@ -63,6 +88,20 @@ async function main() {
       },
       overrideAccess: true,
     })
+    if (retailerIds.length > 0) {
+      await payload.delete({
+        collection: 'payout-ledger',
+        where: { retailerProfile: { in: retailerIds } },
+        overrideAccess: true,
+      })
+    }
+    if (dpIds.length > 0) {
+      await payload.delete({
+        collection: 'payout-ledger',
+        where: { deliveryPartnerProfile: { in: dpIds } },
+        overrideAccess: true,
+      })
+    }
     await payload.delete({
       collection: 'payout-invoices',
       where: {
@@ -70,6 +109,20 @@ async function main() {
       },
       overrideAccess: true,
     })
+    if (retailerIds.length > 0) {
+      await payload.delete({
+        collection: 'payout-invoices',
+        where: { retailerProfile: { in: retailerIds } },
+        overrideAccess: true,
+      })
+    }
+    if (dpIds.length > 0) {
+      await payload.delete({
+        collection: 'payout-invoices',
+        where: { deliveryPartnerProfile: { in: dpIds } },
+        overrideAccess: true,
+      })
+    }
     await payload.delete({
       collection: 'wishlists',
       where: {
@@ -91,6 +144,20 @@ async function main() {
       },
       overrideAccess: true,
     })
+    if (retailerIds.length > 0) {
+      await payload.delete({
+        collection: 'orders',
+        where: { retailer: { in: retailerIds } },
+        overrideAccess: true,
+      })
+    }
+    if (dpIds.length > 0) {
+      await payload.delete({
+        collection: 'orders',
+        where: { deliveryPartner: { in: dpIds } },
+        overrideAccess: true,
+      })
+    }
     await payload.delete({
       collection: 'transactions',
       where: {
@@ -297,6 +364,7 @@ async function main() {
     await runPayoutTests(report, payload, adminUserToken, retailerUserToken)
     await runCustomCreateTests(report, adminUserToken, retailerUserToken, payload)
 
+    await runOrderWsTests(report, payload, adminUserToken, retailerUserToken, otherUserToken)
   } catch (err) {
     console.error('Test execution error occurred:', err)
   }
@@ -315,6 +383,23 @@ async function main() {
   const finalUserIds = finalCleanUsers.docs.map((u) => u.id)
   if (finalUserIds.length > 0) {
     console.log(`Batch cleaning profiles and users for IDs: ${finalUserIds.join(', ')}`)
+
+    const finalRetailers = await payload.find({
+      collection: 'retailers',
+      where: { user: { in: finalUserIds } },
+      overrideAccess: true,
+      limit: 100,
+    })
+    const finalRetailerIds = finalRetailers.docs.map((r) => r.id)
+
+    const finalDps = await payload.find({
+      collection: 'delivery-partners',
+      where: { user: { in: finalUserIds } },
+      overrideAccess: true,
+      limit: 100,
+    })
+    const finalDpIds = finalDps.docs.map((d) => d.id)
+
     await payload.delete({
       collection: 'ratings',
       where: {
@@ -322,6 +407,13 @@ async function main() {
       },
       overrideAccess: true,
     })
+    if (finalRetailerIds.length > 0) {
+      await payload.delete({
+        collection: 'ratings',
+        where: { retailer: { in: finalRetailerIds } },
+        overrideAccess: true,
+      })
+    }
     await payload.delete({
       collection: 'payout-ledger',
       where: {
@@ -329,6 +421,20 @@ async function main() {
       },
       overrideAccess: true,
     })
+    if (finalRetailerIds.length > 0) {
+      await payload.delete({
+        collection: 'payout-ledger',
+        where: { retailerProfile: { in: finalRetailerIds } },
+        overrideAccess: true,
+      })
+    }
+    if (finalDpIds.length > 0) {
+      await payload.delete({
+        collection: 'payout-ledger',
+        where: { deliveryPartnerProfile: { in: finalDpIds } },
+        overrideAccess: true,
+      })
+    }
     await payload.delete({
       collection: 'payout-invoices',
       where: {
@@ -336,6 +442,20 @@ async function main() {
       },
       overrideAccess: true,
     })
+    if (finalRetailerIds.length > 0) {
+      await payload.delete({
+        collection: 'payout-invoices',
+        where: { retailerProfile: { in: finalRetailerIds } },
+        overrideAccess: true,
+      })
+    }
+    if (finalDpIds.length > 0) {
+      await payload.delete({
+        collection: 'payout-invoices',
+        where: { deliveryPartnerProfile: { in: finalDpIds } },
+        overrideAccess: true,
+      })
+    }
     await payload.delete({
       collection: 'orders',
       where: {
@@ -343,6 +463,20 @@ async function main() {
       },
       overrideAccess: true,
     })
+    if (finalRetailerIds.length > 0) {
+      await payload.delete({
+        collection: 'orders',
+        where: { retailer: { in: finalRetailerIds } },
+        overrideAccess: true,
+      })
+    }
+    if (finalDpIds.length > 0) {
+      await payload.delete({
+        collection: 'orders',
+        where: { deliveryPartner: { in: finalDpIds } },
+        overrideAccess: true,
+      })
+    }
     await payload.delete({
       collection: 'wishlists',
       where: {
@@ -352,13 +486,6 @@ async function main() {
     })
     await payload.delete({
       collection: 'carts',
-      where: {
-        customer: { in: finalUserIds },
-      },
-      overrideAccess: true,
-    })
-    await payload.delete({
-      collection: 'orders',
       where: {
         customer: { in: finalUserIds },
       },

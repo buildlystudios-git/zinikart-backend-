@@ -1,8 +1,6 @@
 import type { CollectionAfterChangeHook } from 'payload'
 import { sendFcmPush } from '@/lib/fcm'
-
-const WS_INTERNAL_URL = process.env.WS_INTERNAL_URL || 'http://localhost:3001'
-const WS_INTERNAL_SECRET = process.env.WS_INTERNAL_SECRET || 'dev-ws-internal-secret'
+import { WS_INTERNAL_URL, WS_INTERNAL_SECRET } from '@/constants/env'
 
 async function broadcastToWsService(chatId: string, type: string, payload: any, excludeUserId?: string): Promise<void> {
   try {

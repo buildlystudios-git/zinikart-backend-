@@ -1,9 +1,9 @@
 # ZiniKart API Integration Test Report
 
-**Execution Time:** 5/8/2026, 9:51:15 pm
-**Total Assertions:** 109 | **Passed:** 97 | **Failed:** 12
+**Execution Time:** 9/11/2026, 10:38:25 pm
+**Total Assertions:** 122 | **Passed:** 105 | **Failed:** 17
 
-### Pass Rate: 89%
+### Pass Rate: 86%
 `[█████████.]`
 
 ## Summary Table
@@ -13,7 +13,7 @@
 | Authentication Endpoints | Best Case | Request OTP with a valid mobile number returns 200 and success: true | ✅ PASS | - |
 | Authentication Endpoints | Best Case | Verify OTP with correct code and retailer role context returns 200, status registration_required, and JWT token | ✅ PASS | - |
 | Authentication Endpoints | Possible Scenario | Verify OTP saves the optional name parameter on user creation | ✅ PASS | - |
-| Authentication Endpoints | Possible Scenario | Verify OTP for an existing user requesting a new role updates the user roles list | ✅ PASS | - |
+| Authentication Endpoints | Possible Scenario | Verify OTP for an existing user requesting a new role updates the user roles list | ❌ FAIL | `Expected roles to contain delivery_partner and retailer, got ["retailer"]` |
 | Authentication Endpoints | Impossible Scenario | Request OTP with missing phone number returns 400 error | ✅ PASS | - |
 | Authentication Endpoints | Impossible Scenario | Request OTP with malformed phone number returns 400 error | ✅ PASS | - |
 | Authentication Endpoints | Impossible Scenario | Verify OTP with incorrect code returns 401 unauthorized error | ✅ PASS | - |
@@ -21,7 +21,7 @@
 | Retailer Profile Lifecycle | Impossible Scenario | Attempt to create profile without auth token returns 401 or 403 error | ✅ PASS | - |
 | Retailer Profile Lifecycle | Best Case | Create retailer profile with valid data returns 201 and profile document ID | ✅ PASS | - |
 | Retailer Profile Lifecycle | Worst Case | Field Access Security: Client cannot force approvalStatus to approved during creation (defaults to pending) | ✅ PASS | - |
-| Retailer Profile Lifecycle | Best Case | Verify OTP for retailer with pending profile returns status pending_approval and null token | ❌ FAIL | `Expected status pending_approval and token null, got status pending_approval and token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb2xsZWN0aW9uIjoidXNlcnMiLCJlbWFpbCI6IjkxOTk5OTk5OTk5OUBvdHAuemluaWthcnQubG9jYWwiLCJpZCI6ImQzMmQ1OWU1LTcxMzUtNDg0ZS05NDMwLTI0MGU0OTNmMWI3OCIsInNpZCI6ImY1NjA0NTU2LWUxNjgtNDQxOS04ODZjLWEzYzExNGNjYTdlMyIsImlhdCI6MTc4NTk0Njg2MSwiZXhwIjoxNzg3MTU2NDYxfQ.iMi5k5e-YE4mPRrhe2LiaUvXCuUVFXulbBDLidJBxsw` |
+| Retailer Profile Lifecycle | Best Case | Verify OTP for retailer with pending profile returns status pending_approval and null token | ❌ FAIL | `Expected status pending_approval and token null, got status pending_approval and token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb2xsZWN0aW9uIjoidXNlcnMiLCJlbWFpbCI6IjkxOTk5OTk5OTk5OUBvdHAuemluaWthcnQubG9jYWwiLCJpZCI6ImM4Nzk5NGE2LTRhZDQtNDExMS1iNzU3LWMwNGU0NjYzYzA0NSIsInNpZCI6ImM2Y2NiNmQ2LTljZWMtNGVmNC1hYjAyLTY2YmIyNmFkOTdhMCIsImlhdCI6MTc5NDI0NDA5NiwiZXhwIjoxNzk1NDUzNjk2fQ.7mI3s-9aNg0IGs7DzKxrqtma-jstQkG-Cs7graZ36lE` |
 | Retailer Profile Lifecycle | Worst Case | Access Control: Unauthorized user is blocked from reading another user's profile (returns 403 or 404) | ✅ PASS | - |
 | Retailer Profile Lifecycle | Worst Case | Access Control: Unauthorized user is blocked from updating another user's profile (returns 403 or 404) | ✅ PASS | - |
 | Retailer Profile Lifecycle | Worst Case | Field Access Security: Owner is blocked from changing their own approvalStatus (value remains pending or is ignored) | ✅ PASS | - |
@@ -58,10 +58,10 @@
 | Catalog Foundation | Worst Case | Public query of master template product returns 404 or 403 forbidden | ✅ PASS | - |
 | Catalog Foundation | Best Case | Public query of Product returns 200, populated brand, warranty, and specifications | ✅ PASS | - |
 | Catalog Foundation | Worst Case | GET /api/mobile/product/:id for master template returns 404 not found | ✅ PASS | - |
-| Catalog Foundation | Best Case | GET /api/mobile/product/:id for cloned product returns 200, product details with ratings, active retailer profile with ratings, and competitor otherOffers with ratings | ❌ FAIL | `Expected status 200, correct product ID, ratings, and competitor offer. Got status: 200, Body: {"product":{"id":"ff6e9c68-52d4-443b-977f-9f5a4a59bd3e","title":"Cloned ZiniPhone 14 Max","description":null,"gallery":[],"inventory":100,"enableVariants":null,"variantTypes":[],"variants":{"docs":[],"hasNextPage":false},"priceInINREnabled":null,"priceInINR":89900,"discountPercent":null,"discountedPrice":89900,"brand":{"id":"db6c3051-f2f7-4235-9139-b4b00c5defde","name":"ZiniTech","logo":null,"description":"ZiniKart Official Electronics Brand","featured":true,"categories":[],"generateSlug":false,"slug":"zinitech","updatedAt":"2026-08-05T16:21:02.900Z","createdAt":"2026-08-05T16:21:02.900Z"},"warranty":"2 Year Manufacturer Warranty","specifications":[{"id":"6a7362ef197107395cdee23e","key":"RAM","value":"12","type":"number"},{"id":"6a7362ef197107395cdee23f","key":"Color","value":"Black","type":"select"},{"id":"6a7362ef197107395cdee240","key":"Release Date","value":"2026-05-30","type":"date"}],"relatedProducts":[],"averageRating":0,"ratingCount":0,"meta":{"title":null,"image":null,"description":null},"categories":[{"id":"3ee44d50-a6a1-4623-8c78-19d5a30e6087","title":"Smartphones","media":null,"parentCategory":{"id":"134e17ab-0b67-499c-9853-fee2d44847f0","title":"Mobiles","media":null,"parentCategory":null,"specificationTemplates":[],"brands":{"docs":[],"hasNextPage":false},"generateSlug":false,"slug":"mobiles","updatedAt":"2026-08-05T16:21:02.967Z","createdAt":"2026-08-05T16:21:02.967Z"},"specificationTemplates":[{"id":"6a7362ef197107395cdee235","name":"RAM","type":"number","required":true,"options":[]},{"id":"6a7362ef197107395cdee238","name":"Color","type":"select","required":false,"options":[{"id":"6a7362ef197107395cdee236","option":"Black"},{"id":"6a7362ef197107395cdee237","option":"White"}]},{"id":"6a7362ef197107395cdee239","name":"Release Date","type":"date","required":false,"options":[]}],"brands":{"docs":[],"hasNextPage":false},"generateSlug":false,"slug":"smartphones","updatedAt":"2026-08-05T16:21:03.050Z","createdAt":"2026-08-05T16:21:03.050Z"}],"retailer":{"id":"7c76dba3-fefa-492d-9824-07b40bc8a231","name":"Retailer Tester","roles":["retailer"],"orders":{"docs":[],"hasNextPage":false},"cart":{"docs":[],"hasNextPage":false},"addresses":{"docs":[],"hasNextPage":false},"mobileNumber":"+916666666666","mobileVerified":true,"lastOtpLoginAt":null,"updatedAt":"2026-08-05T16:20:58.571Z","createdAt":"2026-08-05T16:20:58.228Z","email":"retailer.user@testing.zinikart.local","sessions":[{"id":"aecc7b6e-8fb6-4555-91ee-316ee033029b","createdAt":"2026-08-05T16:20:58.391Z","expiresAt":"2026-08-19T16:20:58.391Z"}],"collection":"users"},"isMasterTemplate":false,"parentTemplate":{"id":"7cb443b2-7d16-49f7-871e-b05ea703460a","title":"ZiniPhone 14 Max","gallery":[],"inventory":100,"enableVariants":null,"variants":{"docs":[],"hasNextPage":false},"priceInINR":99900,"meta":{"title":null,"image":null,"description":null},"slug":"ziniphone-14-max","deletedAt":null},"generateSlug":false,"slug":"cloned-ziniphone-14-max","updatedAt":"2026-08-05T16:21:03.564Z","createdAt":"2026-08-05T16:21:03.564Z","deletedAt":null,"_status":"published","layout":[]},"retailer":{"shopName":"ZiniTech Store","city":"Delhi","landmark":null,"businessHours":{"startTime":"09:00","endTime":"21:00","weekOff":[],"openEveryday":false},"averageRating":0,"ratingCount":0},"otherOffers":[{"productId":"e7a6c74c-f777-4a79-bf69-97d66d91bf2d","price":75000,"discountedPrice":75000,"shopName":"Competitor Gadgets","city":"Mumbai","averageRating":0,"ratingCount":0}]}` |
+| Catalog Foundation | Best Case | GET /api/mobile/product/:id for cloned product returns 200, product details with ratings, active retailer profile with ratings, and competitor otherOffers with ratings | ❌ FAIL | `Expected status 200, correct product ID, ratings, and competitor offer. Got status: 404, Body: {"message":"Route not found \"/api/mobile/product/72695cb4-b2b9-471f-87b5-b502dac9ea19\""}` |
 | Catalog Foundation | Best Case | GET /api/mobile/search?q=Cloned returns 200 and matches the cloned product listing | ✅ PASS | - |
-| Catalog Foundation | Best Case | GET /api/mobile/search?q=ZiniTech (brand search) returns 200 and matches products of that brand | ✅ PASS | - |
-| Catalog Foundation | Best Case | GET /api/mobile/search?q=Smartphones (category search) returns 200 and matches products in that category | ✅ PASS | - |
+| Catalog Foundation | Best Case | GET /api/mobile/search?q=ZiniTech (brand search) returns 200 and matches products of that brand | ❌ FAIL | `Expected status 200 and products belonging to brand. Got status: 500, Body: {"error":"Internal Server Error"}` |
+| Catalog Foundation | Best Case | GET /api/mobile/search?q=Smartphones (category search) returns 200 and matches products in that category | ❌ FAIL | `Expected status 200 and products belonging to category. Got status: 500, Body: {"error":"Internal Server Error"}` |
 | Catalog Foundation | Best Case | GET /api/mobile/search?q=Active Retailer (retailer search) returns 200, matching products, and matching retailer profiles | ❌ FAIL | `Expected status 200, products, and retailer profile. Got status: 200, Body: {"products":[],"retailers":[]}` |
 | Catalog Foundation | Best Case | GET /api/mobile/search?q= (empty query) returns 200 and empty lists | ✅ PASS | - |
 | Catalog Foundation | Best Case | GET /api/mobile/search?q=NonExistentQueryXYZ (no matches) returns 200 and empty lists | ✅ PASS | - |
@@ -118,4 +118,17 @@
 | Custom Create Endpoint Tests | Best Case | Case 3: Create product from template | ✅ PASS | - |
 | Custom Create Endpoint Tests | Best Case | Case 4: Update top-level fields | ✅ PASS | - |
 | Custom Create Endpoint Tests | Best Case | Case 5: Update product and upsert all new variants | ✅ PASS | - |
-| Custom Create Endpoint Tests | Best Case | Case 6: Update product and upsert variants (mixed) | ✅ PASS | - |
+| Custom Create Endpoint Tests | Best Case | Case 6: Update product and upsert variants (mixed) | ❌ FAIL | `Skipped because previous variant update failed or no variants returned` |
+| Order WebSocket Real-Time Events | Best Case | WebSocket health endpoint reports ok and includes orderRooms, retailerFeeds, and dpFeeds counters | ✅ PASS | - |
+| Order WebSocket Real-Time Events | Impossible Scenario | Internal order broadcast endpoint rejects unauthorized requests with 403 Forbidden | ✅ PASS | - |
+| Order WebSocket Real-Time Events | Best Case | Internal order broadcast endpoint accepts authorized requests with 200 OK | ✅ PASS | - |
+| Order WebSocket Real-Time Events | Worst Case | WebSocket connection without authentication token is rejected with 401 Unauthorized | ✅ PASS | - |
+| Order WebSocket Real-Time Events | Best Case | Customer connects to WebSocket server with valid token | ✅ PASS | - |
+| Order WebSocket Real-Time Events | Best Case | Retailer connects to WebSocket server with valid token | ✅ PASS | - |
+| Order WebSocket Real-Time Events | Best Case | Obtained valid delivery partner JWT token | ✅ PASS | - |
+| Order WebSocket Real-Time Events | Best Case | Delivery partner connects to WebSocket server with valid token | ✅ PASS | - |
+| Order WebSocket Real-Time Events | Impossible Scenario | Customer is forbidden from subscribing to retailer live feed | ✅ PASS | - |
+| Order WebSocket Real-Time Events | Impossible Scenario | Customer is forbidden from subscribing to delivery partner feed | ✅ PASS | - |
+| Order WebSocket Real-Time Events | Best Case | Retailer successfully subscribes to live retailer feed (joined_retailer_feed) | ✅ PASS | - |
+| Order WebSocket Real-Time Events | Best Case | Delivery partner successfully subscribes to live DP feed (joined_dp_feed) | ✅ PASS | - |
+| Order WebSocket Real-Time Events | Best Case | Order WebSocket test suite executed without unhandled crashes | ❌ FAIL | `Cannot read properties of undefined (reading 'id')` |
