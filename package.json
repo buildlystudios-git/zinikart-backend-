@@ -26,7 +26,8 @@
     "test:e2e": "cross-env NODE_OPTIONS=\"--no-deprecation --import=tsx/esm\" playwright test --config=playwright.config.ts",
     "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts",
     "clear-db": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/clear-db.ts",
-    "playground": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/playground.ts"
+    "playground": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/playground.ts",
+    "test:otp": "node scripts/test-otp-cli.js"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.21",
@@ -66,6 +67,7 @@
     "graphql": "^16.8.2",
     "jsonwebtoken": "9.0.1",
     "lucide-react": "0.563.0",
+    "msg91": "^2.2.8",
     "next": "16.2.6",
     "next-themes": "0.4.6",
     "payload": "3.84.1",

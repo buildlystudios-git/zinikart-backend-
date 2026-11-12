@@ -32,6 +32,11 @@ export const mobileOtpAuthPaths = {
                   success: { type: 'boolean' },
                   mobileNumber: { type: 'string' },
                   test: { type: 'boolean' },
+                  reqId: {
+                    type: 'string',
+                    nullable: true,
+                    description: 'MSG91 request ID required for subsequent verify/retry calls in Widget flow',
+                  },
                 },
               },
             },
@@ -54,6 +59,10 @@ export const mobileOtpAuthPaths = {
             schema: {
               type: 'object',
               properties: {
+                accessToken: {
+                  type: 'string',
+                  description: 'Access token received from MSG91 OTP Widget (alternative to mobileNumber+code)',
+                },
                 mobileNumber: {
                   type: 'string',
                   example: '+919999999999',
@@ -75,7 +84,8 @@ export const mobileOtpAuthPaths = {
                   example: 'customer',
                 },
               },
-              required: ['mobileNumber', 'code'],
+              // Note: either (mobileNumber + code) OR (accessToken) is required.
+              // The Widget flow only needs accessToken; standard flow needs mobileNumber + code.
             },
           },
         },
@@ -108,6 +118,11 @@ export const mobileOtpAuthPaths = {
                         type: 'array',
                         items: { type: 'string' },
                       },
+                      cartId: {
+                        type: 'string',
+                        nullable: true,
+                        description: 'Cart ID for customer role; null for retailer/delivery_partner',
+                      },
                     },
                   },
                 },
@@ -117,6 +132,9 @@ export const mobileOtpAuthPaths = {
         },
         401: {
           description: 'Invalid OTP code',
+        },
+        403: {
+          description: 'Account not registered for the requested role',
         },
       },
     },
@@ -145,6 +163,11 @@ export const mobileOtpAuthPaths = {
                       roles: {
                         type: 'array',
                         items: { type: 'string' },
+                      },
+                      cartId: {
+                        type: 'string',
+                        nullable: true,
+                        description: 'Cart ID for customer role; null for retailer/delivery_partner',
                       },
                     },
                   },

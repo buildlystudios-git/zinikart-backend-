@@ -13,9 +13,13 @@ export const getUsersCollection = (req: PayloadRequest, usersSlug: string) => {
   return collection
 }
 
-export const findUserByMobileNumber = async (req: PayloadRequest, usersSlug: string, mobileNumber: string) => {
-  const digits = mobileNumber.replace(/\D/g, '')
-  const core10Digits = digits.length >= 10 ? digits.slice(-10) : digits
+export const findUserByMobileNumber = async (
+  req: PayloadRequest,
+  usersSlug: string,
+  mobileNumber: string,
+) => {
+  const formatted = normalizeMobileNumber(mobileNumber)
+  const digits = formatted.replace(/\D/g, '')
 
   const result = await req.payload.find({
     collection: usersSlug as 'users',
@@ -24,9 +28,18 @@ export const findUserByMobileNumber = async (req: PayloadRequest, usersSlug: str
     pagination: false,
     showHiddenFields: true,
     where: {
-      mobileNumber: {
-        like: core10Digits,
-      },
+      or: [
+        {
+          mobileNumber: {
+            equals: formatted,
+          },
+        },
+        {
+          mobileNumber: {
+            equals: digits,
+          },
+        },
+      ],
     } as any,
   })
 

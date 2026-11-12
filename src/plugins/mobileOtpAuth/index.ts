@@ -18,10 +18,13 @@ export const mobileOtpAuthPlugin =
         ...(configWithUsers.endpoints || []),
         requestOtpEndpoint(usersSlug),
         verifyOtpEndpoint(usersSlug),
-        meEndpoint(),
+        meEndpoint(usersSlug),
       ],
     }
   }
 
 export { mobileOtpAuthPaths } from './openapi'
+export { requestOtp, verifyOtp } from './otpService'
+export { requestMsg91Otp, verifyMsg91Otp } from './msg91'
+export { requestTwilioOtp, verifyTwilioOtp } from './twilio'
 

@@ -6,10 +6,21 @@ export const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || 'sk_test_mock'
 export const STRIPE_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_mock'
 export const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOKS_SIGNING_SECRET || 'whsec_mock'
 
+// OTP Authentication Provider ('msg91' | 'twilio', defaults to 'msg91')
+export const OTP_PROVIDER = (process.env.OTP_PROVIDER || 'msg91').toLowerCase()
+
 // Twilio
 export const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || ''
 export const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || ''
 export const TWILIO_VERIFY_SERVICE_SID = process.env.TWILIO_VERIFY_SERVICE_SID || ''
+
+// MSG91
+export const MSG91_AUTH_KEY = process.env.MSG91_AUTH_KEY || ''
+export const MSG91_TOKEN_AUTH = process.env.MSG91_TOKEN_AUTH || ''
+export const MSG91_WIDGET_ID = process.env.MSG91_WIDGET_ID || ''
+export const MSG91_TEMPLATE_ID = process.env.MSG91_TEMPLATE_ID || ''
+export const MSG91_OTP_LENGTH = parseInt(process.env.MSG91_OTP_LENGTH || '6', 10)
+export const MSG91_OTP_EXPIRY = parseInt(process.env.MSG91_OTP_EXPIRY || '10', 10)
 
 // Database & Payload
 export const DATABASE_URL = process.env.DATABASE_URL || ''

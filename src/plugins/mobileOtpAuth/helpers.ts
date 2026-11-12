@@ -49,7 +49,10 @@ export const getCodeFromBody = (body: OtpVerifyBody): string => {
 }
 
 export const isTestOtp = (mobileNumber: string, code?: string): boolean => {
-  // TODO: Remove this test account pattern for prod
+  if (process.env.NODE_ENV === 'production') {
+    return false
+  }
+
   const isTestAccount =
     mobileNumber === OTP_TEST_MOBILE_NUMBER || /^\+?(91)?998877\d{4}$/.test(mobileNumber)
 
@@ -60,9 +63,9 @@ export const isTestOtp = (mobileNumber: string, code?: string): boolean => {
   return isTestAccount
 }
 
-export const sanitizeMobileUser = (user: any) => {
+export const sanitizeMobileUser = (user: any, fallbackCartId?: string | number | null) => {
   const cartDoc = user.cart?.docs?.[0]
-  const cartId = cartDoc ? (typeof cartDoc === 'object' ? cartDoc.id : cartDoc) : null
+  const cartId = cartDoc ? (typeof cartDoc === 'object' ? cartDoc.id : cartDoc) : (fallbackCartId || null)
 
   return {
     id: user.id,

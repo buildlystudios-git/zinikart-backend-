@@ -119,9 +119,12 @@ Use **AWS Systems Manager Parameter Store** (cost-effective) or **AWS Secrets Ma
 | `S3_ACCESS_KEY_ID` | IAM User Access Key for S3 | (Create an IAM user with S3 Full Access) |
 | `S3_SECRET_ACCESS_KEY` | IAM User Secret Key | (Generated with IAM User) |
 | `FIREBASE_SERVICE_ACCOUNT` | Service Account JSON for FCM | (Minified JSON string of your Firebase Service Account file) |
-| `TWILIO_ACCOUNT_SID` | Twilio SID for OTP | (Copy from Twilio Console) |
-| `TWILIO_AUTH_TOKEN` | Twilio Auth Token | (Copy from Twilio Console) |
-| `TWILIO_VERIFY_SERVICE_SID`| Twilio Verify SID | (Copy from Twilio Console) |
+| `OTP_PROVIDER` | Active OTP provider | `msg91` or `twilio` (defaults to `msg91`) |
+| `MSG91_AUTH_KEY` | MSG91 API AuthKey | (Copy from MSG91 Dashboard) |
+| `MSG91_TEMPLATE_ID` | MSG91 DLT/OTP Template ID | (Copy from MSG91 Dashboard) |
+| `TWILIO_ACCOUNT_SID` | Twilio SID for OTP | (Copy from Twilio Console - when OTP_PROVIDER=twilio) |
+| `TWILIO_AUTH_TOKEN` | Twilio Auth Token | (Copy from Twilio Console - when OTP_PROVIDER=twilio) |
+| `TWILIO_VERIFY_SERVICE_SID`| Twilio Verify SID | (Copy from Twilio Console - when OTP_PROVIDER=twilio) |
 | `RAZORPAY_API_KEY` | Razorpay Key ID | (Copy from Razorpay Dashboard) |
 | `RAZORPAY_API_SECRET` | Razorpay Key Secret | (Copy from Razorpay Dashboard) |
 

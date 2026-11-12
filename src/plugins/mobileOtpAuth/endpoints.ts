@@ -4,12 +4,14 @@ import type { OtpRequestBody, OtpVerifyBody } from './types'
 import {
   getMobileNumberFromBody,
   getCodeFromBody,
+  normalizeMobileNumber,
   isTestOtp,
   sanitizeMobileUser,
   jsonResponse,
   errorResponse,
 } from './helpers'
-import { requestTwilioOtp, verifyTwilioOtp } from './twilio'
+import { requestOtp, verifyOtp } from './otpService'
+import { verifyMsg91AccessToken } from './msg91'
 import {
   findUserByMobileNumber,
   createOtpUser,
@@ -27,12 +29,15 @@ export const requestOtpEndpoint = (usersSlug: string): Endpoint => ({
       const body = (await req.json?.()) as OtpRequestBody
       const mobileNumber = getMobileNumberFromBody(body)
 
+      let reqId: string | undefined
       if (!isTestOtp(mobileNumber)) {
-        await requestTwilioOtp(mobileNumber)
+        const otpRes = await requestOtp(mobileNumber)
+        reqId = otpRes?.reqId
       }
 
       return jsonResponse(req, {
         mobileNumber,
+        ...(reqId ? { reqId } : {}),
         success: true,
         test: isTestOtp(mobileNumber),
       })
@@ -53,20 +58,36 @@ export const verifyOtpEndpoint = (usersSlug: string): Endpoint => ({
   path: '/mobile/auth/otp/verify',
   handler: async (req) => {
     try {
-      const body = (await req.json?.()) as OtpVerifyBody
-      const mobileNumber = getMobileNumberFromBody(body)
-      const code = getCodeFromBody(body)
-      const name = body.name?.trim()
-      const role = body.role || 'customer'
+      const body = (await req.json?.()) as any
+      const accessToken = body?.accessToken || body?.['access-token']
+      const name = body?.name?.trim()
+      const role = body?.role || 'customer'
 
       if (!['customer', 'retailer', 'delivery_partner'].includes(role)) {
         return errorResponse(req, 'Invalid role requested.', 400)
       }
 
-      const approved = isTestOtp(mobileNumber, code) || (await verifyTwilioOtp(mobileNumber, code))
+      let mobileNumber: string
 
-      if (!approved) {
-        return errorResponse(req, 'Invalid OTP code.', 401)
+      // Flow 1: Client authenticated via MSG91 Widget and passed the access token
+      if (accessToken) {
+        const verifiedNumber = await verifyMsg91AccessToken(accessToken)
+        if (!verifiedNumber) {
+          return errorResponse(req, 'Invalid or expired MSG91 access token.', 401)
+        }
+        mobileNumber = normalizeMobileNumber(verifiedNumber)
+      } else {
+        // Flow 2: Traditional mobileNumber + code verification
+        mobileNumber = getMobileNumberFromBody(body)
+        const code = getCodeFromBody(body)
+        const reqId = body?.reqId
+
+        const approved =
+          isTestOtp(mobileNumber, code) || (await verifyOtp(mobileNumber, code, reqId))
+
+        if (!approved) {
+          return errorResponse(req, 'Invalid OTP code.', 401)
+        }
       }
 
       let user = await findUserByMobileNumber(req, usersSlug, mobileNumber)
@@ -75,8 +96,16 @@ export const verifyOtpEndpoint = (usersSlug: string): Endpoint => ({
       if (!user) {
         exists = false
         user = await createOtpUser(req, usersSlug, mobileNumber, name, role)
+      } else {
+        const userRoles = Array.isArray(user.roles) ? user.roles : []
+        const isAdmin = userRoles.includes('admin')
+        if (!isAdmin && role !== 'customer' && !userRoles.includes(role)) {
+          const roleLabel = role === 'delivery_partner' ? 'delivery partner' : role
+          return errorResponse(req, `Your account is not registered as a ${roleLabel}.`, 403)
+        }
       }
 
+      let cartId: string | number | null = null
       // Auto-create cart if the user doesn't have one and is a customer
       if (role === 'customer') {
         const existingCart = await req.payload.find({
@@ -87,13 +116,16 @@ export const verifyOtpEndpoint = (usersSlug: string): Endpoint => ({
           overrideAccess: true,
         })
         if (existingCart.totalDocs === 0) {
-          await req.payload.create({
+          const createdCart = await req.payload.create({
             collection: 'carts',
             data: {
               customer: user.id,
             },
             overrideAccess: true,
           })
+          cartId = createdCart.id
+        } else {
+          cartId = existingCart.docs[0].id
         }
       }
 
@@ -131,7 +163,7 @@ export const verifyOtpEndpoint = (usersSlug: string): Endpoint => ({
           exists,
           exp,
           token,
-          user: sanitizeMobileUser(user),
+          user: sanitizeMobileUser(user, cartId),
         },
         {
           headers,
@@ -149,7 +181,7 @@ export const verifyOtpEndpoint = (usersSlug: string): Endpoint => ({
   },
 })
 
-export const meEndpoint = (): Endpoint => ({
+export const meEndpoint = (usersSlug: string = 'users'): Endpoint => ({
   method: 'get',
   path: '/mobile/auth/me',
   handler: async (req) => {
@@ -157,10 +189,18 @@ export const meEndpoint = (): Endpoint => ({
       return errorResponse(req, 'Unauthorized.', 401)
     }
 
-    const status = await getUserStatus(req, req.user)
+    const fullUser = await req.payload.findByID({
+      collection: usersSlug as 'users',
+      id: req.user.id,
+      depth: 1,
+      overrideAccess: true,
+    })
+
+    const currentUser = fullUser || req.user
+    const status = await getUserStatus(req, currentUser)
 
     return jsonResponse(req, {
-      user: sanitizeMobileUser(req.user),
+      user: sanitizeMobileUser(currentUser),
       status,
     })
   },
