@@ -1,4 +1,4 @@
-name: Deploy to Amazon ECS Express Mode
+name: Deploy to Amazon ECS (Production)
 
 on:
   push:
@@ -6,13 +6,15 @@ on:
       - main
 
 env:
-  AWS_REGION: ap-south-1 # Replace with your region
-  ECR_REPOSITORY: zinikart-backend # Replace with your ECR repo name
-  ECS_CLUSTER: zinikart-cluster # Replace with your ECS cluster name
-  ECS_SERVICE: zinikart-api-service # Replace with your ECS service name
+  AWS_REGION: ap-south-1
+  ECR_APP_REPOSITORY: zinikart-backend
+  ECR_WS_REPOSITORY: zinikart-ws
+  ECS_CLUSTER: zinikart-prod
+  ECS_APP_SERVICE: zinikart-prod-app
+  ECS_WS_SERVICE: zinikart-prod-ws
 
 permissions:
-  id-token: write # Required for AWS OIDC authentication
+  id-token: write
   contents: read
 
 jobs:
@@ -27,30 +29,32 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          # IMPORTANT: Replace this ARN with the actual IAM Role ARN you create for GitHub OIDC
-          role-to-assume: arn:aws:iam::123456789012:role/GitHubActionsECSRole
+          role-to-assume: arn:aws:iam::567519737321:role/GitHubActionsECSRole
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build, tag, and push image to Amazon ECR
-        id: build-image
+      - name: Build, tag, and push App image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+          docker build -t $ECR_REGISTRY/$ECR_APP_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_APP_REPOSITORY:latest -f Dockerfile .
+          docker push $ECR_REGISTRY/$ECR_APP_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_APP_REPOSITORY:latest
 
-      - name: Deploy to Amazon ECS Express Mode
+      - name: Build, tag, and push WebSocket image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          # ECS Express Mode handles deployments directly by forcing a new deployment.
-          # Since it pulls 'latest' (or a specific tag), updating the service will pull the new image.
-          aws ecs update-service \
-            --cluster ${{ env.ECS_CLUSTER }} \
-            --service ${{ env.ECS_SERVICE }} \
-            --force-new-deployment
+          docker build -t $ECR_REGISTRY/$ECR_WS_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_WS_REPOSITORY:latest -f Dockerfile.ws .
+          docker push $ECR_REGISTRY/$ECR_WS_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_WS_REPOSITORY:latest
+
+      - name: Deploy services to Amazon ECS
+        run: |
+          aws ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service ${{ env.ECS_APP_SERVICE }} --force-new-deployment
+          aws ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service ${{ env.ECS_WS_SERVICE }} --force-new-deployment

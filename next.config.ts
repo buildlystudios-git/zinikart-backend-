@@ -32,6 +32,14 @@ const nextConfig: NextConfig = {
           protocol: url.protocol.replace(':', '') as 'http' | 'https',
         }
       }),
+      {
+        hostname: 'api.zinikart.com',
+        protocol: 'https',
+      },
+      {
+        hostname: '*.cloudfront.net',
+        protocol: 'https',
+      },
     ],
   },
   reactStrictMode: true,
