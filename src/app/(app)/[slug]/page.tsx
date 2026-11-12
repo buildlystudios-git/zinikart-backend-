@@ -78,6 +78,10 @@ export async function generateMetadata({ params }: Args): Promise<Metadata> {
     slug,
   })
 
+  if (!page) {
+    return {}
+  }
+
   return generateMeta({ doc: page })
 }
 

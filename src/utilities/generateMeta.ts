@@ -5,7 +5,7 @@ import type { Page, Product } from '../payload-types'
 import { mergeOpenGraph } from './mergeOpenGraph'
 import { NEXT_PUBLIC_SERVER_URL } from '@/constants/env'
 
-export const generateMeta = async (args: { doc: Page | Product }): Promise<Metadata> => {
+export const generateMeta = async (args: { doc?: Page | Product | null }): Promise<Metadata> => {
   const { doc } = args || {}
 
   const ogImage =
