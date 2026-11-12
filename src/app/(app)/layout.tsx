@@ -38,6 +38,8 @@ const twitterSite = TWITTER_SITE ? ensureStartsWith(TWITTER_SITE, 'https://') : 
     }),
 } */
 
+export const dynamic = 'force-dynamic'
+
 export default async function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
