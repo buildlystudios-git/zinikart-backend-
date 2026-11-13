@@ -2,6 +2,7 @@ import { MigrateUpArgs, MigrateDownArgs, sql } from '@payloadcms/db-postgres'
 
 export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   await db.execute(sql`
+   CREATE SCHEMA IF NOT EXISTS "payload";
    CREATE TYPE "payload"."enum_retailers_payment_methods_method_type" AS ENUM('bank_account', 'upi');
   CREATE TYPE "payload"."enum_retailers_online_status" AS ENUM('online', 'offline');
   CREATE TYPE "payload"."enum_delivery_partners_payment_methods_method_type" AS ENUM('bank_account', 'upi');
