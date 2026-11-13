@@ -28,6 +28,7 @@ import { Footer } from '@/globals/Footer'
 import { Header } from '@/globals/Header'
 import { AgentSettings } from '@/globals/AgentSettings'
 import { Ratings } from '@/collections/Ratings'
+import { migrations } from './migrations'
 import { Wishlists } from '@/collections/Wishlists'
 import { ContactUs } from '@/collections/ContactUs'
 import { plugins } from './plugins'
@@ -79,6 +80,7 @@ export default buildConfig({
       connectionString: DATABASE_URL,
     },
     schemaName: 'payload',
+    ...(process.env.NEXT_PHASE === 'phase-production-build' ? {} : { prodMigrations: migrations }),
   }),
   editor: lexicalEditor({
     features: () => {
